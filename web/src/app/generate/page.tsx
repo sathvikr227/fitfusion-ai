@@ -1,5 +1,6 @@
 "use client"
-export const dynamic = "force-dynamic";
+
+export const dynamic = "force-dynamic"
 
 import { useEffect, useMemo, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -125,12 +126,13 @@ export default function GeneratePage() {
   }, [workoutDays])
 
   const dailyWorkoutBurn = useMemo(() => {
+    if (!activeWorkoutDays || activeWorkoutDays === 0) return 0
     return Math.round(totalWorkoutBurn / activeWorkoutDays)
   }, [totalWorkoutBurn, activeWorkoutDays])
 
   const dailyNetCalories = useMemo(() => {
     if (!plan) return null
-    return Math.round(totalDietCalories - dailyWorkoutBurn)
+    return Math.round((totalDietCalories || 0) - (dailyWorkoutBurn || 0))
   }, [plan, totalDietCalories, dailyWorkoutBurn])
 
   const rawText = useMemo(() => {
@@ -190,6 +192,7 @@ export default function GeneratePage() {
     if (fromOnboarding) {
       handleGenerate()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fromOnboarding])
 
   const handleConfirm = async () => {
