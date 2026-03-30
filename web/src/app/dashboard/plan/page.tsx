@@ -85,6 +85,12 @@ function formatDateTime(value: string) {
   return new Date(value).toLocaleString()
 }
 
+function getActualWorkoutDays(workoutDays: WorkoutDay[]) {
+  return workoutDays.filter(
+    (day) => String(day.type ?? "").toLowerCase() !== "rest"
+  ).length
+}
+
 export default function PlanPage() {
   const router = useRouter()
 
@@ -93,7 +99,9 @@ export default function PlanPage() {
   const [input, setInput] = useState("")
   const [loading, setLoading] = useState(true)
   const [loadingChat, setLoadingChat] = useState(false)
+  const [regenerating, setRegenerating] = useState(false)
   const [chatError, setChatError] = useState<string | null>(null)
+  const [status, setStatus] = useState<string | null>(null)
   const [sessionId, setSessionId] = useState<string | null>(null)
 
   const plan = useMemo(() => {
@@ -123,8 +131,7 @@ export default function PlanPage() {
   }, [plan, workoutDays])
 
   const activeWorkoutDays = useMemo(() => {
-    const count = workoutDays.filter((day) => getWorkoutDayBurn(day) > 0).length
-    return count > 0 ? count : 1
+    return getActualWorkoutDays(workoutDays)
   }, [workoutDays])
 
   const dailyWorkoutBurn = useMemo(() => {
@@ -199,6 +206,7 @@ export default function PlanPage() {
 
     setLoadingChat(true)
     setChatError(null)
+    setStatus(null)
 
     try {
       const res = await fetch("/api/chat", {
@@ -227,7 +235,6 @@ export default function PlanPage() {
         setPlanContent(nextPlan)
         setInput("")
 
-        // ✅ SAVE TO DATABASE
         const {
           data: { user },
         } = await supabase.auth.getUser()
@@ -243,7 +250,6 @@ export default function PlanPage() {
           } else {
             console.log("Plan saved successfully ✅")
 
-            // ✅ REFRESH HISTORY
             const { data: allPlans } = await supabase
               .from("workout_plans")
               .select("*")
@@ -263,6 +269,46 @@ export default function PlanPage() {
       setChatError(error?.message || "Unable to update plan right now.")
     } finally {
       setLoadingChat(false)
+    }
+  }
+
+  const handleRegeneratePlan = async () => {
+    setRegenerating(true)
+    setStatus(null)
+    setChatError(null)
+
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      if (!user) {
+        router.replace("/")
+        return
+      }
+
+      const res = await fetch("/api/generate-plan", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: user.id,
+        }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to regenerate plan")
+      }
+
+      setStatus("✅ Plan regenerated successfully")
+      router.refresh()
+    } catch (err: any) {
+      setStatus(err.message || "Failed to regenerate plan")
+    } finally {
+      setRegenerating(false)
     }
   }
 
@@ -486,11 +532,21 @@ export default function PlanPage() {
                 >
                   {loadingChat ? "Updating..." : "Update"}
                 </button>
+
+                <button
+                  onClick={handleRegeneratePlan}
+                  disabled={regenerating}
+                  className="rounded-xl bg-gradient-to-r from-cyan-500 to-purple-600 px-5 py-3 font-semibold text-white shadow-lg transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {regenerating ? "Regenerating..." : "Regenerate Plan"}
+                </button>
               </div>
 
               {chatError ? (
                 <p className="mt-3 text-sm text-rose-500">{chatError}</p>
               ) : null}
+
+              {status ? <p className="mt-3 text-sm text-slate-600">{status}</p> : null}
             </div>
           </div>
 

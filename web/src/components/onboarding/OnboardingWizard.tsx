@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo, useState, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "../../lib/supabase/client"
 
@@ -143,7 +143,7 @@ export default function OnboardingWizard() {
         return
       }
 
-      const { error: upsertError } = await supabase.from("profiles").upsert({
+      const profilePayload = {
         id: user.id,
         full_name: (user.user_metadata as any)?.full_name || "",
         age: formData.age ? Number(formData.age) : null,
@@ -161,7 +161,9 @@ export default function OnboardingWizard() {
           ? Number(formData.restDaysPerWeek)
           : null,
         onboarding_completed: true,
-      })
+      }
+
+      const { error: upsertError } = await supabase.from("profiles").upsert(profilePayload)
 
       if (upsertError) {
         console.error("Failed to save profile:", upsertError)
@@ -170,37 +172,62 @@ export default function OnboardingWizard() {
         return
       }
 
-      router.push("/generate")
+      const { data: existingLog, error: logCheckError } = await supabase
+        .from("progress_logs")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("log_type", "onboarding")
+        .limit(1)
+
+      if (logCheckError) {
+        console.error("Failed to check onboarding log:", logCheckError)
+      }
+
+      if (!existingLog || existingLog.length === 0) {
+        const { error: logInsertError } = await supabase.from("progress_logs").insert({
+          user_id: user.id,
+          weight: formData.weight ? Number(formData.weight) : null,
+          completed: false,
+          calories_burned: 0,
+          calories_consumed: 0,
+          log_type: "onboarding",
+        })
+
+        if (logInsertError) {
+          console.error("Failed to insert onboarding progress log:", logInsertError)
+        }
+      }
+
+      router.push("/generate?from=onboarding")
     } catch (err) {
       console.error("Unexpected error saving profile", err)
       setError("Unexpected error. Please try again.")
+    } finally {
       setSaving(false)
     }
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-slate-50 to-blue-50 flex items-center justify-center px-4 py-10">
-      <div className="w-full max-w-3xl rounded-3xl border border-slate-200 bg-white/90 shadow-2xl backdrop-blur-sm overflow-hidden">
-        <div className="px-8 pt-8 pb-6 border-b border-slate-100">
+      <div className="w-full max-w-3xl overflow-hidden rounded-3xl border border-slate-200 bg-white/90 shadow-2xl backdrop-blur-sm">
+        <div className="border-b border-slate-100 px-8 pb-6 pt-8">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <p className="text-sm font-medium text-purple-600">
-                FitFusion AI Setup
-              </p>
-              <h1 className="text-3xl font-semibold text-slate-900 mt-1">
+              <p className="text-sm font-medium text-purple-600">FitFusion AI Setup</p>
+              <h1 className="mt-1 text-3xl font-semibold text-slate-900">
                 Personalize your fitness experience
               </h1>
-              <p className="text-slate-500 mt-2 text-sm">
+              <p className="mt-2 text-sm text-slate-500">
                 We’ll use this to generate your workout and nutrition plan.
               </p>
             </div>
 
-            <div className="hidden sm:flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-r from-purple-600 to-cyan-500 text-white font-bold text-lg shadow-lg">
+            <div className="hidden h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-r from-purple-600 to-cyan-500 text-lg font-bold text-white shadow-lg sm:flex">
               {step}
             </div>
           </div>
 
-          <div className="mt-6 h-2 w-full rounded-full bg-slate-100 overflow-hidden">
+          <div className="mt-6 h-2 w-full overflow-hidden rounded-full bg-slate-100">
             <div
               className="h-full rounded-full bg-gradient-to-r from-purple-600 to-cyan-500 transition-all duration-300"
               style={{ width: progress }}
@@ -210,11 +237,8 @@ export default function OnboardingWizard() {
 
         <div className="px-8 py-8">
           {step === 1 && (
-            <StepCard
-              title="Basic profile"
-              subtitle="Let’s start with your age and gender."
-            >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <StepCard title="Basic profile" subtitle="Let’s start with your age and gender.">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <Input
                   label="Age"
                   placeholder="Enter your age"
@@ -238,7 +262,7 @@ export default function OnboardingWizard() {
               title="Body metrics"
               subtitle="These help us estimate calorie needs and training intensity."
             >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <Input
                   label="Height (cm)"
                   placeholder="e.g. 175"
@@ -263,7 +287,7 @@ export default function OnboardingWizard() {
               title="Goal and activity"
               subtitle="We tailor the plan to your current lifestyle and target."
             >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <Select
                   label="Primary Goal"
                   value={formData.goal}
@@ -297,17 +321,12 @@ export default function OnboardingWizard() {
               title="Diet preference"
               subtitle="This helps us generate meal plans you’ll actually follow."
             >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <Select
                   label="Diet Preference"
                   value={formData.dietPreference}
                   onChange={(value) => updateField("dietPreference", value)}
-                  options={[
-                    "Vegetarian",
-                    "Non-Vegetarian",
-                    "Vegan",
-                    "Eggetarian",
-                  ]}
+                  options={["Vegetarian", "Non-Vegetarian", "Vegan", "Eggetarian"]}
                 />
               </div>
             </StepCard>
@@ -318,7 +337,7 @@ export default function OnboardingWizard() {
               title="Training style"
               subtitle="Pick the type of movement you enjoy most."
             >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <Select
                   label="Preferred Training"
                   value={formData.trainingStyle}
@@ -341,7 +360,7 @@ export default function OnboardingWizard() {
               title="Lifestyle extras"
               subtitle="These final details help the AI build a smarter weekly plan."
             >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <Input
                   label="Injuries or limitations"
                   placeholder="e.g. Knee pain, shoulder issue (optional)"
@@ -378,11 +397,11 @@ export default function OnboardingWizard() {
               </div>
 
               <div className="mt-8">
-                <h3 className="text-lg font-semibold text-slate-900 mb-4">
+                <h3 className="mb-4 text-lg font-semibold text-slate-900">
                   Review your profile
                 </h3>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <SummaryItem label="Age" value={formData.age} />
                   <SummaryItem label="Gender" value={formData.gender} />
                   <SummaryItem
@@ -394,22 +413,10 @@ export default function OnboardingWizard() {
                     value={formData.weight ? `${formData.weight} kg` : ""}
                   />
                   <SummaryItem label="Goal" value={formData.goal} />
-                  <SummaryItem
-                    label="Activity Level"
-                    value={formData.activityLevel}
-                  />
-                  <SummaryItem
-                    label="Diet Preference"
-                    value={formData.dietPreference}
-                  />
-                  <SummaryItem
-                    label="Training Style"
-                    value={formData.trainingStyle}
-                  />
-                  <SummaryItem
-                    label="Workout Time"
-                    value={formData.dailyTimeAvailable}
-                  />
+                  <SummaryItem label="Activity Level" value={formData.activityLevel} />
+                  <SummaryItem label="Diet Preference" value={formData.dietPreference} />
+                  <SummaryItem label="Training Style" value={formData.trainingStyle} />
+                  <SummaryItem label="Workout Time" value={formData.dailyTimeAvailable} />
                   <SummaryItem label="Sleep Hours" value={formData.sleepHours} />
                   <SummaryItem label="Days Off" value={formData.restDaysPerWeek} />
                   <SummaryItem label="Injuries" value={formData.injuries} />
@@ -418,15 +425,13 @@ export default function OnboardingWizard() {
             </StepCard>
           )}
 
-          {error && (
-            <p className="mt-6 text-sm text-red-500 font-medium">{error}</p>
-          )}
+          {error ? <p className="mt-6 text-sm font-medium text-red-500">{error}</p> : null}
 
           <div className="mt-8 flex items-center justify-between gap-4">
             <button
               onClick={handleBack}
               disabled={step === 1 || saving}
-              className="px-5 py-3 rounded-xl border border-slate-200 bg-white text-slate-700 font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 transition"
+              className="rounded-xl border border-slate-200 bg-white px-5 py-3 font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Back
             </button>
@@ -435,7 +440,7 @@ export default function OnboardingWizard() {
               <button
                 onClick={handleNext}
                 disabled={saving}
-                className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-cyan-500 text-white font-semibold shadow-lg hover:opacity-95 transition"
+                className="rounded-xl bg-gradient-to-r from-purple-600 to-cyan-500 px-6 py-3 font-semibold text-white shadow-lg transition hover:opacity-95"
               >
                 Continue
               </button>
@@ -443,7 +448,7 @@ export default function OnboardingWizard() {
               <button
                 onClick={handleContinue}
                 disabled={saving}
-                className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-cyan-500 text-white font-semibold shadow-lg hover:opacity-95 transition"
+                className="rounded-xl bg-gradient-to-r from-purple-600 to-cyan-500 px-6 py-3 font-semibold text-white shadow-lg transition hover:opacity-95"
               >
                 {saving ? "Saving..." : "Continue to Dashboard"}
               </button>
@@ -462,12 +467,12 @@ function StepCard({
 }: {
   title: string
   subtitle: string
-  children: React.ReactNode
+  children: ReactNode
 }) {
   return (
     <div>
       <h2 className="text-2xl font-semibold text-slate-900">{title}</h2>
-      <p className="text-slate-500 mt-2 mb-6">{subtitle}</p>
+      <p className="mb-6 mt-2 text-slate-500">{subtitle}</p>
       {children}
     </div>
   )
@@ -488,15 +493,13 @@ function Input({
 }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-slate-700 mb-2">
-        {label}
-      </label>
+      <label className="mb-2 block text-sm font-medium text-slate-700">{label}</label>
       <input
         type={type}
         value={value}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
       />
     </div>
   )
@@ -515,13 +518,11 @@ function Select({
 }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-slate-700 mb-2">
-        {label}
-      </label>
+      <label className="mb-2 block text-sm font-medium text-slate-700">{label}</label>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
+        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
       >
         <option value="">Select an option</option>
         {options.map((option) => (
@@ -534,17 +535,11 @@ function Select({
   )
 }
 
-function SummaryItem({
-  label,
-  value,
-}: {
-  label: string
-  value: string
-}) {
+function SummaryItem({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
       <p className="text-sm text-slate-500">{label}</p>
-      <p className="text-base font-semibold text-slate-900 mt-1">
+      <p className="mt-1 text-base font-semibold text-slate-900">
         {value || "-"}
       </p>
     </div>
