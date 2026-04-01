@@ -1,24 +1,17 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import Splash from "../components/layout/Splash"
+import AIPulse from "../components/layout/AIPulse" // Our new modern component
 import { supabase } from "../lib/supabase/client"
 
 export default function Home() {
   const router = useRouter()
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    let mounted = true
-
-    const timer = setTimeout(async () => {
-      if (!mounted) return
-
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (!mounted) return
+    async function checkUser() {
+      const { data: { user } } = await supabase.auth.getUser()
 
       if (!user) {
         router.replace("/login")
@@ -27,35 +20,24 @@ export default function Home() {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("id, onboarding_completed")
+        .select("onboarding_completed")
         .eq("id", user.id)
         .maybeSingle()
 
-      if (!profile || !profile.onboarding_completed) {
+      if (!profile?.onboarding_completed) {
         router.replace("/onboarding")
         return
       }
 
-      const { data: latestPlan } = await supabase
-        .from("workout_plans")
-        .select("id")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle()
-
-      if (latestPlan?.id) {
-        router.replace("/dashboard/home")
-      } else {
-        router.replace("/generate")
-      }
-    }, 2000)
-
-    return () => {
-      mounted = false
-      clearTimeout(timer)
+      router.replace("/dashboard")
     }
+
+    checkUser()
   }, [router])
 
-  return <Splash />
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <AIPulse />
+    </div>
+  )
 }

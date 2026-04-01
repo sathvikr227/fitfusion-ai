@@ -2,14 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --bg: #0a0a0a;
-  --card: #111111;
-  --primary: #7c3aed;
-  --secondary: #06b6d4;
+body {
+  background: linear-gradient(to bottom right, #f8fafc, #eef2ff);
+  color: #0f172a;
+  font-family: sans-serif;
+}
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
-body {
-  background: radial-gradient(circle at top, #111, #000);
-  color: white;
+@keyframes bounce-subtle {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.1); opacity: 0.8; }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 8s linear infinite;
+}
+
+.animate-bounce-subtle {
+  animation: bounce-subtle 3s ease-in-out infinite;
 }
