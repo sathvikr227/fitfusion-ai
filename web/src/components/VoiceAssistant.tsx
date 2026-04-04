@@ -110,6 +110,18 @@ export default function VoiceAssistant() {
     setListening(false)
   }
 
+  const buildPlanSummary = (planJson: string): string => {
+    try {
+      const plan = typeof planJson === "string" ? JSON.parse(planJson) : planJson
+      const workoutDays = plan.workout_plan?.length ?? 0
+      const calories = plan.diet_plan?.daily_total_calories ?? null
+      const meals = plan.diet_plan?.meals?.length ?? 0
+      return `${workoutDays} workout days per week, ${meals} meals per day${calories ? `, targeting ${calories} kcal/day` : ""}.`
+    } catch {
+      return ""
+    }
+  }
+
   const sendMessage = async (text: string) => {
     if (!text.trim()) return
     setLoading(true)
@@ -119,37 +131,21 @@ export default function VoiceAssistant() {
     setMessages((prev) => [...prev, userMsg])
 
     try {
-      const res = await fetch("/api/chat", {
+      const planSummary = currentPlan ? buildPlanSummary(currentPlan) : ""
+
+      const res = await fetch("/api/voice-chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: text,
-          currentPlan,
-          sessionId,
-        }),
+        body: JSON.stringify({ message: text, planSummary }),
       })
 
-      if (!res.ok || !res.body) throw new Error("AI request failed")
+      if (!res.ok) throw new Error("AI request failed")
 
-      const reader = res.body.getReader()
-      const decoder = new TextDecoder()
-      let fullText = ""
+      const data = await res.json()
+      const reply = data.reply || "Sorry, I couldn't understand that."
 
-      // stream into a live assistant message
-      setMessages((prev) => [...prev, { role: "assistant", text: "" }])
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        fullText += decoder.decode(value)
-        setMessages((prev) => {
-          const updated = [...prev]
-          updated[updated.length - 1] = { role: "assistant", text: fullText }
-          return updated
-        })
-      }
-
-      speak(fullText)
+      setMessages((prev) => [...prev, { role: "assistant", text: reply }])
+      speak(reply)
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to get response"
       setError(msg)
