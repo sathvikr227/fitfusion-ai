@@ -12,21 +12,27 @@ function getGroqClient() {
 export async function POST(req: Request) {
   try {
     const groq = getGroqClient()
-    const { message, planSummary } = await req.json()
+    const { message, planSummary, history } = await req.json()
 
     if (!message) {
       return NextResponse.json({ error: "Missing message" }, { status: 400 })
     }
 
+    const systemPrompt = `You are a friendly, knowledgeable AI fitness coach named FitFusion. Answer conversationally in 1-3 short sentences. Do NOT output JSON or structured data — only plain natural language. Be encouraging and specific.${planSummary ? `\n\nUser's current fitness plan: ${planSummary}` : ""}`
+
+    // Include conversation history for multi-turn context (exclude the current message which is the last item)
+    const conversationHistory: Array<{ role: "user" | "assistant" | "system"; content: string }> =
+      Array.isArray(history) && history.length > 1
+        ? history.slice(0, -1).map((m: { role: string; content: string }) => ({
+            role: m.role as "user" | "assistant",
+            content: m.content,
+          }))
+        : []
+
     const messages: Array<{ role: "user" | "assistant" | "system"; content: string }> = [
-      {
-        role: "system",
-        content: `You are a friendly AI fitness coach. Answer the user's question conversationally in 1-3 short sentences. Do NOT output JSON or structured data — only plain natural language. Be encouraging and specific.${planSummary ? `\n\nUser's current plan summary: ${planSummary}` : ""}`,
-      },
-      {
-        role: "user",
-        content: message,
-      },
+      { role: "system", content: systemPrompt },
+      ...conversationHistory,
+      { role: "user", content: message },
     ]
 
     const completion = await groq.chat.completions.create({

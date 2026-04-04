@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { Mic, MicOff, X, Volume2 } from "lucide-react"
+import { Mic, MicOff, X, Volume2, Send } from "lucide-react"
 import { supabase } from "../lib/supabase/client"
 
 type Msg = { role: "user" | "assistant"; text: string }
@@ -12,30 +12,20 @@ export default function VoiceAssistant() {
   const [speaking, setSpeaking] = useState(false)
   const [loading, setLoading] = useState(false)
   const [transcript, setTranscript] = useState("")
+  const [textInput, setTextInput] = useState("")
   const [messages, setMessages] = useState<Msg[]>([])
   const [error, setError] = useState<string | null>(null)
-  const [sessionId, setSessionId] = useState<string | null>(null)
   const [currentPlan, setCurrentPlan] = useState<string>("")
   const recognitionRef = useRef<any>(null)
   const synthRef = useRef<any>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  // init session + plan on open
+  // init plan on open
   useEffect(() => {
     if (!open) return
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
-
-      const { data: s } = await supabase
-        .from("chat_sessions")
-        .select("id")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle()
-
-      if (s?.id) setSessionId(s.id)
 
       const { data: plan } = await supabase
         .from("workout_plans")
@@ -80,7 +70,7 @@ export default function VoiceAssistant() {
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     if (!SpeechRecognition) {
-      setError("Speech recognition not supported in this browser. Try Chrome.")
+      setError("Speech recognition not supported. Try Chrome, or type below.")
       return
     }
 
@@ -126,17 +116,25 @@ export default function VoiceAssistant() {
     if (!text.trim()) return
     setLoading(true)
     setTranscript("")
+    setTextInput("")
 
     const userMsg: Msg = { role: "user", text }
-    setMessages((prev) => [...prev, userMsg])
+    const updatedMessages = [...messages, userMsg]
+    setMessages(updatedMessages)
 
     try {
       const planSummary = currentPlan ? buildPlanSummary(currentPlan) : ""
 
+      // Send last 10 messages as history for multi-turn context
+      const history = updatedMessages.slice(-10).map((m) => ({
+        role: m.role,
+        content: m.text,
+      }))
+
       const res = await fetch("/api/voice-chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, planSummary }),
+        body: JSON.stringify({ message: text, planSummary, history }),
       })
 
       if (!res.ok) throw new Error("AI request failed")
@@ -152,6 +150,11 @@ export default function VoiceAssistant() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleTextSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (textInput.trim() && !loading) sendMessage(textInput.trim())
   }
 
   return (
@@ -171,7 +174,7 @@ export default function VoiceAssistant() {
 
       {/* Panel */}
       {open && (
-        <div className="fixed bottom-24 right-6 z-50 flex w-80 flex-col rounded-3xl border border-slate-200 bg-white shadow-2xl md:w-96">
+        <div className="fixed bottom-24 right-6 z-50 flex w-80 flex-col rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xl md:w-96">
           {/* Header */}
           <div className="flex items-center gap-3 rounded-t-3xl bg-gradient-to-r from-purple-600 to-cyan-500 px-5 py-4">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20">
@@ -193,9 +196,9 @@ export default function VoiceAssistant() {
           >
             {messages.length === 0 && (
               <div className="py-6 text-center text-xs text-slate-400">
-                Tap the mic and ask something like:<br />
-                <span className="font-medium text-slate-600">"What's my workout today?"</span><br />
-                <span className="font-medium text-slate-600">"How many calories should I eat?"</span>
+                Hold the mic or type below — ask something like:<br />
+                <span className="font-medium text-slate-500 dark:text-slate-300">"What&apos;s my workout today?"</span><br />
+                <span className="font-medium text-slate-500 dark:text-slate-300">"How many calories should I eat?"</span>
               </div>
             )}
             {messages.map((msg, i) => (
@@ -204,14 +207,14 @@ export default function VoiceAssistant() {
                 className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm ${
                   msg.role === "user"
                     ? "ml-auto bg-purple-600 text-white"
-                    : "bg-slate-100 text-slate-900"
+                    : "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100"
                 }`}
               >
-                {msg.text || (loading && i === messages.length - 1 ? "..." : "")}
+                {msg.text}
               </div>
             ))}
             {loading && messages[messages.length - 1]?.role === "user" && (
-              <div className="max-w-[85%] rounded-2xl bg-slate-100 px-3 py-2 text-sm text-slate-400">
+              <div className="max-w-[85%] rounded-2xl bg-slate-100 dark:bg-slate-800 px-3 py-2 text-sm text-slate-400">
                 Thinking...
               </div>
             )}
@@ -219,20 +222,39 @@ export default function VoiceAssistant() {
 
           {/* Transcript preview */}
           {transcript && (
-            <div className="mx-4 rounded-xl bg-purple-50 px-3 py-2 text-xs text-purple-700">
+            <div className="mx-4 rounded-xl bg-purple-50 dark:bg-purple-900/30 px-3 py-2 text-xs text-purple-700 dark:text-purple-300">
               {transcript}
             </div>
           )}
 
           {/* Error */}
           {error && (
-            <div className="mx-4 rounded-xl bg-rose-50 px-3 py-2 text-xs text-rose-600">
+            <div className="mx-4 rounded-xl bg-rose-50 dark:bg-rose-900/30 px-3 py-2 text-xs text-rose-600 dark:text-rose-400">
               {error}
             </div>
           )}
 
+          {/* Text input */}
+          <form onSubmit={handleTextSubmit} className="mx-4 mb-2 flex gap-2">
+            <input
+              type="text"
+              value={textInput}
+              onChange={(e) => setTextInput(e.target.value)}
+              placeholder="Type a message..."
+              disabled={loading}
+              className="flex-1 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder-slate-400 outline-none focus:border-purple-400 disabled:opacity-50"
+            />
+            <button
+              type="submit"
+              disabled={loading || !textInput.trim()}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-r from-purple-600 to-cyan-500 text-white disabled:opacity-40"
+            >
+              <Send className="h-4 w-4" />
+            </button>
+          </form>
+
           {/* Controls */}
-          <div className="flex items-center gap-3 rounded-b-3xl border-t border-slate-100 p-4">
+          <div className="flex items-center gap-3 rounded-b-3xl border-t border-slate-100 dark:border-slate-800 p-4">
             <button
               onMouseDown={startListening}
               onMouseUp={stopListening}
@@ -255,7 +277,7 @@ export default function VoiceAssistant() {
             {speaking && (
               <button
                 onClick={stopSpeaking}
-                className="flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                className="flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
                 title="Stop speaking"
               >
                 <Volume2 className="h-4 w-4" />

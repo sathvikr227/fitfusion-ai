@@ -48,6 +48,33 @@ type ApiResponse = Partial<HelpResult> & {
   message?: string;
 };
 
+function ExerciseGif({ src, alt }: { src: string; alt: string }) {
+  const [loaded, setLoaded] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  return (
+    <div className="relative h-44 w-full overflow-hidden rounded-2xl bg-slate-100 dark:bg-slate-700">
+      {!loaded && !failed && (
+        <div className="absolute inset-0 animate-pulse bg-slate-200 dark:bg-slate-600" />
+      )}
+      {failed ? (
+        <div className="flex h-full w-full items-center justify-center text-slate-400 dark:text-slate-500">
+          <Dumbbell className="h-10 w-10" />
+        </div>
+      ) : (
+        <img
+          src={src}
+          alt={alt}
+          loading="lazy"
+          onLoad={() => setLoaded(true)}
+          onError={() => setFailed(true)}
+          className={`h-full w-full object-contain p-2 transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}
+        />
+      )}
+    </div>
+  );
+}
+
 export default function HelpPage() {
   const [mode, setMode] = useState<HelpMode>("diet");
   const [query, setQuery] = useState("");
@@ -430,13 +457,12 @@ export default function HelpPage() {
                       className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                     >
                       {exercise.gifUrl ? (
-                        <img
-                          src={exercise.gifUrl}
-                          alt={exercise.title}
-                          loading="lazy"
-                          className="h-44 w-full rounded-2xl bg-slate-50 dark:bg-slate-800/50 object-contain p-2"
-                        />
-                      ) : null}
+                        <ExerciseGif src={exercise.gifUrl} alt={exercise.title} />
+                      ) : (
+                        <div className="flex h-44 w-full items-center justify-center rounded-2xl bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-500">
+                          <Dumbbell className="h-10 w-10" />
+                        </div>
+                      )}
 
                       <div className="mt-4 flex items-start justify-between gap-3">
                         <div>
@@ -490,13 +516,8 @@ export default function HelpPage() {
             ) : (
               <>
                 {result.gifUrl ? (
-                  <div className="mt-6 flex justify-center">
-                    <img
-                      src={result.gifUrl}
-                      alt={result.title}
-                      loading="lazy"
-                      className="max-h-72 w-full rounded-2xl bg-slate-50 dark:bg-slate-800/50 object-contain p-3"
-                    />
+                  <div className="mt-6">
+                    <ExerciseGif src={result.gifUrl} alt={result.title} />
                   </div>
                 ) : null}
 
