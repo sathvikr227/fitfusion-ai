@@ -121,12 +121,12 @@ function statusColor(status: string | null) {
 }
 
 function statusBg(status: string | null) {
-  if (!status) return "bg-slate-50"
+  if (!status) return "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700"
   const s = status.toLowerCase()
-  if (s === "fit") return "bg-emerald-50 border-emerald-200"
-  if (s === "underweight") return "bg-amber-50 border-amber-200"
-  if (s === "overweight" || s === "obese") return "bg-rose-50 border-rose-200"
-  return "bg-slate-50 border-slate-200 dark:border-slate-700"
+  if (s === "fit") return "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800"
+  if (s === "underweight") return "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800"
+  if (s === "overweight" || s === "obese") return "bg-rose-50 dark:bg-rose-900/20 border-rose-200 dark:border-rose-800"
+  return "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700"
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -445,7 +445,7 @@ export default function HomeDashboard() {
 
             {/* ── Today's workout ── */}
             {todayWorkout && (
-              <div className={`rounded-3xl border p-6 shadow-sm ${isRestDay ? "border-slate-200 bg-white" : "border-purple-200 bg-gradient-to-br from-purple-50 to-cyan-50"}`}>
+              <div className={`rounded-3xl border p-6 shadow-sm ${isRestDay ? "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800" : "border-purple-200 dark:border-purple-900 bg-gradient-to-br from-purple-50 to-cyan-50 dark:from-purple-900/30 dark:to-cyan-900/20"}`}>
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-xs font-medium uppercase tracking-wide text-purple-600">Today</p>
@@ -471,7 +471,7 @@ export default function HomeDashboard() {
                     {todayWorkout.exercises.map((ex, i) => (
                       <div
                         key={i}
-                        className="flex items-center justify-between rounded-2xl bg-white/70 px-4 py-2.5 text-sm backdrop-blur"
+                        className="flex items-center justify-between rounded-2xl bg-white/70 dark:bg-slate-700/60 px-4 py-2.5 text-sm backdrop-blur"
                       >
                         <span className="font-medium text-slate-900 dark:text-white">{ex.name}</span>
                         <span className="text-slate-500 dark:text-slate-400">
@@ -566,7 +566,7 @@ export default function HomeDashboard() {
                     { label: "Target BMI", value: metrics.target_bmi != null ? String(metrics.target_bmi) : "--" },
                     { label: "Target BF%", value: metrics.target_body_fat_percent != null ? `${metrics.target_body_fat_percent}%` : "--" },
                   ].map(({ label, value }) => (
-                    <div key={label} className="flex items-center justify-between rounded-xl bg-white/60 px-3 py-2">
+                    <div key={label} className="flex items-center justify-between rounded-xl bg-white/60 dark:bg-slate-700/60 px-3 py-2">
                       <span className="text-slate-500 dark:text-slate-400">{label}</span>
                       <span className="font-semibold text-slate-900 dark:text-white">{value}</span>
                     </div>
