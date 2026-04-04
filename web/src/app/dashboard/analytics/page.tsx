@@ -14,7 +14,10 @@ import {
   CartesianGrid,
   BarChart,
   Bar,
-  ReferenceLine,
+  RadarChart,
+  Radar,
+  PolarGrid,
+  PolarAngleAxis,
 } from "recharts"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -222,6 +225,47 @@ export default function AnalyticsPage() {
     return calculateStreak(dates)
   }, [workoutLogs])
 
+  // ── Habit pattern analysis ─────────────────────────────────────────────────
+
+  const habitPatterns = useMemo(() => {
+    const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+    const dayCounts: Record<string, number> = {}
+    DAYS.forEach((d) => (dayCounts[d] = 0))
+
+    workoutLogs.forEach((log) => {
+      const date = new Date(log.date ?? log.created_at)
+      const day = DAYS[date.getDay()]
+      dayCounts[day] = (dayCounts[day] || 0) + 1
+    })
+
+    const radarData = DAYS.map((day) => ({ day, workouts: dayCounts[day] }))
+
+    const sortedDays = [...DAYS].sort((a, b) => dayCounts[b] - dayCounts[a])
+    const bestDay = sortedDays[0]
+    const worstDay = sortedDays[sortedDays.length - 1]
+
+    const totalDays = workoutLogs.length > 0
+      ? Math.ceil(
+          (new Date(workoutLogs[workoutLogs.length - 1].date ?? workoutLogs[workoutLogs.length - 1].created_at).getTime() -
+            new Date(workoutLogs[0].date ?? workoutLogs[0].created_at).getTime()) /
+            (1000 * 60 * 60 * 24)
+        ) + 1
+      : 0
+    const consistencyRate = totalDays > 0 ? Math.min(100, Math.round((workoutLogs.length / totalDays) * 100)) : 0
+
+    // Count consecutive rest gaps > 2 days
+    const sortedDates = Array.from(
+      new Set(workoutLogs.map((l) => (l.date ?? l.created_at.split("T")[0])))
+    ).sort()
+    let longRestCount = 0
+    for (let i = 1; i < sortedDates.length; i++) {
+      const gap = (new Date(sortedDates[i]).getTime() - new Date(sortedDates[i - 1]).getTime()) / (1000 * 60 * 60 * 24)
+      if (gap > 2) longRestCount++
+    }
+
+    return { radarData, bestDay, worstDay, consistencyRate, longRestCount }
+  }, [workoutLogs])
+
   // ── Badges ─────────────────────────────────────────────────────────────────
 
   const badges = useMemo(() => {
@@ -344,6 +388,64 @@ export default function AnalyticsPage() {
             <p className="mt-1 text-xs text-purple-500">Your personal best</p>
           </div>
         </div>
+
+        {/* Habit Pattern Analysis */}
+        {workoutLogs.length >= 3 && (
+          <div className="bg-white p-6 rounded-3xl shadow border border-slate-200">
+            <div className="mb-5">
+              <h2 className="text-lg font-semibold">Habit Pattern Analysis</h2>
+              <p className="text-sm text-slate-500">When you work out most — based on your history</p>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-2">
+              {/* Radar chart */}
+              <div>
+                <p className="text-xs font-medium text-slate-500 mb-3 uppercase tracking-wide">Workouts by Day of Week</p>
+                <div className="h-[220px]">
+                  <ResponsiveContainer>
+                    <RadarChart data={habitPatterns.radarData}>
+                      <PolarGrid stroke="#e2e8f0" />
+                      <PolarAngleAxis dataKey="day" tick={{ fontSize: 12, fill: "#64748b" }} />
+                      <Radar
+                        name="Workouts"
+                        dataKey="workouts"
+                        stroke="#7c3aed"
+                        fill="#7c3aed"
+                        fillOpacity={0.2}
+                        strokeWidth={2}
+                      />
+                      <Tooltip />
+                    </RadarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Insight cards */}
+              <div className="grid grid-cols-2 gap-3 content-start">
+                <div className="rounded-2xl bg-emerald-50 border border-emerald-200 p-4">
+                  <p className="text-xs text-emerald-600 font-medium">Best Day</p>
+                  <p className="text-2xl font-bold text-emerald-700 mt-1">{habitPatterns.bestDay || "--"}</p>
+                  <p className="text-xs text-emerald-500 mt-0.5">Most workouts logged</p>
+                </div>
+                <div className="rounded-2xl bg-amber-50 border border-amber-200 p-4">
+                  <p className="text-xs text-amber-600 font-medium">Weakest Day</p>
+                  <p className="text-2xl font-bold text-amber-700 mt-1">{habitPatterns.worstDay || "--"}</p>
+                  <p className="text-xs text-amber-500 mt-0.5">Fewest workouts</p>
+                </div>
+                <div className="rounded-2xl bg-purple-50 border border-purple-200 p-4">
+                  <p className="text-xs text-purple-600 font-medium">Consistency</p>
+                  <p className="text-2xl font-bold text-purple-700 mt-1">{habitPatterns.consistencyRate}%</p>
+                  <p className="text-xs text-purple-500 mt-0.5">Active days ratio</p>
+                </div>
+                <div className="rounded-2xl bg-rose-50 border border-rose-200 p-4">
+                  <p className="text-xs text-rose-600 font-medium">Long Breaks</p>
+                  <p className="text-2xl font-bold text-rose-700 mt-1">{habitPatterns.longRestCount}</p>
+                  <p className="text-xs text-rose-500 mt-0.5">Gaps &gt; 2 days</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Achievements / Badges */}
         <div className="bg-white p-6 rounded-3xl shadow border border-slate-200">
