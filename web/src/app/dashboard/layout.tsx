@@ -12,6 +12,7 @@ import {
   Sparkles,
   Menu,
   X,
+  ScanLine,
 } from "lucide-react"
 import VoiceAssistant from "../../components/VoiceAssistant"
 
@@ -29,6 +30,7 @@ export default function DashboardLayout({
     { name: "Plan & AI", href: "/dashboard/plan", icon: Bot },
     { name: "Progress", href: "/dashboard/progress", icon: ClipboardList },
     { name: "Analytics", href: "/dashboard/analytics", icon: LineChart },
+    { name: "Pose Tracker", href: "/dashboard/pose", icon: ScanLine },
     { name: "Help", href: "/dashboard/help", icon: CircleHelp },
     { name: "Profile", href: "/dashboard/profile", icon: UserCog },
   ]
