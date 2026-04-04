@@ -6,8 +6,8 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        bg: "#0A0A0F",
-        card: "#111117",
+        bg: "#f8fafc",
+        card: "#ffffff",
         primary: "#7C3AED",
         secondary: "#06B6D4",
         energy: "#F97316",

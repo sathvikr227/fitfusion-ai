@@ -792,22 +792,22 @@ export default function DietTab() {
 
   return (
     <div className="space-y-6 pb-24">
-      <div className="overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6 text-white shadow-xl">
+      <div className="overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-purple-50 via-white to-cyan-50 p-6 text-slate-900 shadow-sm">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div className="max-w-2xl space-y-3">
-            <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white/90 backdrop-blur">
+            <div className="inline-flex items-center gap-2 rounded-full bg-purple-100 px-3 py-1 text-xs font-medium text-purple-700">
               <Sparkles className="h-3.5 w-3.5" />
               Smart diet tracking
             </div>
             <h2 className="text-3xl font-bold tracking-tight">Today&apos;s Diet</h2>
-            <p className="max-w-xl text-sm leading-6 text-slate-300">
+            <p className="max-w-xl text-sm leading-6 text-slate-600">
               Add foods by name and quantity, analyze nutrition automatically, upload a food image, load assigned diet from your plan, and save everything to Supabase.
             </p>
-            <div className="flex flex-wrap gap-2 pt-1 text-xs text-slate-300">
-              <span className="rounded-full bg-white/10 px-3 py-1">Assigned Diet</span>
-              <span className="rounded-full bg-white/10 px-3 py-1">Auto macros</span>
-              <span className="rounded-full bg-white/10 px-3 py-1">Daily logs</span>
-              <span className="rounded-full bg-white/10 px-3 py-1">Image upload</span>
+            <div className="flex flex-wrap gap-2 pt-1 text-xs text-slate-600">
+              <span className="rounded-full bg-slate-100 px-3 py-1">Assigned Diet</span>
+              <span className="rounded-full bg-slate-100 px-3 py-1">Auto macros</span>
+              <span className="rounded-full bg-slate-100 px-3 py-1">Daily logs</span>
+              <span className="rounded-full bg-slate-100 px-3 py-1">Image upload</span>
             </div>
           </div>
 

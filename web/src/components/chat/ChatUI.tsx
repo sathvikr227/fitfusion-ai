@@ -149,7 +149,7 @@ export default function ChatUI({
   }
 
   return (
-    <div className="bg-white rounded-2xl p-4 shadow border">
+    <div className="bg-white rounded-2xl p-4 shadow border border-slate-200">
       {/* CHAT MESSAGES */}
       <div className="h-80 overflow-y-auto space-y-3 mb-4">
         {messages.map((msg, i) => (
@@ -157,8 +157,8 @@ export default function ChatUI({
             key={i}
             className={`p-3 rounded-xl max-w-[80%] ${
               msg.role === "user"
-                ? "bg-purple-500 text-white ml-auto"
-                : "bg-gray-100 text-black"
+                ? "bg-purple-600 text-white ml-auto"
+                : "bg-slate-100 text-slate-900"
             }`}
           >
             {msg.content}
@@ -167,7 +167,7 @@ export default function ChatUI({
 
         {/* typing indicator */}
         {loading && (
-          <p className="text-sm text-gray-400">AI is typing...</p>
+          <p className="text-sm text-slate-400">AI is typing...</p>
         )}
       </div>
 
@@ -176,7 +176,7 @@ export default function ChatUI({
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          className="flex-1 border p-2 rounded-lg"
+          className="flex-1 border border-slate-200 bg-slate-50 text-slate-900 placeholder-slate-400 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
           placeholder="Modify your plan..."
           onKeyDown={(e) => {
             if (e.key === "Enter") sendMessage()
