@@ -118,7 +118,7 @@ export default function PhotosTab() {
   return (
     <div className="space-y-6 pb-10">
       {/* Upload area */}
-      <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-purple-50 via-white to-cyan-50 p-6">
+      <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-purple-50 via-white to-cyan-50 dark:from-slate-800 dark:via-slate-800 dark:to-slate-800 p-6">
         <div className="mb-5 flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-r from-purple-600 to-cyan-500">
             <Camera className="h-5 w-5 text-white" />
@@ -162,7 +162,7 @@ export default function PhotosTab() {
         ) : (
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="flex w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-white/80 p-12 transition hover:border-purple-400 hover:bg-purple-50/30"
+            className="flex w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-600 bg-white/80 dark:bg-slate-800/80 p-12 transition hover:border-purple-400 hover:bg-purple-50/30"
           >
             <Camera className="mb-3 h-8 w-8 text-slate-400" />
             <p className="text-sm font-medium text-slate-700 dark:text-slate-300">

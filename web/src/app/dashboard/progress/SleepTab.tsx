@@ -139,7 +139,7 @@ export default function SleepTab() {
   return (
     <div className="space-y-6 pb-10">
       {/* Log form */}
-      <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-6">
+      <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-slate-800 dark:via-slate-800 dark:to-slate-800 p-6">
         <div className="mb-5 flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-600">
             <Moon className="h-5 w-5 text-white" />

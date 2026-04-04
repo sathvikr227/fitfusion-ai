@@ -150,12 +150,12 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-cyan-50 px-4 py-10">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-cyan-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 px-4 py-10">
         <div className="mx-auto max-w-6xl space-y-6">
-          <div className="h-28 rounded-3xl bg-white shadow-sm animate-pulse" />
+          <div className="h-28 rounded-3xl bg-white dark:bg-slate-800 shadow-sm animate-pulse" />
           <div className="grid gap-6 lg:grid-cols-3">
-            <div className="lg:col-span-2 h-[520px] rounded-3xl bg-white shadow-sm animate-pulse" />
-            <div className="h-[520px] rounded-3xl bg-white shadow-sm animate-pulse" />
+            <div className="lg:col-span-2 h-[520px] rounded-3xl bg-white dark:bg-slate-800 shadow-sm animate-pulse" />
+            <div className="h-[520px] rounded-3xl bg-white dark:bg-slate-800 shadow-sm animate-pulse" />
           </div>
         </div>
       </div>
@@ -163,7 +163,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-cyan-50 px-4 py-10 text-slate-900 dark:text-white">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-cyan-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 px-4 py-10 text-slate-900 dark:text-white">
       <div className="mx-auto max-w-6xl space-y-6">
         <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/90 p-6 shadow-xl backdrop-blur">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">

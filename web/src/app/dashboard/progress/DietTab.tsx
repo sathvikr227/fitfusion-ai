@@ -183,7 +183,7 @@ function ProgressBar({ value, target }: { value: number; target: number }) {
 
 function MacroCard({ label, value, unit = "g" }: { label: string; value: number; unit?: string }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+    <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 shadow-sm">
       <div className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</div>
       <div className="mt-1 text-lg font-semibold text-slate-900">
         {Math.round(value)}
@@ -205,7 +205,7 @@ function StatCard({
   icon: ReactNode
 }) {
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-medium text-slate-500">{title}</p>
@@ -781,7 +781,7 @@ export default function DietTab() {
 
   if (loading) {
     return (
-      <div className="flex min-h-[420px] items-center justify-center rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="flex min-h-[420px] items-center justify-center rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm">
         <div className="flex items-center gap-3 text-slate-700">
           <Loader2 className="h-5 w-5 animate-spin" />
           Loading Diet tab...
@@ -792,7 +792,7 @@ export default function DietTab() {
 
   return (
     <div className="space-y-6 pb-24">
-      <div className="overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-purple-50 via-white to-cyan-50 p-6 text-slate-900 shadow-sm">
+      <div className="overflow-hidden rounded-3xl border border-slate-200 dark:border-slate-700 bg-gradient-to-br from-purple-50 via-white to-cyan-50 dark:from-slate-800 dark:via-slate-800 dark:to-slate-800 p-6 text-slate-900 dark:text-white shadow-sm">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div className="max-w-2xl space-y-3">
             <div className="inline-flex items-center gap-2 rounded-full bg-purple-100 px-3 py-1 text-xs font-medium text-purple-700">
@@ -859,7 +859,7 @@ export default function DietTab() {
 
       <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
         <div className="space-y-6">
-          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 shadow-sm">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div>
                 <h3 className="text-lg font-semibold text-slate-900">Build today&apos;s meal</h3>
@@ -878,7 +878,7 @@ export default function DietTab() {
 
                 <button
                   onClick={refreshData}
-                  className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+                  className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 shadow-sm transition hover:bg-slate-50 dark:hover:bg-slate-700"
                 >
                   {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
                   Refresh
@@ -895,7 +895,7 @@ export default function DietTab() {
                       key={type}
                       onClick={() => setMealType(type)}
                       className={`rounded-2xl border px-3 py-3 text-sm font-medium transition ${
-                        mealType === type ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                        mealType === type ? "border-slate-900 bg-slate-900 text-white dark:border-indigo-500 dark:bg-indigo-600" : "border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
                       }`}
                     >
                       {mealLabel[type]}
@@ -910,7 +910,7 @@ export default function DietTab() {
                   value={food}
                   onChange={(e) => setFood(e.target.value)}
                   placeholder="Chicken rice, dosa, paneer, oats..."
-                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-900"
+                  className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 dark:text-white px-4 py-3 text-sm outline-none transition focus:border-slate-900"
                 />
               </div>
 
@@ -920,7 +920,7 @@ export default function DietTab() {
                   value={quantity}
                   onChange={(e) => setQuantity(e.target.value)}
                   placeholder="200g, 2 pieces, 1 bowl, 1 plate"
-                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-900"
+                  className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 dark:text-white px-4 py-3 text-sm outline-none transition focus:border-slate-900"
                 />
               </div>
 
@@ -930,7 +930,7 @@ export default function DietTab() {
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Optional meal notes"
-                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-900"
+                  className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 dark:text-white px-4 py-3 text-sm outline-none transition focus:border-slate-900"
                 />
               </div>
             </div>
@@ -947,7 +947,7 @@ export default function DietTab() {
 
               <button
                 onClick={addManualItem}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-5 py-3 text-sm font-semibold text-slate-700 dark:text-slate-300 shadow-sm transition hover:bg-slate-50 dark:hover:bg-slate-700"
               >
                 <Plus className="h-4 w-4" />
                 Manual add
@@ -964,7 +964,7 @@ export default function DietTab() {
 
               <button
                 onClick={() => setShowAdvanced((v) => !v)}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-5 py-3 text-sm font-semibold text-slate-700 dark:text-slate-300 transition hover:bg-slate-50 dark:hover:bg-slate-700"
               >
                 <ChevronDown className={`h-4 w-4 transition ${showAdvanced ? "rotate-180" : ""}`} />
                 Advanced
@@ -1023,7 +1023,7 @@ export default function DietTab() {
             ) : null}
           </div>
 
-          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 shadow-sm">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h3 className="text-lg font-semibold text-slate-900">Meal in progress</h3>
@@ -1063,7 +1063,7 @@ export default function DietTab() {
                   resetComposer()
                   setMessage("Composer cleared.")
                 }}
-                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-5 py-3 text-sm font-semibold text-slate-700 dark:text-slate-300 transition hover:bg-slate-50 dark:hover:bg-slate-700"
               >
                 <RotateCcw className="h-4 w-4" />
                 Clear
@@ -1071,7 +1071,7 @@ export default function DietTab() {
             </div>
           </div>
 
-          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 shadow-sm">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h3 className="text-lg font-semibold text-slate-900">Recent items</h3>
@@ -1094,10 +1094,10 @@ export default function DietTab() {
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
                           <p className="font-semibold text-slate-900">{item.food}</p>
-                          <span className="rounded-full bg-white px-2.5 py-0.5 text-xs font-medium text-slate-600">
+                          <span className="rounded-full bg-white dark:bg-slate-700 px-2.5 py-0.5 text-xs font-medium text-slate-600 dark:text-slate-300">
                             {mealLabel[item.mealType]}
                           </span>
-                          <span className="rounded-full bg-white px-2.5 py-0.5 text-xs font-medium text-slate-600">
+                          <span className="rounded-full bg-white dark:bg-slate-700 px-2.5 py-0.5 text-xs font-medium text-slate-600 dark:text-slate-300">
                             {item.source}
                           </span>
                         </div>
@@ -1121,7 +1121,7 @@ export default function DietTab() {
         </div>
 
         <div className="space-y-6">
-          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 shadow-sm">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h3 className="text-lg font-semibold text-slate-900">Assigned Diet</h3>
@@ -1181,20 +1181,20 @@ export default function DietTab() {
                       </div>
 
                       <div className="mt-3 grid grid-cols-2 gap-2 text-sm text-slate-700 sm:grid-cols-4">
-                        <div className="rounded-2xl bg-white px-3 py-2">{Math.round(mealTotals.calories)} kcal</div>
-                        <div className="rounded-2xl bg-white px-3 py-2">P {Math.round(mealTotals.protein)} g</div>
-                        <div className="rounded-2xl bg-white px-3 py-2">C {Math.round(mealTotals.carbs)} g</div>
-                        <div className="rounded-2xl bg-white px-3 py-2">F {Math.round(mealTotals.fat)} g</div>
+                        <div className="rounded-2xl bg-white dark:bg-slate-700 px-3 py-2">{Math.round(mealTotals.calories)} kcal</div>
+                        <div className="rounded-2xl bg-white dark:bg-slate-700 px-3 py-2">P {Math.round(mealTotals.protein)} g</div>
+                        <div className="rounded-2xl bg-white dark:bg-slate-700 px-3 py-2">C {Math.round(mealTotals.carbs)} g</div>
+                        <div className="rounded-2xl bg-white dark:bg-slate-700 px-3 py-2">F {Math.round(mealTotals.fat)} g</div>
                       </div>
 
                       <div className="mt-4 space-y-2">
                         {meal.items.length === 0 ? (
-                          <div className="rounded-2xl bg-white px-3 py-3 text-sm text-slate-500">No foods listed</div>
+                          <div className="rounded-2xl bg-white dark:bg-slate-700 px-3 py-3 text-sm text-slate-500 dark:text-slate-400">No foods listed</div>
                         ) : (
                           meal.items.map((item, i) => (
                             <div
                               key={`${item.food ?? item.name ?? "item"}-${i}`}
-                              className="flex items-center justify-between gap-4 rounded-2xl bg-white px-3 py-3 text-sm"
+                              className="flex items-center justify-between gap-4 rounded-2xl bg-white dark:bg-slate-700 px-3 py-3 text-sm"
                             >
                               <div>
                                 <p className="font-medium text-slate-900">{item.food ?? item.name ?? "Food item"}</p>
@@ -1212,7 +1212,7 @@ export default function DietTab() {
             )}
           </div>
 
-          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 shadow-sm">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h3 className="text-lg font-semibold text-slate-900">Today&apos;s record</h3>

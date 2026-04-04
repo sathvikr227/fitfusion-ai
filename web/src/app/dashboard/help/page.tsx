@@ -332,7 +332,7 @@ export default function HelpPage() {
                     if (e.key === "Enter") fetchHelp();
                   }}
                   placeholder={mode === "diet" ? "Example: lemon rice" : "Example: chest"}
-                  className="w-full rounded-2xl border border-slate-300 bg-white py-3 pl-10 pr-4 outline-none transition focus:border-slate-900"
+                  className="w-full rounded-2xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 dark:text-white py-3 pl-10 pr-4 outline-none transition focus:border-slate-900"
                 />
               </div>
 
@@ -406,7 +406,7 @@ export default function HelpPage() {
                 href={result.videoUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-2 rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 dark:text-white transition hover:bg-slate-100"
+                className="inline-flex items-center gap-2 rounded-2xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-white transition hover:bg-slate-100 dark:hover:bg-slate-700"
               >
                 <Youtube className="h-4 w-4" />
                 Open YouTube
@@ -453,7 +453,7 @@ export default function HelpPage() {
                           target="_blank"
                           rel="noreferrer"
                           onClick={(e) => e.stopPropagation()}
-                          className="inline-flex shrink-0 items-center gap-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white transition hover:bg-slate-100"
+                          className="inline-flex shrink-0 items-center gap-1 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white transition hover:bg-slate-100 dark:hover:bg-slate-700"
                         >
                           <Youtube className="h-3.5 w-3.5" />
                           YouTube
@@ -514,7 +514,7 @@ export default function HelpPage() {
                         )!.map((item) => (
                           <span
                             key={item}
-                            className="rounded-full bg-white px-3 py-1 text-sm text-slate-700 dark:text-slate-300 ring-1 ring-slate-200"
+                            className="rounded-full bg-white dark:bg-slate-700 px-3 py-1 text-sm text-slate-700 dark:text-slate-300 ring-1 ring-slate-200 dark:ring-slate-600"
                           >
                             {item}
                           </span>

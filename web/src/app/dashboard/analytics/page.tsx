@@ -419,7 +419,7 @@ export default function AnalyticsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-white via-slate-50 to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-white via-slate-50 to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
         <div className="text-center">
           <div className="mx-auto mb-4 h-10 w-10 rounded-full border-2 border-purple-200 border-t-purple-600 animate-spin" />
           <p className="text-sm text-slate-600 dark:text-slate-400">Loading analytics...</p>
@@ -478,7 +478,7 @@ export default function AnalyticsPage() {
 
         {/* Habit Pattern Analysis */}
         {workoutLogs.length >= 3 && (
-          <div className="bg-white p-6 rounded-3xl shadow border border-slate-200 dark:border-slate-700">
+          <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow border border-slate-200 dark:border-slate-700">
             <div className="mb-5">
               <h2 className="text-lg font-semibold">Habit Pattern Analysis</h2>
               <p className="text-sm text-slate-500 dark:text-slate-400">When you work out most — based on your history</p>
@@ -535,7 +535,7 @@ export default function AnalyticsPage() {
         )}
 
         {/* Achievements / Badges */}
-        <div className="bg-white p-6 rounded-3xl shadow border border-slate-200 dark:border-slate-700">
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow border border-slate-200 dark:border-slate-700">
           <div className="flex items-center justify-between mb-5">
             <div>
               <h2 className="text-lg font-semibold">Achievements</h2>
@@ -553,7 +553,7 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Weight chart */}
-        <div className="bg-white p-6 rounded-3xl shadow border">
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow border border-slate-200 dark:border-slate-700">
           <div className="flex items-start justify-between flex-wrap gap-3 mb-4">
             <div>
               <h2 className="text-lg font-semibold">Weight Progress</h2>
@@ -612,7 +612,7 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Workout activity chart */}
-        <div className="bg-white p-6 rounded-3xl shadow border">
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow border border-slate-200 dark:border-slate-700">
           <h2 className="text-lg font-semibold mb-1">Workout Activity</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Sessions logged per day</p>
 
@@ -635,7 +635,7 @@ export default function AnalyticsPage() {
 
         {/* Calories burned chart */}
         {workoutActivityData.some((d) => d.calories > 0) && (
-          <div className="bg-white p-6 rounded-3xl shadow border">
+          <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow border border-slate-200 dark:border-slate-700">
             <h2 className="text-lg font-semibold mb-1">Calories Burned</h2>
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Total kcal burned per day</p>
             <div className="w-full h-[250px]">
@@ -653,7 +653,7 @@ export default function AnalyticsPage() {
         )}
 
         {/* Weekly AI Report */}
-        <div className="bg-white p-6 rounded-3xl shadow border">
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow border border-slate-200 dark:border-slate-700">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
             <div>
               <h2 className="text-lg font-semibold">Weekly AI Fitness Report</h2>
@@ -782,7 +782,7 @@ function StatCard({
   color?: string
 }) {
   return (
-    <div className="bg-white p-5 rounded-3xl shadow border">
+    <div className="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow border border-slate-200 dark:border-slate-700">
       <p className="text-sm text-slate-500 dark:text-slate-400">{label}</p>
       <p className={`text-2xl font-bold mt-1 ${color ?? "text-slate-900 dark:text-white"}`}>{value}</p>
     </div>

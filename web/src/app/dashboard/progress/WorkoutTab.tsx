@@ -790,7 +790,7 @@ export default function WorkoutTab() {
           className={`px-4 py-2 rounded-xl border transition ${
             mode === "custom"
               ? "bg-purple-600 text-white border-purple-600"
-              : "bg-white text-black border-slate-200 dark:border-slate-700"
+              : "bg-white dark:bg-slate-800 text-black dark:text-white border-slate-200 dark:border-slate-700"
           }`}
         >
           Custom Workout
@@ -801,14 +801,14 @@ export default function WorkoutTab() {
           className={`px-4 py-2 rounded-xl border transition ${
             mode === "assigned"
               ? "bg-purple-600 text-white border-purple-600"
-              : "bg-white text-black border-slate-200 dark:border-slate-700"
+              : "bg-white dark:bg-slate-800 text-black dark:text-white border-slate-200 dark:border-slate-700"
           }`}
         >
           Assigned Workout
         </button>
       </div>
 
-      <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+      <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div>
             <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">
@@ -843,7 +843,7 @@ export default function WorkoutTab() {
 
       {mode === "custom" && (
         <>
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+          <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-4">
             <h2 className="font-semibold text-lg">Add Exercise</h2>
 
             <input
@@ -901,7 +901,7 @@ export default function WorkoutTab() {
           </div>
 
           {exercises.length > 0 && (
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-3">
+            <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-3">
               <div className="flex items-center justify-between gap-4 flex-wrap">
                 <h3 className="font-semibold">Current Session</h3>
                 <span className="text-sm text-slate-600 dark:text-slate-400">
@@ -960,7 +960,7 @@ export default function WorkoutTab() {
 
       {mode === "assigned" && (
         <div className="space-y-4">
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+          <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
             <h2 className="font-semibold text-lg mb-2">Assigned Workout</h2>
             <p className="text-sm text-slate-600 dark:text-slate-400">
               This shows the AI-generated workout plan for the current day:{" "}
@@ -972,13 +972,13 @@ export default function WorkoutTab() {
           </div>
 
           {assignedDays.length === 0 ? (
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 text-slate-600 dark:text-slate-400">
+            <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400">
               Start logging workouts to track your progress 💪
             </div>
           ) : (
             <>
               {todayWorkout && (
-                <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+                <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-4">
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <h3 className="font-semibold text-xl">
@@ -1037,7 +1037,7 @@ export default function WorkoutTab() {
                 </div>
               )}
 
-              <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+              <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
                 <h3 className="font-semibold text-lg mb-3">Weekly Workout Plan</h3>
 
                 <div className="grid gap-3">
@@ -1051,7 +1051,7 @@ export default function WorkoutTab() {
                         className={`rounded-xl border p-4 ${
                           isToday
                             ? "border-purple-500 bg-purple-50"
-                            : "border-slate-100 bg-white"
+                            : "border-slate-100 dark:border-slate-600 bg-white dark:bg-slate-700"
                         }`}
                       >
                         <div className="flex items-start justify-between gap-4">
@@ -1084,7 +1084,7 @@ export default function WorkoutTab() {
         </div>
       )}
 
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+      <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
         <div className="flex items-center justify-between gap-4 mb-4">
           <h2 className="font-semibold text-lg">Workout History</h2>
           <button onClick={loadData} className="text-sm text-purple-600 hover:underline">

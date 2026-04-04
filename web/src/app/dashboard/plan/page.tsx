@@ -351,7 +351,7 @@ export default function PlanPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 flex items-center justify-center text-slate-900 dark:text-white">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex items-center justify-center text-slate-900 dark:text-white">
         Loading...
       </div>
     )
@@ -363,7 +363,7 @@ export default function PlanPage() {
   const netLabel = dailyNetCalories !== null ? `${dailyNetCalories} kcal` : "--"
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 px-6 py-8 text-slate-900 dark:text-white md:px-10">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 px-6 py-8 text-slate-900 dark:text-white md:px-10">
       <div className="mx-auto max-w-7xl space-y-8">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
@@ -446,7 +446,7 @@ export default function PlanPage() {
                             day.exercises.map((exercise, exIndex) => (
                               <div
                                 key={`${exercise.name}-${exIndex}`}
-                                className="flex items-center justify-between gap-4 rounded-xl bg-white px-3 py-2 text-sm"
+                                className="flex items-center justify-between gap-4 rounded-xl bg-white dark:bg-slate-700 px-3 py-2 text-sm"
                               >
                                 <span className="font-medium text-slate-900 dark:text-white">
                                   {exercise.name}
@@ -508,7 +508,7 @@ export default function PlanPage() {
                             meal.items.map((item, itemIndex) => (
                               <div
                                 key={`${item.food}-${itemIndex}`}
-                                className="grid grid-cols-[1fr_auto_auto] items-center gap-3 rounded-xl bg-white px-3 py-2 text-sm"
+                                className="grid grid-cols-[1fr_auto_auto] items-center gap-3 rounded-xl bg-white dark:bg-slate-700 px-3 py-2 text-sm"
                               >
                                 <span className="font-medium text-slate-900 dark:text-white">
                                   {item.food}
@@ -620,7 +620,7 @@ export default function PlanPage() {
                       <p className="text-sm font-semibold text-slate-900 dark:text-white mb-3">{cat.category}</p>
                       <ul className="space-y-2">
                         {cat.items.map((item, i) => (
-                          <li key={i} className="flex items-center justify-between rounded-xl bg-white px-3 py-2 text-sm">
+                          <li key={i} className="flex items-center justify-between rounded-xl bg-white dark:bg-slate-700 px-3 py-2 text-sm">
                             <span className="text-slate-800 font-medium">{item.name}</span>
                             <span className="text-slate-500 dark:text-slate-400 text-xs">{item.qty}</span>
                           </li>

@@ -130,7 +130,7 @@ export default function WeightTab() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+      <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-4">
         <div>
           <h2 className="text-lg font-semibold">Log Weight</h2>
           <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
@@ -164,7 +164,7 @@ export default function WeightTab() {
         </div>
       )}
 
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+      <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
         <div className="flex items-center justify-between gap-4 mb-4">
           <h2 className="font-semibold text-lg">Weight History</h2>
           <button onClick={loadData} className="text-sm text-purple-600 hover:underline">

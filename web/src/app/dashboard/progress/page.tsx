@@ -34,12 +34,12 @@ export default function ProgressPage() {
 
           {/* OPTIONAL STATS CARD */}
           <div className="hidden md:flex gap-4">
-            <div className="bg-white border border-slate-200 rounded-2xl px-5 py-3 shadow-sm">
+            <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-3 shadow-sm">
               <p className="text-xs text-slate-400 uppercase">Streak</p>
               <p className="text-lg font-semibold">🔥 5 days</p>
             </div>
 
-            <div className="bg-white border border-slate-200 rounded-2xl px-5 py-3 shadow-sm">
+            <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-3 shadow-sm">
               <p className="text-xs text-slate-400 uppercase">Today</p>
               <p className="text-lg font-semibold">Active</p>
             </div>
@@ -48,7 +48,7 @@ export default function ProgressPage() {
 
         {/* 🔥 TAB SWITCHER (PRO UI) */}
         <div className="flex justify-center">
-          <div className="flex gap-2 bg-white border border-slate-200 p-1 rounded-2xl shadow-sm">
+          <div className="flex gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-1 rounded-2xl shadow-sm">
 
             <TabButton
               label="Weight"
@@ -84,7 +84,7 @@ export default function ProgressPage() {
         </div>
 
         {/* 🔥 CONTENT CARD WRAPPER */}
-        <div className="bg-white border border-slate-200 rounded-3xl shadow-sm p-4 md:p-6">
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-3xl shadow-sm p-4 md:p-6">
 
           {/* Smooth transition feel */}
           <div className="transition-all duration-300">
