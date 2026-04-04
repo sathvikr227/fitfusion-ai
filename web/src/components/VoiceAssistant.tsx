@@ -16,8 +16,8 @@ export default function VoiceAssistant() {
   const [error, setError] = useState<string | null>(null)
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [currentPlan, setCurrentPlan] = useState<string>("")
-  const recognitionRef = useRef<SpeechRecognition | null>(null)
-  const synthRef = useRef<SpeechSynthesis | null>(null)
+  const recognitionRef = useRef<any>(null)
+  const synthRef = useRef<any>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   // init session + plan on open
@@ -92,11 +92,11 @@ export default function VoiceAssistant() {
 
     recognition.onstart = () => setListening(true)
     recognition.onend = () => setListening(false)
-    recognition.onerror = (e: SpeechRecognitionErrorEvent) => {
+    recognition.onerror = (e: any) => {
       setListening(false)
       if (e.error !== "no-speech") setError(`Mic error: ${e.error}`)
     }
-    recognition.onresult = (e: SpeechRecognitionEvent) => {
+    recognition.onresult = (e: any) => {
       const text = e.results[0][0].transcript
       setTranscript(text)
       sendMessage(text)
