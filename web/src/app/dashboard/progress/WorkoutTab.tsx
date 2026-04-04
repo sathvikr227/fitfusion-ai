@@ -790,7 +790,7 @@ export default function WorkoutTab() {
           className={`px-4 py-2 rounded-xl border transition ${
             mode === "custom"
               ? "bg-purple-600 text-white border-purple-600"
-              : "bg-white text-black border-gray-200"
+              : "bg-white text-black border-slate-200"
           }`}
         >
           Custom Workout
@@ -801,7 +801,7 @@ export default function WorkoutTab() {
           className={`px-4 py-2 rounded-xl border transition ${
             mode === "assigned"
               ? "bg-purple-600 text-white border-purple-600"
-              : "bg-white text-black border-gray-200"
+              : "bg-white text-black border-slate-200"
           }`}
         >
           Assigned Workout
@@ -1051,7 +1051,7 @@ export default function WorkoutTab() {
                         className={`rounded-xl border p-4 ${
                           isToday
                             ? "border-purple-500 bg-purple-50"
-                            : "border-gray-100 bg-white"
+                            : "border-slate-100 bg-white"
                         }`}
                       >
                         <div className="flex items-start justify-between gap-4">
@@ -1129,7 +1129,7 @@ export default function WorkoutTab() {
                       {exerciseRows.slice(0, 4).map((ex) => (
                         <div
                           key={ex.id}
-                          className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2"
+                          className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2"
                         >
                           <div>
                             <div className="font-medium text-sm">

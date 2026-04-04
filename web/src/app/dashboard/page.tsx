@@ -518,7 +518,7 @@ export default function Dashboard() {
               { label: "Intensity", value: meta?.intensity as string },
             ].map(({ label, value }) =>
               value != null ? (
-                <div key={label} className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm text-center">
+                <div key={label} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm text-center">
                   <p className="text-xs text-slate-500">{label}</p>
                   <p className="mt-1 text-base font-semibold text-slate-900 capitalize">{String(value)}</p>
                 </div>
@@ -532,7 +532,7 @@ export default function Dashboard() {
 
             {/* Plan panels */}
             <section className="grid gap-6 md:grid-cols-2">
-              <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+              <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                 <div className="mb-4 flex items-center justify-between">
                   <h2 className="text-lg font-semibold text-slate-900">Workout Plan</h2>
                   <span className="rounded-full bg-purple-50 px-3 py-1 text-xs font-medium text-purple-700">
@@ -548,7 +548,7 @@ export default function Dashboard() {
                 )}
               </div>
 
-              <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+              <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                 <div className="mb-4 flex items-center justify-between">
                   <h2 className="text-lg font-semibold text-slate-900">Diet Plan</h2>
                   <span className="rounded-full bg-cyan-50 px-3 py-1 text-xs font-medium text-cyan-700">
@@ -566,7 +566,7 @@ export default function Dashboard() {
             </section>
 
             {/* Chat / Modify */}
-            <section className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
               <div className="mb-4">
                 <h2 className="text-lg font-semibold text-slate-900">
                   Modify your plan with AI
@@ -583,7 +583,7 @@ export default function Dashboard() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter" && !loadingChat) handleChat() }}
-                  className="flex-1 rounded-2xl border border-gray-300 bg-white px-4 py-3 text-slate-900 placeholder:text-slate-400 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
+                  className="flex-1 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 placeholder:text-slate-400 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
                 />
                 <button
                   onClick={handleChat}
@@ -598,7 +598,7 @@ export default function Dashboard() {
 
           <aside className="space-y-6 xl:col-span-4">
             {/* Status */}
-            <section className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
               <h2 className="text-lg font-semibold text-slate-900">Plan status</h2>
               <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
                 <div className="rounded-2xl bg-slate-50 p-4">
@@ -615,7 +615,7 @@ export default function Dashboard() {
             </section>
 
             {/* History */}
-            <section className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
               <h2 className="text-lg font-semibold text-slate-900">Plan History</h2>
               <p className="mt-1 text-sm text-slate-500">
                 Restore any previous version with one click.
@@ -623,7 +623,7 @@ export default function Dashboard() {
 
               <div className="mt-5 space-y-3">
                 {history.length === 0 ? (
-                  <div className="rounded-2xl border border-gray-200 bg-slate-50 p-4 text-sm text-slate-500">
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
                     No history found yet.
                   </div>
                 ) : (
@@ -631,7 +631,7 @@ export default function Dashboard() {
                     <button
                       key={item.id}
                       onClick={() => handleRestore(item)}
-                      className="w-full rounded-2xl border border-gray-200 bg-white p-4 text-left transition hover:bg-slate-50"
+                      className="w-full rounded-2xl border border-slate-200 bg-white p-4 text-left transition hover:bg-slate-50"
                     >
                       <div className="flex items-center justify-between gap-3">
                         <p className="text-sm font-medium text-slate-900">
