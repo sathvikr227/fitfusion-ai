@@ -16,6 +16,7 @@ import {
   ScanLine,
   Sun,
   Moon,
+  Star,
 } from "lucide-react"
 import VoiceAssistant from "../../components/VoiceAssistant"
 
@@ -38,6 +39,7 @@ export default function DashboardLayout({
     { name: "Progress", href: "/dashboard/progress", icon: ClipboardList },
     { name: "Analytics", href: "/dashboard/analytics", icon: LineChart },
     { name: "Pose Tracker", href: "/dashboard/pose", icon: ScanLine },
+    { name: "Dream Body", href: "/dashboard/dream-body", icon: Star },
     { name: "Help", href: "/dashboard/help", icon: CircleHelp },
     { name: "Profile", href: "/dashboard/profile", icon: UserCog },
   ]
