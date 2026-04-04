@@ -17,6 +17,9 @@ import {
   Droplets,
   Plus,
   Minus,
+  Bell,
+  BellOff,
+  Check,
 } from "lucide-react"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -210,11 +213,49 @@ export default function HomeDashboard() {
     : 2.5
   const waterGoalMl = Math.round(waterGoalL * 1000)
   const [waterMl, setWaterMl] = useState(0)
+  const [reminderTime, setReminderTime] = useState("")
+  const [reminderSet, setReminderSet] = useState(false)
+  const [showReminderInput, setShowReminderInput] = useState(false)
 
   useEffect(() => {
     const saved = parseInt(localStorage.getItem(waterKey) ?? "0", 10)
     setWaterMl(Number.isFinite(saved) ? saved : 0)
+    const savedReminder = localStorage.getItem("workout-reminder-time")
+    if (savedReminder) { setReminderTime(savedReminder); setReminderSet(true) }
   }, [waterKey])
+
+  const saveReminder = useCallback((time: string) => {
+    if (!time) return
+    localStorage.setItem("workout-reminder-time", time)
+    setReminderTime(time)
+    setReminderSet(true)
+    setShowReminderInput(false)
+    // Request notification permission and schedule
+    if ("Notification" in window) {
+      Notification.requestPermission().then((perm) => {
+        if (perm === "granted") {
+          const [h, m] = time.split(":").map(Number)
+          const now = new Date()
+          const next = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0)
+          if (next <= now) next.setDate(next.getDate() + 1)
+          const delay = next.getTime() - now.getTime()
+          setTimeout(() => {
+            new Notification("FitFusion Workout Reminder 💪", {
+              body: "Time to crush your workout! Your plan is ready.",
+              icon: "/logo.png",
+            })
+          }, delay)
+        }
+      })
+    }
+  }, [])
+
+  const clearReminder = useCallback(() => {
+    localStorage.removeItem("workout-reminder-time")
+    setReminderTime("")
+    setReminderSet(false)
+    setShowReminderInput(false)
+  }, [])
 
   const addWater = useCallback((delta: number) => {
     setWaterMl((prev) => {
@@ -644,6 +685,60 @@ export default function HomeDashboard() {
                 <p className="mt-3 text-center text-xs font-medium text-cyan-600">
                   🎉 Daily goal reached!
                 </p>
+              )}
+            </div>
+
+            {/* Workout Reminder */}
+            <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-purple-50 dark:bg-purple-900/30">
+                    <Bell className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white">Workout Reminder</p>
+                    {reminderSet && (
+                      <p className="text-xs text-slate-400 dark:text-slate-500">Daily at {reminderTime}</p>
+                    )}
+                  </div>
+                </div>
+                {reminderSet && (
+                  <button onClick={clearReminder} title="Clear reminder" className="text-slate-400 hover:text-rose-500 transition">
+                    <BellOff className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+
+              {reminderSet ? (
+                <div className="flex items-center gap-2 rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 px-4 py-3">
+                  <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <p className="text-sm text-emerald-700 dark:text-emerald-300 font-medium">
+                    Reminder set for {reminderTime} daily
+                  </p>
+                </div>
+              ) : showReminderInput ? (
+                <div className="flex gap-2">
+                  <input
+                    type="time"
+                    value={reminderTime}
+                    onChange={(e) => setReminderTime(e.target.value)}
+                    className="flex-1 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-purple-400"
+                  />
+                  <button
+                    onClick={() => saveReminder(reminderTime)}
+                    disabled={!reminderTime}
+                    className="rounded-2xl bg-gradient-to-r from-purple-600 to-cyan-500 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40 hover:opacity-90 transition"
+                  >
+                    Set
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowReminderInput(true)}
+                  className="w-full rounded-2xl border border-dashed border-purple-300 dark:border-purple-700 py-3 text-sm font-medium text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition"
+                >
+                  + Set daily reminder
+                </button>
               )}
             </div>
 

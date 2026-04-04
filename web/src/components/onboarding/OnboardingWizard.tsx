@@ -208,13 +208,13 @@ export default function OnboardingWizard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-slate-50 to-blue-50 flex items-center justify-center px-4 py-10">
-      <div className="w-full max-w-3xl overflow-hidden rounded-3xl border border-slate-200 bg-white/90 shadow-2xl backdrop-blur-sm">
+    <div className="min-h-screen bg-gradient-to-br from-white via-slate-50 to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex items-center justify-center px-4 py-10">
+      <div className="w-full max-w-3xl overflow-hidden rounded-3xl border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900/90 shadow-2xl backdrop-blur-sm">
         <div className="border-b border-slate-100 px-8 pb-6 pt-8">
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-sm font-medium text-purple-600">FitFusion AI Setup</p>
-              <h1 className="mt-1 text-3xl font-semibold text-slate-900">
+              <h1 className="mt-1 text-3xl font-semibold text-slate-900 dark:text-white">
                 Personalize your fitness experience
               </h1>
               <p className="mt-2 text-sm text-slate-500">
@@ -227,7 +227,7 @@ export default function OnboardingWizard() {
             </div>
           </div>
 
-          <div className="mt-6 h-2 w-full overflow-hidden rounded-full bg-slate-100">
+          <div className="mt-6 h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700">
             <div
               className="h-full rounded-full bg-gradient-to-r from-purple-600 to-cyan-500 transition-all duration-300"
               style={{ width: progress }}
@@ -397,7 +397,7 @@ export default function OnboardingWizard() {
               </div>
 
               <div className="mt-8">
-                <h3 className="mb-4 text-lg font-semibold text-slate-900">
+                <h3 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">
                   Review your profile
                 </h3>
 
@@ -431,7 +431,7 @@ export default function OnboardingWizard() {
             <button
               onClick={handleBack}
               disabled={step === 1 || saving}
-              className="rounded-xl border border-slate-200 bg-white px-5 py-3 font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-5 py-3 font-medium text-slate-700 dark:text-slate-300 transition hover:bg-slate-50 dark:hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Back
             </button>
@@ -471,7 +471,7 @@ function StepCard({
 }) {
   return (
     <div>
-      <h2 className="text-2xl font-semibold text-slate-900">{title}</h2>
+      <h2 className="text-2xl font-semibold text-slate-900 dark:text-white">{title}</h2>
       <p className="mb-6 mt-2 text-slate-500">{subtitle}</p>
       {children}
     </div>
@@ -493,13 +493,13 @@ function Input({
 }) {
   return (
     <div>
-      <label className="mb-2 block text-sm font-medium text-slate-700">{label}</label>
+      <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{label}</label>
       <input
         type={type}
         value={value}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+        className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
       />
     </div>
   )
@@ -518,11 +518,11 @@ function Select({
 }) {
   return (
     <div>
-      <label className="mb-2 block text-sm font-medium text-slate-700">{label}</label>
+      <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{label}</label>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
+        className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
       >
         <option value="">Select an option</option>
         {options.map((option) => (
@@ -537,9 +537,9 @@ function Select({
 
 function SummaryItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+    <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4">
       <p className="text-sm text-slate-500">{label}</p>
-      <p className="mt-1 text-base font-semibold text-slate-900">
+      <p className="mt-1 text-base font-semibold text-slate-900 dark:text-white">
         {value || "-"}
       </p>
     </div>
