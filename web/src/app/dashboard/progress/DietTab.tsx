@@ -185,7 +185,7 @@ function MacroCard({ label, value, unit = "g" }: { label: string; value: number;
   return (
     <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 shadow-sm">
       <div className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</div>
-      <div className="mt-1 text-lg font-semibold text-slate-900">
+      <div className="mt-1 text-lg font-semibold text-slate-900 dark:text-white">
         {Math.round(value)}
         {unit}
       </div>
@@ -209,10 +209,10 @@ function StatCard({
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-medium text-slate-500">{title}</p>
-          <p className="mt-1 text-2xl font-bold text-slate-900">{value}</p>
+          <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">{value}</p>
           {subtitle ? <p className="mt-1 text-xs text-slate-500">{subtitle}</p> : null}
         </div>
-        <div className="rounded-2xl bg-slate-100 p-3 text-slate-700">{icon}</div>
+        <div className="rounded-2xl bg-slate-100 dark:bg-slate-700 p-3 text-slate-700 dark:text-slate-300">{icon}</div>
       </div>
     </div>
   )
@@ -220,8 +220,8 @@ function StatCard({
 
 function EmptyState({ title, description }: { title: string; description: string }) {
   return (
-    <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
-      <p className="text-base font-semibold text-slate-900">{title}</p>
+    <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 dark:bg-slate-700 p-6 text-center">
+      <p className="text-base font-semibold text-slate-900 dark:text-white">{title}</p>
       <p className="mx-auto mt-2 max-w-md text-sm text-slate-600">{description}</p>
     </div>
   )
@@ -782,7 +782,7 @@ export default function DietTab() {
   if (loading) {
     return (
       <div className="flex min-h-[420px] items-center justify-center rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm">
-        <div className="flex items-center gap-3 text-slate-700">
+        <div className="flex items-center gap-3 text-slate-700 dark:text-slate-300">
           <Loader2 className="h-5 w-5 animate-spin" />
           Loading Diet tab...
         </div>
@@ -804,10 +804,10 @@ export default function DietTab() {
               Add foods by name and quantity, analyze nutrition automatically, upload a food image, load assigned diet from your plan, and save everything to Supabase.
             </p>
             <div className="flex flex-wrap gap-2 pt-1 text-xs text-slate-600">
-              <span className="rounded-full bg-slate-100 px-3 py-1">Assigned Diet</span>
-              <span className="rounded-full bg-slate-100 px-3 py-1">Auto macros</span>
-              <span className="rounded-full bg-slate-100 px-3 py-1">Daily logs</span>
-              <span className="rounded-full bg-slate-100 px-3 py-1">Image upload</span>
+              <span className="rounded-full bg-slate-100 dark:bg-slate-700 px-3 py-1">Assigned Diet</span>
+              <span className="rounded-full bg-slate-100 dark:bg-slate-700 px-3 py-1">Auto macros</span>
+              <span className="rounded-full bg-slate-100 dark:bg-slate-700 px-3 py-1">Daily logs</span>
+              <span className="rounded-full bg-slate-100 dark:bg-slate-700 px-3 py-1">Image upload</span>
             </div>
           </div>
 
@@ -862,12 +862,12 @@ export default function DietTab() {
           <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 shadow-sm">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div>
-                <h3 className="text-lg font-semibold text-slate-900">Build today&apos;s meal</h3>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Build today&apos;s meal</h3>
                 <p className="mt-1 text-sm text-slate-500">Use text, quantity, or image to get calories and macros.</p>
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 dark:bg-slate-700 px-3 py-2">
                   <input
                     type="date"
                     value={selectedDate}
@@ -888,7 +888,7 @@ export default function DietTab() {
 
             <div className="mt-5 grid gap-3 md:grid-cols-2">
               <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700">Meal type</label>
+                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Meal type</label>
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                   {MEAL_OPTIONS.map((type) => (
                     <button
@@ -905,7 +905,7 @@ export default function DietTab() {
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700">Food name</label>
+                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Food name</label>
                 <input
                   value={food}
                   onChange={(e) => setFood(e.target.value)}
@@ -915,7 +915,7 @@ export default function DietTab() {
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700">Quantity</label>
+                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Quantity</label>
                 <input
                   value={quantity}
                   onChange={(e) => setQuantity(e.target.value)}
@@ -925,7 +925,7 @@ export default function DietTab() {
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700">Notes</label>
+                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Notes</label>
                 <input
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
@@ -956,7 +956,7 @@ export default function DietTab() {
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={analyzingImage}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 dark:bg-slate-700 px-5 py-3 text-sm font-semibold text-slate-700 dark:text-slate-300 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {analyzingImage ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
                 Upload photo
@@ -986,8 +986,8 @@ export default function DietTab() {
             {selectedFileName ? <p className="mt-3 text-xs text-slate-500">Selected image: {selectedFileName}</p> : null}
 
             {showAdvanced ? (
-              <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-                <p className="font-medium text-slate-900">Production notes</p>
+              <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 dark:bg-slate-700 p-4 text-sm text-slate-600">
+                <p className="font-medium text-slate-900 dark:text-white">Production notes</p>
                 <p className="mt-1 leading-6">
                   This component matches your current tables. It reads from meal_logs and meal_items, and it does not write unsupported columns into meal_items.
                 </p>
@@ -1026,10 +1026,10 @@ export default function DietTab() {
           <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 shadow-sm">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <h3 className="text-lg font-semibold text-slate-900">Meal in progress</h3>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Meal in progress</h3>
                 <p className="mt-1 text-sm text-slate-500">Items added for {mealLabel[mealType]}.</p>
               </div>
-              <div className="rounded-2xl bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700">
+              <div className="rounded-2xl bg-slate-100 dark:bg-slate-700 px-3 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
                 {mealItems.filter((i) => i.mealType === mealType).length} item
                 {mealItems.filter((i) => i.mealType === mealType).length === 1 ? "" : "s"}
               </div>
@@ -1074,7 +1074,7 @@ export default function DietTab() {
           <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 shadow-sm">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <h3 className="text-lg font-semibold text-slate-900">Recent items</h3>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Recent items</h3>
                 <p className="mt-1 text-sm text-slate-500">The latest foods logged in this tab.</p>
               </div>
             </div>
@@ -1089,11 +1089,11 @@ export default function DietTab() {
             ) : (
               <div className="mt-4 space-y-3">
                 {recentItems.map((item) => (
-                  <div key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50 dark:bg-slate-700 p-4">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
-                          <p className="font-semibold text-slate-900">{item.food}</p>
+                          <p className="font-semibold text-slate-900 dark:text-white">{item.food}</p>
                           <span className="rounded-full bg-white dark:bg-slate-700 px-2.5 py-0.5 text-xs font-medium text-slate-600 dark:text-slate-300">
                             {mealLabel[item.mealType]}
                           </span>
@@ -1107,7 +1107,7 @@ export default function DietTab() {
                         </p>
                       </div>
                       <div className="text-left sm:text-right">
-                        <p className="text-lg font-bold text-slate-900">{Math.round(item.calories)} kcal</p>
+                        <p className="text-lg font-bold text-slate-900 dark:text-white">{Math.round(item.calories)} kcal</p>
                         <p className="text-xs text-slate-500">
                           P {Math.round(item.protein)} g • C {Math.round(item.carbs)} g • F {Math.round(item.fat)} g
                         </p>
@@ -1124,10 +1124,10 @@ export default function DietTab() {
           <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 shadow-sm">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <h3 className="text-lg font-semibold text-slate-900">Assigned Diet</h3>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Assigned Diet</h3>
                 <p className="mt-1 text-sm text-slate-500">Pulled from your active workout plan.</p>
               </div>
-              <div className="rounded-2xl bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700">
+              <div className="rounded-2xl bg-slate-100 dark:bg-slate-700 px-3 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
                 {assignedDiet.length} meals
               </div>
             </div>
@@ -1156,10 +1156,10 @@ export default function DietTab() {
                   const completed = isMealCompleted(linkedMealType)
 
                   return (
-                    <div key={`${meal.name}-${idx}`} className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+                    <div key={`${meal.name}-${idx}`} className="rounded-3xl border border-slate-200 bg-slate-50 dark:bg-slate-700 p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="font-semibold text-slate-900">{meal.name}</p>
+                          <p className="font-semibold text-slate-900 dark:text-white">{meal.name}</p>
                           <p className="mt-1 text-xs text-slate-500">{mealLabel[linkedMealType]}</p>
                         </div>
                         <button
@@ -1180,7 +1180,7 @@ export default function DietTab() {
                         </button>
                       </div>
 
-                      <div className="mt-3 grid grid-cols-2 gap-2 text-sm text-slate-700 sm:grid-cols-4">
+                      <div className="mt-3 grid grid-cols-2 gap-2 text-sm text-slate-700 dark:text-slate-300 sm:grid-cols-4">
                         <div className="rounded-2xl bg-white dark:bg-slate-700 px-3 py-2">{Math.round(mealTotals.calories)} kcal</div>
                         <div className="rounded-2xl bg-white dark:bg-slate-700 px-3 py-2">P {Math.round(mealTotals.protein)} g</div>
                         <div className="rounded-2xl bg-white dark:bg-slate-700 px-3 py-2">C {Math.round(mealTotals.carbs)} g</div>
@@ -1197,7 +1197,7 @@ export default function DietTab() {
                               className="flex items-center justify-between gap-4 rounded-2xl bg-white dark:bg-slate-700 px-3 py-3 text-sm"
                             >
                               <div>
-                                <p className="font-medium text-slate-900">{item.food ?? item.name ?? "Food item"}</p>
+                                <p className="font-medium text-slate-900 dark:text-white">{item.food ?? item.name ?? "Food item"}</p>
                                 <p className="text-xs text-slate-500">{item.quantity ?? "1 serving"}</p>
                               </div>
                               <div className="text-right text-slate-600">{Math.round(asNumber(item.calories))} kcal</div>
@@ -1215,7 +1215,7 @@ export default function DietTab() {
           <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 shadow-sm">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <h3 className="text-lg font-semibold text-slate-900">Today&apos;s record</h3>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Today&apos;s record</h3>
                 <p className="mt-1 text-sm text-slate-500">Loaded from meal_logs and meal_items.</p>
               </div>
               <div
@@ -1237,14 +1237,14 @@ export default function DietTab() {
             ) : (
               <div className="mt-4 space-y-3">
                 {historyRows.map((row) => (
-                  <div key={row.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div key={row.id} className="rounded-2xl border border-slate-200 bg-slate-50 dark:bg-slate-700 p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="font-semibold text-slate-900">{mealLabel[row.meal_type]}</p>
+                        <p className="font-semibold text-slate-900 dark:text-white">{mealLabel[row.meal_type]}</p>
                         <p className="mt-1 text-xs text-slate-500">{formatDate(row.date)}</p>
                       </div>
                       <div className="text-right">
-                        <p className="font-semibold text-slate-900">{Math.round(asNumber(row.total_calories))} kcal</p>
+                        <p className="font-semibold text-slate-900 dark:text-white">{Math.round(asNumber(row.total_calories))} kcal</p>
                         <p className="text-xs text-slate-500">
                           P {Math.round(asNumber(row.total_protein))} • C {Math.round(asNumber(row.total_carbs))} • F{" "}
                           {Math.round(asNumber(row.total_fat))}
