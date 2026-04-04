@@ -13,6 +13,7 @@ import {
   Menu,
   X,
 } from "lucide-react"
+import VoiceAssistant from "../../components/VoiceAssistant"
 
 export default function DashboardLayout({
   children,
@@ -160,6 +161,9 @@ export default function DashboardLayout({
           {children}
         </main>
       </div>
+
+      {/* VOICE ASSISTANT — floating on all dashboard pages */}
+      <VoiceAssistant />
     </div>
   )
 }
