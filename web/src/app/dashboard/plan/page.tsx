@@ -103,6 +103,14 @@ export default function PlanPage() {
   const [chatError, setChatError] = useState<string | null>(null)
   const [status, setStatus] = useState<string | null>(null)
   const [sessionId, setSessionId] = useState<string | null>(null)
+  const [userId, setUserId] = useState<string | null>(null)
+
+  // Grocery list
+  type GroceryItem = { name: string; qty: string }
+  type GroceryCategory = { category: string; items: GroceryItem[] }
+  const [groceries, setGroceries] = useState<GroceryCategory[] | null>(null)
+  const [loadingGroceries, setLoadingGroceries] = useState(false)
+  const [groceryError, setGroceryError] = useState<string | null>(null)
 
   const plan = useMemo(() => {
     const parsed = parsePlanContent(planContent)
@@ -165,6 +173,8 @@ export default function PlanPage() {
         router.push("/login")
         return
       }
+
+      setUserId(user.id)
 
       const { data: s } = await supabase
         .from("chat_sessions")
@@ -269,6 +279,33 @@ export default function PlanPage() {
       setChatError(error?.message || "Unable to update plan right now.")
     } finally {
       setLoadingChat(false)
+    }
+  }
+
+  const generateGroceryList = async () => {
+    if (!userId) return
+    setLoadingGroceries(true)
+    setGroceryError(null)
+    setGroceries(null)
+
+    try {
+      const res = await fetch("/api/grocery-list", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to generate grocery list")
+      }
+
+      setGroceries(data.groceries ?? [])
+    } catch (err: unknown) {
+      setGroceryError(err instanceof Error ? err.message : "Failed to generate grocery list")
+    } finally {
+      setLoadingGroceries(false)
     }
   }
 
@@ -547,6 +584,58 @@ export default function PlanPage() {
               ) : null}
 
               {status ? <p className="mt-3 text-sm text-slate-600">{status}</p> : null}
+            </div>
+            {/* Grocery List */}
+            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+                <div>
+                  <h2 className="text-xl font-semibold">Smart Grocery List</h2>
+                  <p className="text-sm text-slate-500 mt-0.5">AI-generated weekly shopping list from your diet plan</p>
+                </div>
+                <button
+                  onClick={generateGroceryList}
+                  disabled={loadingGroceries || !plan}
+                  className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-cyan-500 px-5 py-2.5 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed transition shrink-0"
+                >
+                  {loadingGroceries ? "Generating..." : "🛒 Generate List"}
+                </button>
+              </div>
+
+              {!plan && (
+                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
+                  Generate a plan first to get a grocery list.
+                </div>
+              )}
+
+              {groceryError && (
+                <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                  {groceryError}
+                </div>
+              )}
+
+              {groceries && groceries.length > 0 && (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {groceries.map((cat) => (
+                    <div key={cat.category} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                      <p className="text-sm font-semibold text-slate-900 mb-3">{cat.category}</p>
+                      <ul className="space-y-2">
+                        {cat.items.map((item, i) => (
+                          <li key={i} className="flex items-center justify-between rounded-xl bg-white px-3 py-2 text-sm">
+                            <span className="text-slate-800 font-medium">{item.name}</span>
+                            <span className="text-slate-500 text-xs">{item.qty}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {!groceries && !groceryError && !loadingGroceries && plan && (
+                <div className="rounded-2xl bg-slate-50 border border-slate-200 p-6 text-center text-sm text-slate-500">
+                  Click &quot;Generate List&quot; to get a weekly grocery list based on your diet plan.
+                </div>
+              )}
             </div>
           </div>
 

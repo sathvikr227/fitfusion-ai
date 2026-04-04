@@ -222,6 +222,26 @@ export default function AnalyticsPage() {
     return calculateStreak(dates)
   }, [workoutLogs])
 
+  // ── Badges ─────────────────────────────────────────────────────────────────
+
+  const badges = useMemo(() => {
+    const weightLogsCount = weightLogs.filter((l) => l.weight != null).length
+    return [
+      { id: "first_workout", name: "First Step", icon: "👟", description: "Log your first workout", unlocked: totalWorkouts >= 1, tier: "bronze" as const },
+      { id: "streak_3", name: "Hot Streak", icon: "🔥", description: "Achieve a 3-day streak", unlocked: streak.longest >= 3, tier: "bronze" as const },
+      { id: "streak_7", name: "Weekly Warrior", icon: "⚡", description: "Achieve a 7-day streak", unlocked: streak.longest >= 7, tier: "silver" as const },
+      { id: "streak_14", name: "Two Week Titan", icon: "💪", description: "Achieve a 14-day streak", unlocked: streak.longest >= 14, tier: "gold" as const },
+      { id: "streak_30", name: "Monthly Monster", icon: "🏆", description: "Achieve a 30-day streak", unlocked: streak.longest >= 30, tier: "platinum" as const },
+      { id: "workouts_10", name: "Getting Serious", icon: "🎯", description: "Log 10 workouts", unlocked: totalWorkouts >= 10, tier: "bronze" as const },
+      { id: "workouts_25", name: "Fitness Fanatic", icon: "🌟", description: "Log 25 workouts", unlocked: totalWorkouts >= 25, tier: "silver" as const },
+      { id: "workouts_50", name: "Iron Will", icon: "🦾", description: "Log 50 workouts", unlocked: totalWorkouts >= 50, tier: "gold" as const },
+      { id: "weight_logged", name: "Scale Watcher", icon: "⚖️", description: "Log your weight once", unlocked: weightLogsCount >= 1, tier: "bronze" as const },
+      { id: "data_driven", name: "Data Driven", icon: "📊", description: "Log weight 5+ times", unlocked: weightLogsCount >= 5, tier: "silver" as const },
+      { id: "lost_1kg", name: "Making Progress", icon: "📉", description: "Lose 1 kg total", unlocked: weightChange !== null && weightChange <= -1, tier: "silver" as const },
+      { id: "transformation", name: "Transformation", icon: "✨", description: "Lose 5 kg total", unlocked: weightChange !== null && weightChange <= -5, tier: "gold" as const },
+    ]
+  }, [totalWorkouts, streak, weightLogs, weightChange])
+
   // ── Summary stats ──────────────────────────────────────────────────────────
 
   const latestWeight = weightLogs.filter((d) => d.weight != null).at(-1)?.weight ?? null
@@ -322,6 +342,24 @@ export default function AnalyticsPage() {
             <p className="text-sm text-purple-600 font-medium">🏆 Longest Streak</p>
             <p className="mt-2 text-4xl font-bold text-purple-700">{streak.longest} days</p>
             <p className="mt-1 text-xs text-purple-500">Your personal best</p>
+          </div>
+        </div>
+
+        {/* Achievements / Badges */}
+        <div className="bg-white p-6 rounded-3xl shadow border border-slate-200">
+          <div className="flex items-center justify-between mb-5">
+            <div>
+              <h2 className="text-lg font-semibold">Achievements</h2>
+              <p className="text-sm text-slate-500">Earn badges by hitting fitness milestones</p>
+            </div>
+            <span className="rounded-full bg-purple-50 px-3 py-1 text-xs font-medium text-purple-700">
+              {badges.filter((b) => b.unlocked).length} / {badges.length} unlocked
+            </span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            {badges.map((badge) => (
+              <BadgeCard key={badge.id} badge={badge} />
+            ))}
           </div>
         </div>
 
@@ -485,6 +523,45 @@ export default function AnalyticsPage() {
         </div>
 
       </div>
+    </div>
+  )
+}
+
+// ─── Badge card ───────────────────────────────────────────────────────────────
+
+const TIER_STYLES = {
+  bronze: "border-amber-200 bg-amber-50",
+  silver: "border-slate-300 bg-slate-50",
+  gold: "border-yellow-300 bg-yellow-50",
+  platinum: "border-purple-300 bg-purple-50",
+}
+
+function BadgeCard({
+  badge,
+}: {
+  badge: {
+    id: string
+    name: string
+    icon: string
+    description: string
+    unlocked: boolean
+    tier: "bronze" | "silver" | "gold" | "platinum"
+  }
+}) {
+  return (
+    <div
+      className={`rounded-2xl border p-4 transition-all ${
+        badge.unlocked
+          ? TIER_STYLES[badge.tier]
+          : "border-slate-200 bg-slate-50 opacity-40 grayscale"
+      }`}
+    >
+      <div className="text-2xl mb-2">{badge.icon}</div>
+      <p className="text-sm font-semibold text-slate-900 leading-tight">{badge.name}</p>
+      <p className="text-xs text-slate-500 mt-0.5 leading-snug">{badge.description}</p>
+      {badge.unlocked && (
+        <p className="text-xs font-medium text-emerald-600 mt-1.5">✓ Unlocked</p>
+      )}
     </div>
   )
 }
