@@ -11,7 +11,7 @@ export default function ProgressPage() {
   const [tab, setTab] = useState<"weight" | "workout" | "diet" | "photos" | "sleep">("weight")
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-slate-50 to-blue-50 px-4 py-6 md:px-10 md:py-10 text-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-white via-slate-50 to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 px-4 py-6 md:px-10 md:py-10 text-slate-900 dark:text-white">
 
       {/* MAIN CONTAINER */}
       <div className="max-w-7xl mx-auto space-y-8">
@@ -27,7 +27,7 @@ export default function ProgressPage() {
               Progress Tracking
             </h1>
 
-            <p className="text-slate-500 mt-2 text-sm md:text-base max-w-xl">
+            <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm md:text-base max-w-xl">
               Track your workouts, diet, and body metrics over time. Stay consistent and monitor improvements.
             </p>
           </div>
@@ -120,7 +120,7 @@ function TabButton({
         px-6 py-2 rounded-xl text-sm font-medium transition-all
         ${active
           ? "bg-gradient-to-r from-purple-600 to-cyan-500 text-white shadow"
-          : "text-slate-600 hover:bg-slate-100"}
+          : "text-slate-600 dark:text-slate-400 hover:bg-slate-100"}
       `}
     >
       {label}

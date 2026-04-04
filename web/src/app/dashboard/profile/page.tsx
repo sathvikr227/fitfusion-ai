@@ -163,16 +163,16 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-cyan-50 px-4 py-10 text-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-cyan-50 px-4 py-10 text-slate-900 dark:text-white">
       <div className="mx-auto max-w-6xl space-y-6">
-        <div className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-xl backdrop-blur">
+        <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/90 p-6 shadow-xl backdrop-blur">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <p className="text-sm font-medium text-purple-600">Account Settings</p>
               <h1 className="mt-1 text-3xl font-semibold tracking-tight">
                 Profile Dashboard
               </h1>
-              <p className="mt-2 max-w-2xl text-sm text-slate-500">
+              <p className="mt-2 max-w-2xl text-sm text-slate-500 dark:text-slate-400">
                 Update your fitness profile, preferences, and lifestyle details in one place.
               </p>
             </div>
@@ -180,7 +180,7 @@ export default function ProfilePage() {
             <div className="flex flex-col gap-3 sm:flex-row">
               <button
                 onClick={handleLogout}
-                className="rounded-xl border border-slate-200 bg-white px-4 py-3 font-medium text-slate-700 transition hover:bg-slate-50"
+                className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 font-medium text-slate-700 dark:text-slate-300 transition hover:bg-slate-50"
               >
                 Logout
               </button>
@@ -379,10 +379,10 @@ function SectionCard({
   children: React.ReactNode
 }) {
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm">
       <div className="mb-5">
         <h2 className="text-xl font-semibold">{title}</h2>
-        <p className="mt-1 text-sm text-slate-500">{subtitle}</p>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{subtitle}</p>
       </div>
       {children}
     </div>
@@ -404,13 +404,13 @@ function Field({
 }) {
   return (
     <div>
-      <label className="mb-2 block text-sm font-medium text-slate-700">{label}</label>
+      <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{label}</label>
       <input
         type={type}
         value={value}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 placeholder-slate-400 outline-none transition focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
+        className="w-full rounded-xl border border-slate-200 bg-slate-50 dark:bg-slate-800/50 px-4 py-3 text-slate-900 dark:text-white placeholder-slate-400 outline-none transition focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
       />
     </div>
   )
@@ -429,11 +429,11 @@ function SelectField({
 }) {
   return (
     <div>
-      <label className="mb-2 block text-sm font-medium text-slate-700">{label}</label>
+      <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{label}</label>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
+        className="w-full rounded-xl border border-slate-200 bg-slate-50 dark:bg-slate-800/50 px-4 py-3 text-slate-900 dark:text-white outline-none transition focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
       >
         <option value="">Select an option</option>
         {options.map((option) => (
@@ -448,9 +448,9 @@ function SelectField({
 
 function SummaryRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-2xl bg-slate-50 px-4 py-3">
-      <span className="text-sm text-slate-500">{label}</span>
-      <span className="truncate text-sm font-semibold text-slate-900">
+    <div className="flex items-center justify-between gap-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 px-4 py-3">
+      <span className="text-sm text-slate-500 dark:text-slate-400">{label}</span>
+      <span className="truncate text-sm font-semibold text-slate-900 dark:text-white">
         {value || "-"}
       </span>
     </div>
@@ -459,9 +459,9 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-      <p className="text-xs uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="mt-1 text-lg font-semibold text-slate-900">{value}</p>
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 dark:bg-slate-800/50 px-4 py-4">
+      <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{label}</p>
+      <p className="mt-1 text-lg font-semibold text-slate-900 dark:text-white">{value}</p>
     </div>
   )
 }

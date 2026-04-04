@@ -391,7 +391,7 @@ export default function PosePage() {
   }
 
   const stageColor = {
-    ready: "bg-slate-100 text-slate-600",
+    ready: "bg-slate-100 text-slate-600 dark:text-slate-400",
     down: "bg-amber-100 text-amber-700",
     up: "bg-green-100 text-green-700",
   }[stage]
@@ -403,8 +403,8 @@ export default function PosePage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">AI Pose Tracker</h1>
-        <p className="text-sm text-slate-500 mt-1">
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">AI Pose Tracker</h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
           Real-time posture detection and automatic rep counting
         </p>
       </div>
@@ -416,13 +416,13 @@ export default function PosePage() {
       )}
 
       {/* Mode toggle */}
-      <div className="flex gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-1 w-fit">
+      <div className="flex gap-2 rounded-2xl border border-slate-200 bg-slate-50 dark:bg-slate-800/50 p-1 w-fit">
         <button
           onClick={() => switchMode("camera")}
           className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all ${
             isCameraMode
-              ? "bg-white text-slate-900 shadow-sm"
-              : "text-slate-500 hover:text-slate-700"
+              ? "bg-white text-slate-900 dark:text-white shadow-sm"
+              : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-300"
           }`}
         >
           <Camera className="h-4 w-4" /> Live Camera
@@ -431,8 +431,8 @@ export default function PosePage() {
           onClick={() => switchMode("video")}
           className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all ${
             isVideoMode
-              ? "bg-white text-slate-900 shadow-sm"
-              : "text-slate-500 hover:text-slate-700"
+              ? "bg-white text-slate-900 dark:text-white shadow-sm"
+              : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-300"
           }`}
         >
           <Film className="h-4 w-4" /> Upload Video
@@ -453,7 +453,7 @@ export default function PosePage() {
                 className={`flex items-center gap-2 rounded-2xl border px-4 py-2 text-sm font-medium transition-all disabled:opacity-50 ${
                   exercise === key
                     ? "bg-gradient-to-r from-purple-600 to-cyan-500 text-white border-transparent shadow-lg"
-                    : "bg-white text-slate-700 border-slate-200 hover:border-purple-300"
+                    : "bg-white text-slate-700 dark:text-slate-300 border-slate-200 hover:border-purple-300"
                 }`}
               >
                 <span>{def.icon}</span>
@@ -535,7 +535,7 @@ export default function PosePage() {
               )}
               <button
                 onClick={resetReps}
-                className="flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-all"
+                className="flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 transition-all"
                 title="Reset reps"
               >
                 <RefreshCw className="h-4 w-4" />
@@ -557,7 +557,7 @@ export default function PosePage() {
                 </button>
                 <button
                   onClick={resetReps}
-                  className="flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-all"
+                  className="flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 transition-all"
                   title="Reset reps"
                 >
                   <RefreshCw className="h-4 w-4" />
@@ -574,14 +574,14 @@ export default function PosePage() {
 
               {/* File name */}
               {videoFileName && (
-                <p className="text-xs text-slate-500 truncate px-1">
+                <p className="text-xs text-slate-500 dark:text-slate-400 truncate px-1">
                   📁 {videoFileName}
                 </p>
               )}
 
               {/* Playback controls */}
               {isRunning && (
-                <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3">
+                <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 space-y-3">
                   {/* Progress bar */}
                   <div className="flex items-center gap-3">
                     <span className="text-xs text-slate-400 w-10 shrink-0">
@@ -621,23 +621,23 @@ export default function PosePage() {
         {/* Right — Stats */}
         <div className="space-y-4">
           {/* Rep counter */}
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 text-center shadow-sm">
+          <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 text-center shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Reps</p>
-            <p className="mt-2 text-7xl font-extrabold text-slate-900">{reps}</p>
+            <p className="mt-2 text-7xl font-extrabold text-slate-900 dark:text-white">{reps}</p>
             <span className={`mt-3 inline-block rounded-full px-3 py-1 text-xs font-semibold ${stageColor}`}>
               {stage === "ready" ? "Ready" : stage === "down" ? "Down ↓" : "Up ↑"}
             </span>
           </div>
 
           {/* Current angle */}
-          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
               Joint Angle
             </p>
             {currentAngle !== null ? (
               <>
-                <p className="text-4xl font-bold text-slate-900">{currentAngle}°</p>
-                <div className="mt-3 h-2 w-full rounded-full bg-slate-100 overflow-hidden">
+                <p className="text-4xl font-bold text-slate-900 dark:text-white">{currentAngle}°</p>
+                <div className="mt-3 h-2 w-full rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
                   <div
                     className="h-full rounded-full bg-gradient-to-r from-purple-500 to-cyan-500 transition-all duration-100"
                     style={{ width: `${Math.min((currentAngle / 180) * 100, 100)}%` }}
@@ -662,11 +662,11 @@ export default function PosePage() {
           </div>
 
           {/* How it works */}
-          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-            <p className="text-xs font-semibold text-slate-500 mb-3">
+          <div className="rounded-3xl border border-slate-200 bg-slate-50 dark:bg-slate-800/50 p-5">
+            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-3">
               {isVideoMode ? "How video analysis works" : "How reps are counted"}
             </p>
-            <ol className="space-y-2 text-xs text-slate-600">
+            <ol className="space-y-2 text-xs text-slate-600 dark:text-slate-400">
               {isVideoMode ? (
                 <>
                   <li className="flex items-start gap-2">

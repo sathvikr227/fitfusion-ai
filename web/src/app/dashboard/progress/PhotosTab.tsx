@@ -124,8 +124,8 @@ export default function PhotosTab() {
             <Camera className="h-5 w-5 text-white" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-slate-900">Progress Photos</h2>
-            <p className="text-sm text-slate-500">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Progress Photos</h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
               Track your physical transformation over time
             </p>
           </div>
@@ -165,7 +165,7 @@ export default function PhotosTab() {
             className="flex w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-white/80 p-12 transition hover:border-purple-400 hover:bg-purple-50/30"
           >
             <Camera className="mb-3 h-8 w-8 text-slate-400" />
-            <p className="text-sm font-medium text-slate-700">
+            <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
               Click to upload a progress photo
             </p>
             <p className="mt-1 text-xs text-slate-400">JPG, PNG, WEBP supported</p>
@@ -189,7 +189,7 @@ export default function PhotosTab() {
 
       {/* Photos grid */}
       <div>
-        <p className="mb-4 text-base font-semibold text-slate-900">
+        <p className="mb-4 text-base font-semibold text-slate-900 dark:text-white">
           Your Photos{" "}
           {photos.length > 0 && (
             <span className="font-normal text-slate-400">({photos.length})</span>
@@ -206,7 +206,7 @@ export default function PhotosTab() {
             ))}
           </div>
         ) : photos.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-10 text-center text-sm text-slate-500">
+          <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 dark:bg-slate-800/50 p-10 text-center text-sm text-slate-500 dark:text-slate-400">
             No photos yet. Upload your first progress photo above.
           </div>
         ) : (

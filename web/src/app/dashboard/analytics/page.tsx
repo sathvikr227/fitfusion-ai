@@ -419,23 +419,23 @@ export default function AnalyticsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-white via-slate-50 to-blue-50">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-white via-slate-50 to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
         <div className="text-center">
           <div className="mx-auto mb-4 h-10 w-10 rounded-full border-2 border-purple-200 border-t-purple-600 animate-spin" />
-          <p className="text-sm text-slate-600">Loading analytics...</p>
+          <p className="text-sm text-slate-600 dark:text-slate-400">Loading analytics...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-slate-50 to-blue-50 p-6 md:p-10 text-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-white via-slate-50 to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 p-6 md:p-10 text-slate-900 dark:text-white">
       <div className="max-w-6xl mx-auto space-y-8">
 
         {/* Header */}
         <div>
           <h1 className="text-4xl font-semibold">Analytics Dashboard</h1>
-          <p className="text-slate-500 mt-2">Your fitness insights powered by data.</p>
+          <p className="text-slate-500 dark:text-slate-400 mt-2">Your fitness insights powered by data.</p>
         </div>
 
         {/* Stats grid */}
@@ -454,7 +454,7 @@ export default function AnalyticsPage() {
                   ? "text-green-600"
                   : weightChange > 0
                     ? "text-rose-600"
-                    : "text-slate-900"
+                    : "text-slate-900 dark:text-white"
                 : undefined
             }
           />
@@ -478,16 +478,16 @@ export default function AnalyticsPage() {
 
         {/* Habit Pattern Analysis */}
         {workoutLogs.length >= 3 && (
-          <div className="bg-white p-6 rounded-3xl shadow border border-slate-200">
+          <div className="bg-white p-6 rounded-3xl shadow border border-slate-200 dark:border-slate-700">
             <div className="mb-5">
               <h2 className="text-lg font-semibold">Habit Pattern Analysis</h2>
-              <p className="text-sm text-slate-500">When you work out most — based on your history</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">When you work out most — based on your history</p>
             </div>
 
             <div className="grid gap-6 md:grid-cols-2">
               {/* Radar chart */}
               <div>
-                <p className="text-xs font-medium text-slate-500 mb-3 uppercase tracking-wide">Workouts by Day of Week</p>
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-3 uppercase tracking-wide">Workouts by Day of Week</p>
                 <div className="h-[220px]">
                   <ResponsiveContainer>
                     <RadarChart data={habitPatterns.radarData}>
@@ -535,11 +535,11 @@ export default function AnalyticsPage() {
         )}
 
         {/* Achievements / Badges */}
-        <div className="bg-white p-6 rounded-3xl shadow border border-slate-200">
+        <div className="bg-white p-6 rounded-3xl shadow border border-slate-200 dark:border-slate-700">
           <div className="flex items-center justify-between mb-5">
             <div>
               <h2 className="text-lg font-semibold">Achievements</h2>
-              <p className="text-sm text-slate-500">Earn badges by hitting fitness milestones</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Earn badges by hitting fitness milestones</p>
             </div>
             <span className="rounded-full bg-purple-50 px-3 py-1 text-xs font-medium text-purple-700">
               {badges.filter((b) => b.unlocked).length} / {badges.length} unlocked
@@ -557,7 +557,7 @@ export default function AnalyticsPage() {
           <div className="flex items-start justify-between flex-wrap gap-3 mb-4">
             <div>
               <h2 className="text-lg font-semibold">Weight Progress</h2>
-              <p className="text-sm text-slate-500">Actual weight + AI trend line</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Actual weight + AI trend line</p>
             </div>
             {weightPrediction && (
               <div className="rounded-2xl border border-cyan-200 bg-cyan-50 px-4 py-2 text-sm">
@@ -577,7 +577,7 @@ export default function AnalyticsPage() {
           </div>
 
           {weightChartData.length === 0 ? (
-            <p className="text-center text-slate-500 py-10">No weight data yet. Log your weight in the Progress tab.</p>
+            <p className="text-center text-slate-500 dark:text-slate-400 py-10">No weight data yet. Log your weight in the Progress tab.</p>
           ) : (
             <div className="w-full h-[300px]">
               <ResponsiveContainer>
@@ -614,10 +614,10 @@ export default function AnalyticsPage() {
         {/* Workout activity chart */}
         <div className="bg-white p-6 rounded-3xl shadow border">
           <h2 className="text-lg font-semibold mb-1">Workout Activity</h2>
-          <p className="text-sm text-slate-500 mb-4">Sessions logged per day</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Sessions logged per day</p>
 
           {workoutActivityData.length === 0 ? (
-            <p className="text-center text-slate-500 py-10">No workout data yet. Log a workout in the Progress tab.</p>
+            <p className="text-center text-slate-500 dark:text-slate-400 py-10">No workout data yet. Log a workout in the Progress tab.</p>
           ) : (
             <div className="w-full h-[300px]">
               <ResponsiveContainer>
@@ -637,7 +637,7 @@ export default function AnalyticsPage() {
         {workoutActivityData.some((d) => d.calories > 0) && (
           <div className="bg-white p-6 rounded-3xl shadow border">
             <h2 className="text-lg font-semibold mb-1">Calories Burned</h2>
-            <p className="text-sm text-slate-500 mb-4">Total kcal burned per day</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Total kcal burned per day</p>
             <div className="w-full h-[250px]">
               <ResponsiveContainer>
                 <BarChart data={workoutActivityData}>
@@ -657,7 +657,7 @@ export default function AnalyticsPage() {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
             <div>
               <h2 className="text-lg font-semibold">Weekly AI Fitness Report</h2>
-              <p className="text-sm text-slate-500">Get a personalised AI summary of your last 7 days</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Get a personalised AI summary of your last 7 days</p>
             </div>
             <div className="flex gap-2">
               <button
@@ -674,7 +674,7 @@ export default function AnalyticsPage() {
               {report && (
                 <button
                   onClick={downloadPdf}
-                  className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
+                  className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 transition"
                 >
                   <Download className="h-4 w-4" />
                   Download PDF
@@ -708,12 +708,12 @@ export default function AnalyticsPage() {
           {report && (
             <div className="rounded-2xl bg-gradient-to-br from-purple-50 to-cyan-50 border border-purple-100 p-5">
               <p className="text-sm font-semibold text-purple-700 mb-2">Your Weekly Report</p>
-              <p className="text-sm leading-7 text-slate-700 whitespace-pre-line">{report}</p>
+              <p className="text-sm leading-7 text-slate-700 dark:text-slate-300 whitespace-pre-line">{report}</p>
             </div>
           )}
 
           {!report && !reportError && !loadingReport && (
-            <div className="rounded-2xl bg-slate-50 border border-slate-200 p-6 text-center text-sm text-slate-500">
+            <div className="rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 p-6 text-center text-sm text-slate-500 dark:text-slate-400">
               Click &quot;Generate Report&quot; to get your personalised AI fitness summary for the past week.
             </div>
           )}
@@ -750,12 +750,12 @@ function BadgeCard({
       className={`rounded-2xl border p-4 transition-all ${
         badge.unlocked
           ? TIER_STYLES[badge.tier]
-          : "border-slate-200 bg-slate-50 opacity-40 grayscale"
+          : "border-slate-200 bg-slate-50 dark:bg-slate-800/50 opacity-40 grayscale"
       }`}
     >
       <div className="text-2xl mb-2">{badge.icon}</div>
-      <p className="text-sm font-semibold text-slate-900 leading-tight">{badge.name}</p>
-      <p className="text-xs text-slate-500 mt-0.5 leading-snug">{badge.description}</p>
+      <p className="text-sm font-semibold text-slate-900 dark:text-white leading-tight">{badge.name}</p>
+      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">{badge.description}</p>
       {badge.unlocked && (
         <p className="text-xs font-medium text-emerald-600 mt-1.5">✓ Unlocked</p>
       )}
@@ -765,9 +765,9 @@ function BadgeCard({
 
 function MiniStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl bg-slate-50 border border-slate-200 p-3 text-center">
-      <p className="text-xs text-slate-500">{label}</p>
-      <p className="text-base font-semibold text-slate-900 mt-0.5">{value}</p>
+    <div className="rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 p-3 text-center">
+      <p className="text-xs text-slate-500 dark:text-slate-400">{label}</p>
+      <p className="text-base font-semibold text-slate-900 dark:text-white mt-0.5">{value}</p>
     </div>
   )
 }
@@ -783,8 +783,8 @@ function StatCard({
 }) {
   return (
     <div className="bg-white p-5 rounded-3xl shadow border">
-      <p className="text-sm text-slate-500">{label}</p>
-      <p className={`text-2xl font-bold mt-1 ${color ?? "text-slate-900"}`}>{value}</p>
+      <p className="text-sm text-slate-500 dark:text-slate-400">{label}</p>
+      <p className={`text-2xl font-bold mt-1 ${color ?? "text-slate-900 dark:text-white"}`}>{value}</p>
     </div>
   )
 }

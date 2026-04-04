@@ -129,7 +129,7 @@ export default function SleepTab() {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-3 p-8 text-slate-500">
+      <div className="flex items-center gap-3 p-8 text-slate-500 dark:text-slate-400">
         <Loader2 className="h-5 w-5 animate-spin" />
         Loading sleep data...
       </div>
@@ -145,25 +145,25 @@ export default function SleepTab() {
             <Moon className="h-5 w-5 text-white" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-slate-900">Log Sleep & Recovery</h2>
-            <p className="text-sm text-slate-500">Track your nightly sleep to monitor recovery trends</p>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Log Sleep & Recovery</h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400">Track your nightly sleep to monitor recovery trends</p>
           </div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700">Date</label>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Date</label>
             <input
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
               max={today}
-              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
+              className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-slate-900 dark:text-white outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
             />
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700">Hours Slept</label>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Hours Slept</label>
             <input
               type="number"
               value={sleepHours}
@@ -172,16 +172,16 @@ export default function SleepTab() {
               max="24"
               step="0.5"
               placeholder="e.g. 7.5"
-              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
+              className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-slate-900 dark:text-white outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
             />
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700">Sleep Quality</label>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Sleep Quality</label>
             <select
               value={quality}
               onChange={(e) => setQuality(e.target.value)}
-              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
+              className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-slate-900 dark:text-white outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
             >
               {QUALITY_OPTIONS.map((q) => (
                 <option key={q} value={q}>{q}</option>
@@ -190,13 +190,13 @@ export default function SleepTab() {
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700">Notes (optional)</label>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Notes (optional)</label>
             <input
               type="text"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="e.g. woke up twice"
-              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 placeholder-slate-400 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
+              className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-slate-900 dark:text-white placeholder-slate-400 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
             />
           </div>
         </div>
@@ -220,23 +220,23 @@ export default function SleepTab() {
       {/* Stats row */}
       {logs.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <p className="text-xs text-slate-500 uppercase tracking-wide">Avg Sleep</p>
-            <p className="mt-1 text-2xl font-bold text-slate-900">{avgSleep}h</p>
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 shadow-sm">
+            <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">Avg Sleep</p>
+            <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">{avgSleep}h</p>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <p className="text-xs text-slate-500 uppercase tracking-wide">Nights Logged</p>
-            <p className="mt-1 text-2xl font-bold text-slate-900">{logs.length}</p>
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 shadow-sm">
+            <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">Nights Logged</p>
+            <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">{logs.length}</p>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <p className="text-xs text-slate-500 uppercase tracking-wide">Best Night</p>
-            <p className="mt-1 text-2xl font-bold text-slate-900">
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 shadow-sm">
+            <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">Best Night</p>
+            <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">
               {Math.max(...logs.map((l) => l.sleep_hours))}h
             </p>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <p className="text-xs text-slate-500 uppercase tracking-wide">Last Night</p>
-            <p className="mt-1 text-2xl font-bold text-slate-900">{logs[0]?.sleep_hours ?? "--"}h</p>
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 shadow-sm">
+            <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">Last Night</p>
+            <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">{logs[0]?.sleep_hours ?? "--"}h</p>
             {logs[0] && (
               <span className={`mt-1 inline-block rounded-full border px-2 py-0.5 text-xs font-medium ${QUALITY_COLORS[logs[0].quality] ?? ""}`}>
                 {logs[0].quality}
@@ -248,9 +248,9 @@ export default function SleepTab() {
 
       {/* Sleep chart */}
       {chartData.length > 1 && (
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="mb-1 text-base font-semibold text-slate-900">Sleep Trend (last 14 nights)</h3>
-          <p className="mb-4 text-sm text-slate-500">Hours slept per night</p>
+        <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm">
+          <h3 className="mb-1 text-base font-semibold text-slate-900 dark:text-white">Sleep Trend (last 14 nights)</h3>
+          <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">Hours slept per night</p>
           <div className="h-[240px] w-full">
             <ResponsiveContainer>
               <LineChart data={chartData}>
@@ -284,13 +284,13 @@ export default function SleepTab() {
 
       {/* Log history */}
       <div>
-        <p className="mb-3 text-sm font-semibold text-slate-900">
+        <p className="mb-3 text-sm font-semibold text-slate-900 dark:text-white">
           Recent Logs{" "}
           {logs.length > 0 && <span className="font-normal text-slate-400">({logs.length})</span>}
         </p>
 
         {logs.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-500">
+          <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 dark:bg-slate-800/50 p-8 text-center text-sm text-slate-500 dark:text-slate-400">
             No sleep logs yet. Log your first night above.
           </div>
         ) : (
@@ -298,12 +298,12 @@ export default function SleepTab() {
             {logs.slice(0, 10).map((log) => (
               <div
                 key={log.id}
-                className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3"
+                className="flex items-center justify-between rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3"
               >
                 <div className="flex items-center gap-3">
                   <Zap className="h-4 w-4 text-purple-400" />
                   <div>
-                    <p className="text-sm font-medium text-slate-900">
+                    <p className="text-sm font-medium text-slate-900 dark:text-white">
                       {new Date(log.date).toLocaleDateString("en-IN", {
                         weekday: "short",
                         day: "numeric",
@@ -319,7 +319,7 @@ export default function SleepTab() {
                   <span className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${QUALITY_COLORS[log.quality] ?? ""}`}>
                     {log.quality}
                   </span>
-                  <span className="text-sm font-bold text-slate-900">{log.sleep_hours}h</span>
+                  <span className="text-sm font-bold text-slate-900 dark:text-white">{log.sleep_hours}h</span>
                 </div>
               </div>
             ))}

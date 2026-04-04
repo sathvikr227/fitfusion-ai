@@ -351,7 +351,7 @@ export default function PlanPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 flex items-center justify-center text-slate-900">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 flex items-center justify-center text-slate-900 dark:text-white">
         Loading...
       </div>
     )
@@ -363,27 +363,27 @@ export default function PlanPage() {
   const netLabel = dailyNetCalories !== null ? `${dailyNetCalories} kcal` : "--"
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 px-6 py-8 text-slate-900 md:px-10">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 px-6 py-8 text-slate-900 dark:text-white md:px-10">
       <div className="mx-auto max-w-7xl space-y-8">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
             Your Plan & AI
           </h1>
-          <p className="mt-2 text-sm text-slate-500">
+          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
             Structured workout and diet tracking with calorie totals.
           </p>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-sm text-slate-500">Diet Total</p>
+          <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm">
+            <p className="text-sm text-slate-500 dark:text-slate-400">Diet Total</p>
             <h2 className="mt-2 text-3xl font-bold tracking-tight">
               {dietDailyTotal} kcal
             </h2>
           </div>
 
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-sm text-slate-500">Workout Burn</p>
+          <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm">
+            <p className="text-sm text-slate-500 dark:text-slate-400">Workout Burn</p>
             <h2 className="mt-2 text-3xl font-bold tracking-tight">
               {workoutTotal} kcal
             </h2>
@@ -392,15 +392,15 @@ export default function PlanPage() {
             </p>
           </div>
 
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-sm text-slate-500">Daily Net Calories</p>
+          <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm">
+            <p className="text-sm text-slate-500 dark:text-slate-400">Daily Net Calories</p>
             <h2 className="mt-2 text-3xl font-bold tracking-tight">
               {netLabel}
             </h2>
           </div>
 
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-sm text-slate-500">Workout Days</p>
+          <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm">
+            <p className="text-sm text-slate-500 dark:text-slate-400">Workout Days</p>
             <h2 className="mt-2 text-3xl font-bold tracking-tight">
               {workoutDays.length}
             </h2>
@@ -410,7 +410,7 @@ export default function PlanPage() {
         <div className="grid gap-6 xl:grid-cols-12">
           <div className="space-y-6 xl:col-span-8">
             <div className="grid gap-6 md:grid-cols-2">
-              <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm">
                 <div className="mb-5 flex items-center justify-between gap-3">
                   <h2 className="text-xl font-semibold">Workout Plan</h2>
                   <span className="rounded-full bg-cyan-50 px-3 py-1 text-xs font-medium text-cyan-700">
@@ -423,7 +423,7 @@ export default function PlanPage() {
                     {workoutDays.map((day, index) => (
                       <div
                         key={`${day.day}-${index}`}
-                        className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                        className="rounded-2xl border border-slate-200 bg-slate-50 dark:bg-slate-800/50 p-4"
                       >
                         <div className="mb-3 flex items-start justify-between gap-3">
                           <div>
@@ -431,7 +431,7 @@ export default function PlanPage() {
                               {day.day}
                               {day.type ? ` — ${day.type}` : ""}
                             </p>
-                            <p className="text-xs text-slate-500">
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
                               Estimated session burn
                             </p>
                           </div>
@@ -448,17 +448,17 @@ export default function PlanPage() {
                                 key={`${exercise.name}-${exIndex}`}
                                 className="flex items-center justify-between gap-4 rounded-xl bg-white px-3 py-2 text-sm"
                               >
-                                <span className="font-medium text-slate-900">
+                                <span className="font-medium text-slate-900 dark:text-white">
                                   {exercise.name}
                                 </span>
-                                <span className="text-slate-500">
+                                <span className="text-slate-500 dark:text-slate-400">
                                   {exercise.sets ? `${exercise.sets} sets` : "--"}{" "}
                                   {exercise.reps ? `× ${exercise.reps} reps` : ""}
                                 </span>
                               </div>
                             ))
                           ) : (
-                            <p className="text-sm text-slate-500">
+                            <p className="text-sm text-slate-500 dark:text-slate-400">
                               No exercises listed.
                             </p>
                           )}
@@ -467,17 +467,17 @@ export default function PlanPage() {
                     ))}
                   </div>
                 ) : legacyText ? (
-                  <pre className="whitespace-pre-wrap text-sm leading-relaxed text-slate-700">
+                  <pre className="whitespace-pre-wrap text-sm leading-relaxed text-slate-700 dark:text-slate-300">
                     {legacyText}
                   </pre>
                 ) : (
-                  <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-sm text-slate-500">
+                  <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 dark:bg-slate-800/50 p-6 text-sm text-slate-500 dark:text-slate-400">
                     No workout plan found.
                   </div>
                 )}
               </div>
 
-              <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm">
                 <div className="mb-5 flex items-center justify-between gap-3">
                   <h2 className="text-xl font-semibold">Diet Plan</h2>
                   <span className="rounded-full bg-purple-50 px-3 py-1 text-xs font-medium text-purple-700">
@@ -490,12 +490,12 @@ export default function PlanPage() {
                     {dietMeals.map((meal, index) => (
                       <div
                         key={`${meal.name}-${index}`}
-                        className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                        className="rounded-2xl border border-slate-200 bg-slate-50 dark:bg-slate-800/50 p-4"
                       >
                         <div className="mb-3 flex items-start justify-between gap-3">
                           <div>
                             <p className="text-base font-semibold">{meal.name}</p>
-                            <p className="text-xs text-slate-500">Meal breakdown</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">Meal breakdown</p>
                           </div>
 
                           <div className="rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-800">
@@ -510,21 +510,21 @@ export default function PlanPage() {
                                 key={`${item.food}-${itemIndex}`}
                                 className="grid grid-cols-[1fr_auto_auto] items-center gap-3 rounded-xl bg-white px-3 py-2 text-sm"
                               >
-                                <span className="font-medium text-slate-900">
+                                <span className="font-medium text-slate-900 dark:text-white">
                                   {item.food}
                                 </span>
-                                <span className="text-slate-500">
+                                <span className="text-slate-500 dark:text-slate-400">
                                   {item.protein !== undefined && item.protein !== null
                                     ? `${item.protein}g protein`
                                     : ""}
                                 </span>
-                                <span className="font-semibold text-slate-700">
+                                <span className="font-semibold text-slate-700 dark:text-slate-300">
                                   {asNumber(item.calories)} kcal
                                 </span>
                               </div>
                             ))
                           ) : (
-                            <p className="text-sm text-slate-500">
+                            <p className="text-sm text-slate-500 dark:text-slate-400">
                               No food items listed.
                             </p>
                           )}
@@ -533,25 +533,25 @@ export default function PlanPage() {
                     ))}
 
                     <div className="rounded-2xl border border-purple-100 bg-purple-50 p-4">
-                      <p className="text-sm text-slate-500">Daily Total Calories</p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">Daily Total Calories</p>
                       <p className="mt-1 text-2xl font-bold text-purple-700">
                         {dietDailyTotal} kcal
                       </p>
                     </div>
                   </div>
                 ) : legacyText ? (
-                  <pre className="whitespace-pre-wrap text-sm leading-relaxed text-slate-700">
+                  <pre className="whitespace-pre-wrap text-sm leading-relaxed text-slate-700 dark:text-slate-300">
                     {legacyText}
                   </pre>
                 ) : (
-                  <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-sm text-slate-500">
+                  <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 dark:bg-slate-800/50 p-6 text-sm text-slate-500 dark:text-slate-400">
                     No diet plan found.
                   </div>
                 )}
               </div>
             </div>
 
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm">
               <h2 className="mb-4 text-xl font-semibold">Modify your plan with AI</h2>
 
               <div className="flex flex-col gap-3 md:flex-row">
@@ -559,7 +559,7 @@ export default function PlanPage() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder="Example: reduce calories, add oats, replace bench press..."
-                  className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
+                  className="flex-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-slate-900 dark:text-white outline-none transition focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
                 />
 
                 <button
@@ -583,14 +583,14 @@ export default function PlanPage() {
                 <p className="mt-3 text-sm text-rose-500">{chatError}</p>
               ) : null}
 
-              {status ? <p className="mt-3 text-sm text-slate-600">{status}</p> : null}
+              {status ? <p className="mt-3 text-sm text-slate-600 dark:text-slate-400">{status}</p> : null}
             </div>
             {/* Grocery List */}
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
                 <div>
                   <h2 className="text-xl font-semibold">Smart Grocery List</h2>
-                  <p className="text-sm text-slate-500 mt-0.5">AI-generated weekly shopping list from your diet plan</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">AI-generated weekly shopping list from your diet plan</p>
                 </div>
                 <button
                   onClick={generateGroceryList}
@@ -602,7 +602,7 @@ export default function PlanPage() {
               </div>
 
               {!plan && (
-                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
+                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 dark:bg-slate-800/50 p-6 text-center text-sm text-slate-500 dark:text-slate-400">
                   Generate a plan first to get a grocery list.
                 </div>
               )}
@@ -616,13 +616,13 @@ export default function PlanPage() {
               {groceries && groceries.length > 0 && (
                 <div className="grid gap-4 sm:grid-cols-2">
                   {groceries.map((cat) => (
-                    <div key={cat.category} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                      <p className="text-sm font-semibold text-slate-900 mb-3">{cat.category}</p>
+                    <div key={cat.category} className="rounded-2xl border border-slate-200 bg-slate-50 dark:bg-slate-800/50 p-4">
+                      <p className="text-sm font-semibold text-slate-900 dark:text-white mb-3">{cat.category}</p>
                       <ul className="space-y-2">
                         {cat.items.map((item, i) => (
                           <li key={i} className="flex items-center justify-between rounded-xl bg-white px-3 py-2 text-sm">
                             <span className="text-slate-800 font-medium">{item.name}</span>
-                            <span className="text-slate-500 text-xs">{item.qty}</span>
+                            <span className="text-slate-500 dark:text-slate-400 text-xs">{item.qty}</span>
                           </li>
                         ))}
                       </ul>
@@ -632,7 +632,7 @@ export default function PlanPage() {
               )}
 
               {!groceries && !groceryError && !loadingGroceries && plan && (
-                <div className="rounded-2xl bg-slate-50 border border-slate-200 p-6 text-center text-sm text-slate-500">
+                <div className="rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 p-6 text-center text-sm text-slate-500 dark:text-slate-400">
                   Click &quot;Generate List&quot; to get a weekly grocery list based on your diet plan.
                 </div>
               )}
@@ -640,7 +640,7 @@ export default function PlanPage() {
           </div>
 
           <div className="space-y-6 xl:col-span-4">
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm">
               <h2 className="mb-4 text-xl font-semibold">Plan History</h2>
 
               <div className="space-y-3">
@@ -665,16 +665,16 @@ export default function PlanPage() {
                     return (
                       <div
                         key={item.id}
-                        className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                        className="rounded-2xl border border-slate-200 bg-slate-50 dark:bg-slate-800/50 p-4"
                       >
-                        <p className="text-sm font-semibold text-slate-900">
+                        <p className="text-sm font-semibold text-slate-900 dark:text-white">
                           Version {history.length - index}
                         </p>
                         <p className="text-xs text-slate-400">
                           {formatDateTime(item.created_at)}
                         </p>
 
-                        <div className="mt-2 space-y-1 text-xs text-slate-600">
+                        <div className="mt-2 space-y-1 text-xs text-slate-600 dark:text-slate-400">
                           <p>
                             Meals: <span className="font-medium">{mealCount}</span> | Workouts:{" "}
                             <span className="font-medium">{workoutCount}</span>
@@ -688,28 +688,28 @@ export default function PlanPage() {
                     )
                   })
                 ) : (
-                  <p className="text-sm text-slate-500">No history yet.</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">No history yet.</p>
                 )}
               </div>
             </div>
 
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm">
               <h2 className="mb-3 text-xl font-semibold">Quick Summary</h2>
 
               <div className="space-y-3 text-sm">
-                <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
-                  <span className="text-slate-500">Active workout days</span>
-                  <span className="font-semibold text-slate-900">{activeWorkoutDays}</span>
+                <div className="flex items-center justify-between rounded-2xl bg-slate-50 dark:bg-slate-800/50 px-4 py-3">
+                  <span className="text-slate-500 dark:text-slate-400">Active workout days</span>
+                  <span className="font-semibold text-slate-900 dark:text-white">{activeWorkoutDays}</span>
                 </div>
 
-                <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
-                  <span className="text-slate-500">Avg workout burn/day</span>
-                  <span className="font-semibold text-slate-900">{dailyWorkoutBurn} kcal</span>
+                <div className="flex items-center justify-between rounded-2xl bg-slate-50 dark:bg-slate-800/50 px-4 py-3">
+                  <span className="text-slate-500 dark:text-slate-400">Avg workout burn/day</span>
+                  <span className="font-semibold text-slate-900 dark:text-white">{dailyWorkoutBurn} kcal</span>
                 </div>
 
-                <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
-                  <span className="text-slate-500">Net daily calories</span>
-                  <span className="font-semibold text-slate-900">
+                <div className="flex items-center justify-between rounded-2xl bg-slate-50 dark:bg-slate-800/50 px-4 py-3">
+                  <span className="text-slate-500 dark:text-slate-400">Net daily calories</span>
+                  <span className="font-semibold text-slate-900 dark:text-white">
                     {dailyNetCalories !== null ? `${dailyNetCalories} kcal` : "--"}
                   </span>
                 </div>

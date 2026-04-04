@@ -133,7 +133,7 @@ export default function WeightTab() {
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
         <div>
           <h2 className="text-lg font-semibold">Log Weight</h2>
-          <p className="text-sm text-slate-600 mt-1">
+          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
             Latest weight:{" "}
             <strong>{latestWeight !== null ? `${latestWeight} kg` : "No logs yet"}</strong>
           </p>
@@ -164,7 +164,7 @@ export default function WeightTab() {
         </div>
       )}
 
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
         <div className="flex items-center justify-between gap-4 mb-4">
           <h2 className="font-semibold text-lg">Weight History</h2>
           <button onClick={loadData} className="text-sm text-purple-600 hover:underline">
@@ -173,9 +173,9 @@ export default function WeightTab() {
         </div>
 
         {loading ? (
-          <div className="text-slate-500">Loading weight history...</div>
+          <div className="text-slate-500 dark:text-slate-400">Loading weight history...</div>
         ) : logs.length === 0 ? (
-          <div className="text-slate-500">No weight logs yet.</div>
+          <div className="text-slate-500 dark:text-slate-400">No weight logs yet.</div>
         ) : (
           <div className="space-y-3">
             {logs.map((log) => (
@@ -183,7 +183,7 @@ export default function WeightTab() {
                 key={log.id}
                 className="flex justify-between items-center border border-slate-200 rounded-xl p-4"
               >
-                <span className="text-slate-700">
+                <span className="text-slate-700 dark:text-slate-300">
                   {formatDate(log.date ?? log.created_at)}
                 </span>
                 <span className="font-semibold">{log.weight} kg</span>

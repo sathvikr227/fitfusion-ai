@@ -255,21 +255,21 @@ export default function HelpPage() {
 
   const activeCard =
     "bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 text-white shadow-lg shadow-cyan-500/20";
-  const inactiveCard = "bg-slate-100 text-slate-700 hover:bg-slate-200";
+  const inactiveCard = "bg-slate-100 text-slate-700 dark:text-slate-300 hover:bg-slate-200";
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-white via-slate-50 to-blue-50 px-4 py-6 text-slate-900 md:px-0">
+    <main className="min-h-screen bg-gradient-to-br from-white via-slate-50 to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 px-4 py-6 text-slate-900 dark:text-white md:px-0">
       <div className="mx-auto max-w-6xl space-y-6">
-        <div className="rounded-3xl border border-slate-200 bg-white/85 p-6 shadow-sm backdrop-blur-xl md:p-8">
+        <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/85 p-6 shadow-sm backdrop-blur-xl md:p-8">
           <div className="mb-4 flex flex-wrap items-center gap-3">
-            <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-700">
+            <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 dark:bg-slate-700 px-3 py-1 text-sm font-medium text-slate-700 dark:text-slate-300">
               <Sparkles className="h-4 w-4" />
               FitFusion Help
             </div>
 
             <Link
               href="/dashboard/home"
-              className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+              className="inline-flex items-center gap-2 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1 text-sm font-medium text-slate-700 dark:text-slate-300 transition hover:bg-slate-100"
             >
               <ArrowLeft className="h-4 w-4" />
               Back to dashboard
@@ -279,7 +279,7 @@ export default function HelpPage() {
           <h1 className="text-3xl font-extrabold tracking-tight md:text-4xl">
             Recipe help and workout help in one place
           </h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600 md:text-base">
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-400 md:text-base">
             Search a food to get ingredients, steps, and a YouTube recipe link.
             Search an exercise or body part to get form guidance, target muscles,
             exercise lists, and demo videos.
@@ -287,7 +287,7 @@ export default function HelpPage() {
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-          <section className="rounded-3xl border border-slate-200 bg-white/85 p-6 shadow-sm backdrop-blur-xl">
+          <section className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/85 p-6 shadow-sm backdrop-blur-xl">
             <div className="mb-5 grid grid-cols-2 gap-3">
               <button
                 onClick={() => {
@@ -318,7 +318,7 @@ export default function HelpPage() {
               </button>
             </div>
 
-            <label className="mb-2 block text-sm font-medium text-slate-700">
+            <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">
               {mode === "diet" ? "Food name" : "Exercise name or body part"}
             </label>
 
@@ -362,23 +362,23 @@ export default function HelpPage() {
             ) : null}
           </section>
 
-          <section className="rounded-3xl border border-slate-200 bg-white/85 p-6 shadow-sm backdrop-blur-xl">
+          <section className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/85 p-6 shadow-sm backdrop-blur-xl">
             <h2 className="text-xl font-bold">
               {mode === "diet" ? "Diet help" : "Workout help"}
             </h2>
-            <p className="mt-2 text-sm text-slate-600">
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
               {mode === "diet"
                 ? "Get a simple recipe breakdown with ingredients and steps."
                 : "Get exercise form guidance, muscles worked, and body-part exercise lists."}
             </p>
 
             <div className="mt-6 space-y-4">
-              <div className="rounded-2xl bg-slate-50 p-4">
+              <div className="rounded-2xl bg-slate-50 dark:bg-slate-800/50 p-4">
                 <div className="mb-2 flex items-center gap-2">
                   <ChefHat className="h-4 w-4 text-purple-600" />
-                  <p className="text-sm font-semibold text-slate-700">What you get</p>
+                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">What you get</p>
                 </div>
-                <ul className="space-y-2 text-sm text-slate-600">
+                <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
                   <li>• Clear step-by-step instructions</li>
                   <li>• YouTube search link for demo videos</li>
                   <li>• Body-part searches like chest, core, upper chest, and lower chest return exercise lists</li>
@@ -392,11 +392,11 @@ export default function HelpPage() {
         {result ? (
           <section
             id="result-section"
-            className="rounded-3xl border border-slate-200 bg-white/85 p-6 shadow-sm backdrop-blur-xl md:p-8"
+            className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/85 p-6 shadow-sm backdrop-blur-xl md:p-8"
           >
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-sm font-medium text-slate-500">
+                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
                   {result.category === "diet" ? "Diet result" : "Workout result"}
                 </p>
                 <h3 className="text-2xl font-bold md:text-3xl">{result.title}</h3>
@@ -406,7 +406,7 @@ export default function HelpPage() {
                 href={result.videoUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-2 rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-100"
+                className="inline-flex items-center gap-2 rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 dark:text-white transition hover:bg-slate-100"
               >
                 <Youtube className="h-4 w-4" />
                 Open YouTube
@@ -416,8 +416,8 @@ export default function HelpPage() {
             {result.category === "workout" && result.type === "list" ? (
               <div className="mt-6">
                 <div className="mb-3 flex items-center gap-2">
-                  <Target className="h-4 w-4 text-slate-600" />
-                  <p className="text-sm font-semibold text-slate-700">
+                  <Target className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                     Exercises related to {result.query}
                   </p>
                 </div>
@@ -427,23 +427,23 @@ export default function HelpPage() {
                     <button
                       key={`${exercise.title}-${index}`}
                       onClick={() => openWorkout(exercise.title)}
-                      className="rounded-3xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                      className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                     >
                       {exercise.gifUrl ? (
                         <img
                           src={exercise.gifUrl}
                           alt={exercise.title}
                           loading="lazy"
-                          className="h-44 w-full rounded-2xl bg-slate-50 object-contain p-2"
+                          className="h-44 w-full rounded-2xl bg-slate-50 dark:bg-slate-800/50 object-contain p-2"
                         />
                       ) : null}
 
                       <div className="mt-4 flex items-start justify-between gap-3">
                         <div>
-                          <h4 className="text-lg font-bold text-slate-900">
+                          <h4 className="text-lg font-bold text-slate-900 dark:text-white">
                             {exercise.title}
                           </h4>
-                          <p className="text-sm text-slate-500">
+                          <p className="text-sm text-slate-500 dark:text-slate-400">
                             {exercise.bodyPart}
                           </p>
                         </div>
@@ -453,7 +453,7 @@ export default function HelpPage() {
                           target="_blank"
                           rel="noreferrer"
                           onClick={(e) => e.stopPropagation()}
-                          className="inline-flex shrink-0 items-center gap-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-900 transition hover:bg-slate-100"
+                          className="inline-flex shrink-0 items-center gap-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white transition hover:bg-slate-100"
                         >
                           <Youtube className="h-3.5 w-3.5" />
                           YouTube
@@ -465,7 +465,7 @@ export default function HelpPage() {
                           ? exercise.target!.map((item) => (
                               <span
                                 key={item}
-                                className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700"
+                                className="rounded-full bg-slate-100 dark:bg-slate-700 px-3 py-1 text-xs text-slate-700 dark:text-slate-300"
                               >
                                 {item}
                               </span>
@@ -476,7 +476,7 @@ export default function HelpPage() {
                           ? exercise.equipment!.map((item) => (
                               <span
                                 key={item}
-                                className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700"
+                                className="rounded-full bg-slate-100 dark:bg-slate-700 px-3 py-1 text-xs text-slate-700 dark:text-slate-300"
                               >
                                 {item}
                               </span>
@@ -495,14 +495,14 @@ export default function HelpPage() {
                       src={result.gifUrl}
                       alt={result.title}
                       loading="lazy"
-                      className="max-h-72 w-full rounded-2xl bg-slate-50 object-contain p-3"
+                      className="max-h-72 w-full rounded-2xl bg-slate-50 dark:bg-slate-800/50 object-contain p-3"
                     />
                   </div>
                 ) : null}
 
                 <div className="mt-6 grid gap-4 md:grid-cols-2">
-                  <div className="rounded-2xl bg-slate-50 p-4">
-                    <p className="text-sm font-semibold text-slate-700">
+                  <div className="rounded-2xl bg-slate-50 dark:bg-slate-800/50 p-4">
+                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                       {result.category === "diet" ? "Ingredients" : "Muscles worked"}
                     </p>
 
@@ -514,20 +514,20 @@ export default function HelpPage() {
                         )!.map((item) => (
                           <span
                             key={item}
-                            className="rounded-full bg-white px-3 py-1 text-sm text-slate-700 ring-1 ring-slate-200"
+                            className="rounded-full bg-white px-3 py-1 text-sm text-slate-700 dark:text-slate-300 ring-1 ring-slate-200"
                           >
                             {item}
                           </span>
                         ))
                       ) : (
-                        <p className="text-sm text-slate-500">No items listed.</p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">No items listed.</p>
                       )}
                     </div>
                   </div>
 
-                  <div className="rounded-2xl bg-slate-50 p-4">
-                    <p className="text-sm font-semibold text-slate-700">Tips</p>
-                    <ul className="mt-3 space-y-2 text-sm text-slate-600">
+                  <div className="rounded-2xl bg-slate-50 dark:bg-slate-800/50 p-4">
+                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Tips</p>
+                    <ul className="mt-3 space-y-2 text-sm text-slate-600 dark:text-slate-400">
                       {(result.tips || []).length > 0 ? (
                         result.tips!.map((tip) => <li key={tip}>• {tip}</li>)
                       ) : (
@@ -537,11 +537,11 @@ export default function HelpPage() {
                   </div>
                 </div>
 
-                <div className="mt-6 rounded-2xl bg-slate-50 p-4">
-                  <p className="text-sm font-semibold text-slate-700">
+                <div className="mt-6 rounded-2xl bg-slate-50 dark:bg-slate-800/50 p-4">
+                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                     Step-by-step guide
                   </p>
-                  <ol className="mt-3 space-y-3 text-sm leading-6 text-slate-700">
+                  <ol className="mt-3 space-y-3 text-sm leading-6 text-slate-700 dark:text-slate-300">
                     {(result.steps || []).map((step, index) => (
                       <li key={index} className="flex gap-3">
                         <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white">

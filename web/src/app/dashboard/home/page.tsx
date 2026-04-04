@@ -112,12 +112,12 @@ function calcStreak(dates: string[]): number {
 }
 
 function statusColor(status: string | null) {
-  if (!status) return "text-slate-500"
+  if (!status) return "text-slate-500 dark:text-slate-400"
   const s = status.toLowerCase()
   if (s === "fit") return "text-emerald-600"
   if (s === "underweight") return "text-amber-600"
   if (s === "overweight" || s === "obese") return "text-rose-600"
-  return "text-slate-700"
+  return "text-slate-700 dark:text-slate-300"
 }
 
 function statusBg(status: string | null) {
@@ -126,7 +126,7 @@ function statusBg(status: string | null) {
   if (s === "fit") return "bg-emerald-50 border-emerald-200"
   if (s === "underweight") return "bg-amber-50 border-amber-200"
   if (s === "overweight" || s === "obese") return "bg-rose-50 border-rose-200"
-  return "bg-slate-50 border-slate-200"
+  return "bg-slate-50 border-slate-200 dark:border-slate-700"
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -145,14 +145,14 @@ function MetricCard({
   accent?: string
 }) {
   return (
-    <div className="flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="flex flex-col gap-3 rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 shadow-sm">
       <div className={`inline-flex w-fit rounded-2xl p-2.5 ${accent ?? "bg-slate-100"}`}>
-        <Icon className="h-5 w-5 text-slate-700" />
+        <Icon className="h-5 w-5 text-slate-700 dark:text-slate-300" />
       </div>
       <div>
-        <p className="text-xs text-slate-500">{label}</p>
-        <p className="mt-0.5 text-2xl font-bold tracking-tight text-slate-900">{value}</p>
-        {sub && <p className="mt-0.5 text-xs text-slate-500">{sub}</p>}
+        <p className="text-xs text-slate-500 dark:text-slate-400">{label}</p>
+        <p className="mt-0.5 text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{value}</p>
+        {sub && <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{sub}</p>}
       </div>
     </div>
   )
@@ -173,14 +173,14 @@ function QuickLink({
   return (
     <button
       onClick={() => router.push(href)}
-      className="group flex items-center gap-4 rounded-3xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-purple-300 hover:shadow-md"
+      className="group flex items-center gap-4 rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-purple-300 hover:shadow-md"
     >
       <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-600 to-cyan-500 text-white">
         <Icon className="h-5 w-5" />
       </div>
       <div className="flex-1">
-        <p className="font-semibold text-slate-900">{label}</p>
-        <p className="text-xs text-slate-500">{sub}</p>
+        <p className="font-semibold text-slate-900 dark:text-white">{label}</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400">{sub}</p>
       </div>
       <ChevronRight className="h-4 w-4 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-purple-600" />
     </button>
@@ -331,17 +331,17 @@ export default function HomeDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-white via-slate-50 to-blue-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-white via-slate-50 to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex items-center justify-center">
         <div className="text-center">
           <div className="mx-auto mb-4 h-10 w-10 rounded-full border-2 border-purple-200 border-t-purple-600 animate-spin" />
-          <p className="text-sm text-slate-600">Loading dashboard...</p>
+          <p className="text-sm text-slate-600 dark:text-slate-400">Loading dashboard...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-slate-50 to-blue-50 text-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-white via-slate-50 to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 text-slate-900 dark:text-white">
       <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 md:px-8 md:py-10">
 
         {/* ── Welcome header ── */}
@@ -351,7 +351,7 @@ export default function HomeDashboard() {
             <h1 className="mt-1 text-3xl font-bold tracking-tight md:text-4xl">
               Welcome back, {username}
             </h1>
-            <p className="mt-2 text-sm text-slate-500">
+            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
               Here's your fitness snapshot for today.
             </p>
           </div>
@@ -449,11 +449,11 @@ export default function HomeDashboard() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-xs font-medium uppercase tracking-wide text-purple-600">Today</p>
-                    <h2 className="mt-1 text-xl font-bold text-slate-900">
+                    <h2 className="mt-1 text-xl font-bold text-slate-900 dark:text-white">
                       {isRestDay ? "Rest Day" : `${todayWorkout.day ?? "Workout"} — ${todayWorkout.type ?? "Training"}`}
                     </h2>
                     {!isRestDay && todayWorkout.estimated_calories_burned != null && (
-                      <p className="mt-1 text-sm text-slate-500">
+                      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                         Est. {todayWorkout.estimated_calories_burned} kcal burn
                       </p>
                     )}
@@ -473,8 +473,8 @@ export default function HomeDashboard() {
                         key={i}
                         className="flex items-center justify-between rounded-2xl bg-white/70 px-4 py-2.5 text-sm backdrop-blur"
                       >
-                        <span className="font-medium text-slate-900">{ex.name}</span>
-                        <span className="text-slate-500">
+                        <span className="font-medium text-slate-900 dark:text-white">{ex.name}</span>
+                        <span className="text-slate-500 dark:text-slate-400">
                           {ex.sets != null && ex.reps != null
                             ? `${ex.sets} × ${ex.reps}`
                             : ex.sets != null
@@ -487,7 +487,7 @@ export default function HomeDashboard() {
                 )}
 
                 {isRestDay && (
-                  <p className="mt-3 text-sm text-slate-500">
+                  <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
                     Recovery is part of the plan. Stretch, hydrate, and sleep well.
                   </p>
                 )}
@@ -496,15 +496,15 @@ export default function HomeDashboard() {
 
             {/* ── Plan snapshot ── */}
             {planSummary && (
-              <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm">
                 <div className="mb-5 flex items-center justify-between gap-3">
                   <div>
                     <h2 className="text-lg font-semibold">Current Plan Snapshot</h2>
-                    <p className="text-sm text-slate-500">Summary from your latest AI-generated plan</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Summary from your latest AI-generated plan</p>
                   </div>
                   <button
                     onClick={() => router.push("/dashboard/plan")}
-                    className="flex items-center gap-1.5 rounded-2xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
+                    className="flex items-center gap-1.5 rounded-2xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 transition"
                   >
                     View full plan
                     <ChevronRight className="h-4 w-4" />
@@ -517,9 +517,9 @@ export default function HomeDashboard() {
                     { label: "Daily intake", value: `${planSummary.dailyCalories} kcal` },
                     { label: "Weekly burn", value: `${planSummary.totalWeeklyBurn} kcal` },
                   ].map(({ label, value }) => (
-                    <div key={label} className="rounded-2xl bg-slate-50 p-4">
-                      <p className="text-xs text-slate-500">{label}</p>
-                      <p className="mt-1 text-xl font-bold text-slate-900">{value}</p>
+                    <div key={label} className="rounded-2xl bg-slate-50 dark:bg-slate-800/50 p-4">
+                      <p className="text-xs text-slate-500 dark:text-slate-400">{label}</p>
+                      <p className="mt-1 text-xl font-bold text-slate-900 dark:text-white">{value}</p>
                     </div>
                   ))}
                 </div>
@@ -555,7 +555,7 @@ export default function HomeDashboard() {
             {/* Status card */}
             {metrics && (
               <div className={`rounded-3xl border p-6 shadow-sm ${statusBg(metrics.status)}`}>
-                <h2 className="text-lg font-semibold text-slate-900">Fitness Status</h2>
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Fitness Status</h2>
                 <p className={`mt-2 text-3xl font-bold ${statusColor(metrics.status)}`}>
                   {metrics.status ?? "--"}
                 </p>
@@ -567,13 +567,13 @@ export default function HomeDashboard() {
                     { label: "Target BF%", value: metrics.target_body_fat_percent != null ? `${metrics.target_body_fat_percent}%` : "--" },
                   ].map(({ label, value }) => (
                     <div key={label} className="flex items-center justify-between rounded-xl bg-white/60 px-3 py-2">
-                      <span className="text-slate-500">{label}</span>
-                      <span className="font-semibold text-slate-900">{value}</span>
+                      <span className="text-slate-500 dark:text-slate-400">{label}</span>
+                      <span className="font-semibold text-slate-900 dark:text-white">{value}</span>
                     </div>
                   ))}
                 </div>
                 {!metrics.bmi && (
-                  <p className="mt-4 text-xs text-slate-500">
+                  <p className="mt-4 text-xs text-slate-500 dark:text-slate-400">
                     Generate a plan to calculate your metrics.
                   </p>
                 )}
@@ -581,21 +581,21 @@ export default function HomeDashboard() {
             )}
 
             {/* ── Water intake tracker ── */}
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm">
               <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2">
                   <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-cyan-50">
                     <Droplets className="h-5 w-5 text-cyan-500" />
                   </div>
                   <div>
-                    <p className="font-semibold text-slate-900 text-sm">Water Intake</p>
-                    <p className="text-xs text-slate-500">
+                    <p className="font-semibold text-slate-900 dark:text-white text-sm">Water Intake</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
                       Goal: {waterGoalL}L
                       {latestWeight ? ` · based on ${latestWeight}kg` : " · log weight to personalise"}
                     </p>
                   </div>
                 </div>
-                <span className={`text-sm font-bold tabular-nums ${waterMl >= waterGoalMl ? "text-cyan-500" : "text-slate-700"}`}>
+                <span className={`text-sm font-bold tabular-nums ${waterMl >= waterGoalMl ? "text-cyan-500" : "text-slate-700 dark:text-slate-300"}`}>
                   {(waterMl / 1000).toFixed(2)}L
                 </span>
               </div>
@@ -627,7 +627,7 @@ export default function HomeDashboard() {
                 <button
                   onClick={() => addWater(-1)}
                   disabled={waterMl === 0}
-                  className="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-30 transition-all"
+                  className="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 text-slate-600 dark:text-slate-400 hover:bg-slate-50 disabled:opacity-30 transition-all"
                 >
                   <Minus className="h-4 w-4" />
                 </button>
@@ -651,8 +651,8 @@ export default function HomeDashboard() {
             {!latestPlan && (
               <div className="rounded-3xl border border-dashed border-purple-300 bg-purple-50 p-6 text-center shadow-sm">
                 <Dumbbell className="mx-auto h-8 w-8 text-purple-400" />
-                <h3 className="mt-3 font-semibold text-slate-900">No plan yet</h3>
-                <p className="mt-1 text-sm text-slate-500">
+                <h3 className="mt-3 font-semibold text-slate-900 dark:text-white">No plan yet</h3>
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                   Generate your personalized AI workout and diet plan to get started.
                 </p>
                 <button
