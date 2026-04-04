@@ -18,6 +18,7 @@ export default function Home() {
         return
       }
 
+      // profiles.id is the PK and equals auth.users.id
       const { data: profile } = await supabase
         .from("profiles")
         .select("onboarding_completed")

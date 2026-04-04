@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { supabase } from "../../../lib/supabase/client"
+import { MET_VALUES } from "../../../lib/calories"
 
 type Mode = "custom" | "assigned"
 
@@ -43,35 +44,6 @@ type ExerciseLogRow = {
   calories: number | null
 }
 
-const MET: Record<string, number> = {
-  "bench press": 6,
-  "dumbbell press": 6,
-  "incline dumbbell press": 6,
-  "chest press": 6,
-  squat: 5.5,
-  squats: 5.5,
-  deadlift: 6,
-  "shoulder press": 5.8,
-  "overhead press": 5.8,
-  row: 5.8,
-  "barbell row": 5.8,
-  "lat pulldown": 5.5,
-  "bicep curl": 4.8,
-  "tricep extension": 4.8,
-  lunges: 5.3,
-  "leg press": 5.5,
-  "push up": 8,
-  "pull up": 8.5,
-  plank: 3.3,
-  crunch: 4,
-  running: 9.8,
-  jogging: 7,
-  cycling: 7.5,
-  walking: 3.5,
-  cardio: 6.5,
-  treadmill: 7.5,
-  "stationary bike": 7,
-}
 
 const WEEKDAYS = [
   "monday",
@@ -117,8 +89,8 @@ function getCurrentDayName() {
 
 function getMET(exerciseName: string) {
   const lower = exerciseName.toLowerCase()
-  const foundKey = Object.keys(MET).find((key) => lower.includes(key))
-  return foundKey ? MET[foundKey] : 5.5
+  const foundKey = Object.keys(MET_VALUES).find((key) => lower.includes(key))
+  return foundKey ? MET_VALUES[foundKey] : 5.5
 }
 
 function estimateExerciseDurationMinutes(exercise: ExerciseInput) {

@@ -594,7 +594,8 @@ function buildPrompt(profile: JsonValue, restDays: number, metrics: JsonValue) {
   const activityLevel = asText(
     pickFirstDefined(profile, ["activity_level", "activityLevel", "activity", "daily_activity"])
   ) || "N/A"
-  const dietType = asText(pickFirstDefined(profile, ["diet_type", "dietType", "diet", "food_preference"])) || "N/A"
+  const dietType = asText(pickFirstDefined(profile, ["diet_preference", "diet_type", "dietType", "diet", "food_preference"])) || "N/A"
+  const trainingStyle = asText(pickFirstDefined(profile, ["training_style", "trainingStyle", "workout_style"])) || "N/A"
   const sleepHours = asText(
     pickFirstDefined(profile, ["sleep_hours", "sleepHours", "sleep", "sleep_time"])
   ) || "N/A"
@@ -699,7 +700,8 @@ Gender: ${gender}
 Height: ${height}
 Weight: ${weight}
 Activity level: ${activityLevel}
-Diet type: ${dietType}
+Diet type / preference: ${dietType}
+Training style: ${trainingStyle}
 Sleep hours: ${sleepHours}
 Workout time available: ${workoutTime}
 Days off per week: ${daysOff}
@@ -799,6 +801,7 @@ export async function POST(req: Request) {
 
     const today = new Date().toISOString().split("T")[0]
 
+    // Save workout plan
     const { error: saveError } = await supabase.from("workout_plans").insert({
       user_id: userId,
       date: today,
@@ -807,6 +810,26 @@ export async function POST(req: Request) {
 
     if (saveError) {
       console.warn("Plan save warning:", saveError.message)
+    }
+
+    // Save body metrics snapshot so home/analytics pages can read it
+    const heightCm = parseHeightCm(profile.height)
+    const weightKg = parseWeightKg(profile.weight)
+    const { error: metricsError } = await supabase.from("body_metrics").insert({
+      user_id: userId,
+      date: today,
+      bmi: metrics.bmi,
+      estimated_body_fat_percent: metrics.estimated_body_fat_percent,
+      target_bmi: metrics.target_bmi,
+      target_body_fat_percent: metrics.target_body_fat_percent,
+      status: metrics.status,
+      weight: weightKg,
+      height: heightCm,
+      goal: String(profile?.goal ?? ""),
+    })
+
+    if (metricsError) {
+      console.warn("Body metrics save warning:", metricsError.message)
     }
 
     return NextResponse.json({

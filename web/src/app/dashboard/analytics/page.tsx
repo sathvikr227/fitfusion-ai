@@ -1,8 +1,9 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "../../../lib/supabase/client"
+import { Loader2 } from "lucide-react"
 import {
   LineChart,
   Line,
@@ -13,19 +14,109 @@ import {
   CartesianGrid,
   BarChart,
   Bar,
+  ReferenceLine,
 } from "recharts"
 
-type Progress = {
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type WeightLog = {
   weight: number | null
-  completed: boolean | null
+  date: string | null
   created_at: string
 }
+
+type WorkoutLog = {
+  total_calories: number | null
+  date: string | null
+  created_at: string
+}
+
+// ─── Linear regression (weight prediction) ────────────────────────────────────
+
+function linearRegression(points: { x: number; y: number }[]) {
+  const n = points.length
+  if (n < 2) return null
+
+  const sumX = points.reduce((s, p) => s + p.x, 0)
+  const sumY = points.reduce((s, p) => s + p.y, 0)
+  const sumXY = points.reduce((s, p) => s + p.x * p.y, 0)
+  const sumX2 = points.reduce((s, p) => s + p.x * p.x, 0)
+
+  const denom = n * sumX2 - sumX * sumX
+  if (denom === 0) return null
+
+  const slope = (n * sumXY - sumX * sumY) / denom
+  const intercept = (sumY - slope * sumX) / n
+
+  return { slope, intercept }
+}
+
+// ─── Streak calculation ────────────────────────────────────────────────────────
+
+function calculateStreak(workoutDates: string[]): { current: number; longest: number } {
+  if (workoutDates.length === 0) return { current: 0, longest: 0 }
+
+  const uniqueDays = Array.from(
+    new Set(workoutDates.map((d) => new Date(d).toISOString().split("T")[0]))
+  ).sort()
+
+  let current = 0
+  let longest = 0
+  let streak = 1
+
+  for (let i = uniqueDays.length - 1; i >= 0; i--) {
+    const today = new Date().toISOString().split("T")[0]
+    const dayDiff =
+      (new Date(today).getTime() - new Date(uniqueDays[i]).getTime()) /
+      (1000 * 60 * 60 * 24)
+
+    if (i === uniqueDays.length - 1) {
+      current = dayDiff <= 1 ? 1 : 0
+    } else {
+      const prev = uniqueDays[i + 1]
+      const curr = uniqueDays[i]
+      const gap =
+        (new Date(prev).getTime() - new Date(curr).getTime()) /
+        (1000 * 60 * 60 * 24)
+      if (gap === 1) {
+        streak++
+        if (i === uniqueDays.length - 2 || current > 0) current = streak
+      } else {
+        longest = Math.max(longest, streak)
+        streak = 1
+        if (current === 0) current = 0
+      }
+    }
+  }
+
+  longest = Math.max(longest, streak)
+  if (current === 0 && uniqueDays.length > 0) {
+    const today = new Date().toISOString().split("T")[0]
+    const last = uniqueDays[uniqueDays.length - 1]
+    const gap =
+      (new Date(today).getTime() - new Date(last).getTime()) /
+      (1000 * 60 * 60 * 24)
+    if (gap <= 1) current = streak
+  }
+
+  return { current, longest }
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function AnalyticsPage() {
   const router = useRouter()
 
-  const [data, setData] = useState<Progress[]>([])
+  const [weightLogs, setWeightLogs] = useState<WeightLog[]>([])
+  const [workoutLogs, setWorkoutLogs] = useState<WorkoutLog[]>([])
   const [loading, setLoading] = useState(true)
+  const [userId, setUserId] = useState<string | null>(null)
+
+  // Weekly report state
+  const [report, setReport] = useState<string | null>(null)
+  const [reportStats, setReportStats] = useState<Record<string, unknown> | null>(null)
+  const [loadingReport, setLoadingReport] = useState(false)
+  const [reportError, setReportError] = useState<string | null>(null)
 
   useEffect(() => {
     const load = async () => {
@@ -38,17 +129,23 @@ export default function AnalyticsPage() {
         return
       }
 
-      const { data, error } = await supabase
-        .from("progress_logs")
-        .select("weight, completed, created_at")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: true })
+      setUserId(user.id)
 
-      if (error) {
-        console.error(error)
-      }
+      const [weightRes, workoutRes] = await Promise.all([
+        supabase
+          .from("weight_logs")
+          .select("weight, date, created_at")
+          .eq("user_id", user.id)
+          .order("date", { ascending: true, nullsFirst: false }),
+        supabase
+          .from("workout_logs")
+          .select("total_calories, date, created_at")
+          .eq("user_id", user.id)
+          .order("date", { ascending: true, nullsFirst: false }),
+      ])
 
-      if (data) setData(data)
+      if (weightRes.data) setWeightLogs(weightRes.data)
+      if (workoutRes.data) setWorkoutLogs(workoutRes.data)
 
       setLoading(false)
     }
@@ -56,151 +153,364 @@ export default function AnalyticsPage() {
     load()
   }, [router])
 
-  // 📊 Weight Data
-  const weightData = data
-    .filter((d) => d.weight !== null)
-    .map((d) => ({
-      date: new Date(d.created_at).toLocaleDateString("en-IN", {
+  // ── Weight chart data + prediction ────────────────────────────────────────
+
+  const weightChartData = useMemo(() => {
+    const points = weightLogs
+      .filter((d) => d.weight != null)
+      .map((d, i) => ({
+        x: i,
+        y: d.weight as number,
+        date: new Date(d.date ?? d.created_at).toLocaleDateString("en-IN", {
+          day: "numeric",
+          month: "short",
+        }),
+      }))
+
+    const reg = linearRegression(points.map((p) => ({ x: p.x, y: p.y })))
+
+    return points.map((p) => ({
+      date: p.date,
+      weight: p.y,
+      predicted: reg
+        ? parseFloat((reg.slope * p.x + reg.intercept).toFixed(1))
+        : undefined,
+    }))
+  }, [weightLogs])
+
+  const weightPrediction = useMemo(() => {
+    const points = weightLogs
+      .filter((d) => d.weight != null)
+      .map((d, i) => ({ x: i, y: d.weight as number }))
+
+    const reg = linearRegression(points)
+    if (!reg || points.length < 2) return null
+
+    const nextX = points.length + 6
+    const predicted = parseFloat((reg.slope * nextX + reg.intercept).toFixed(1))
+    const direction = reg.slope < -0.05 ? "losing" : reg.slope > 0.05 ? "gaining" : "maintaining"
+    return { predicted, direction, ratePerWeek: parseFloat((reg.slope * 7).toFixed(2)) }
+  }, [weightLogs])
+
+  // ── Workout activity chart ─────────────────────────────────────────────────
+
+  const workoutActivityData = useMemo(() => {
+    const dayMap: Record<string, number> = {}
+    const caloriesMap: Record<string, number> = {}
+
+    workoutLogs.forEach((d) => {
+      const dateStr = d.date ?? d.created_at.split("T")[0]
+      const label = new Date(dateStr).toLocaleDateString("en-IN", {
         day: "numeric",
         month: "short",
-      }),
-      weight: d.weight,
-    }))
-
-  // 📊 Workout Data (group by day)
-  const workoutMap: Record<string, number> = {}
-
-  data.forEach((d) => {
-    if (!d.completed) return
-
-    const day = new Date(d.created_at).toLocaleDateString("en-IN", {
-      weekday: "short",
+      })
+      dayMap[label] = (dayMap[label] || 0) + 1
+      caloriesMap[label] = (caloriesMap[label] || 0) + (d.total_calories || 0)
     })
 
-    workoutMap[day] = (workoutMap[day] || 0) + 1
-  })
+    return Object.keys(dayMap).map((day) => ({
+      day,
+      workouts: dayMap[day],
+      calories: caloriesMap[day],
+    }))
+  }, [workoutLogs])
 
-  const workoutData = Object.keys(workoutMap).map((day) => ({
-    day,
-    workouts: workoutMap[day],
-  }))
+  // ── Streak ─────────────────────────────────────────────────────────────────
 
-  // 📈 Insights
-  const latestWeight = weightData.at(-1)?.weight || 0
-  const startWeight = weightData[0]?.weight || 0
-  const change =
-    weightData.length >= 2 ? (latestWeight - startWeight).toFixed(1) : "--"
+  const streak = useMemo(() => {
+    const dates = workoutLogs.map((d) => d.date ?? d.created_at)
+    return calculateStreak(dates)
+  }, [workoutLogs])
 
-  const totalWorkouts = data.filter((d) => d.completed).length
-  const totalEntries = data.length
+  // ── Summary stats ──────────────────────────────────────────────────────────
+
+  const latestWeight = weightLogs.filter((d) => d.weight != null).at(-1)?.weight ?? null
+  const startWeight = weightLogs.filter((d) => d.weight != null)[0]?.weight ?? null
+  const weightChange =
+    latestWeight != null && startWeight != null
+      ? parseFloat((latestWeight - startWeight).toFixed(1))
+      : null
+
+  const totalWorkouts = workoutLogs.length
+  const totalCaloriesBurned = workoutLogs.reduce(
+    (s, d) => s + (d.total_calories || 0),
+    0
+  )
+
+  const generateReport = async () => {
+    if (!userId) return
+    setLoadingReport(true)
+    setReportError(null)
+    setReport(null)
+    setReportStats(null)
+
+    try {
+      const res = await fetch("/api/weekly-report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to generate report")
+      }
+
+      setReport(data.report)
+      setReportStats(data.stats)
+    } catch (err: any) {
+      setReportError(err.message || "Failed to generate report")
+    } finally {
+      setLoadingReport(false)
+    }
+  }
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-black">
-        Loading analytics...
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-white via-slate-50 to-blue-50">
+        <div className="text-center">
+          <div className="mx-auto mb-4 h-10 w-10 rounded-full border-2 border-purple-200 border-t-purple-600 animate-spin" />
+          <p className="text-sm text-slate-600">Loading analytics...</p>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen p-6 md:p-10 bg-gradient-to-br from-white via-slate-50 to-blue-50 text-black">
+    <div className="min-h-screen bg-gradient-to-br from-white via-slate-50 to-blue-50 p-6 md:p-10 text-slate-900">
       <div className="max-w-6xl mx-auto space-y-8">
 
-        {/* HEADER */}
+        {/* Header */}
         <div>
           <h1 className="text-4xl font-semibold">Analytics Dashboard</h1>
-          <p className="text-slate-500 mt-2">
-            Your fitness insights powered by data.
-          </p>
+          <p className="text-slate-500 mt-2">Your fitness insights powered by data.</p>
         </div>
 
-        {/* STATS */}
-        <div className="grid md:grid-cols-4 gap-6">
-
-          <div className="bg-white p-6 rounded-3xl shadow border">
-            <p className="text-sm text-slate-500">Latest Weight</p>
-            <h2 className="text-2xl font-bold mt-2">
-              {latestWeight || "--"} kg
-            </h2>
-          </div>
-
-          <div className="bg-white p-6 rounded-3xl shadow border">
-            <p className="text-sm text-slate-500">Start Weight</p>
-            <h2 className="text-2xl font-bold mt-2">
-              {startWeight || "--"} kg
-            </h2>
-          </div>
-
-          <div className="bg-white p-6 rounded-3xl shadow border">
-            <p className="text-sm text-slate-500">Total Change</p>
-            <h2 className="text-2xl font-bold mt-2">
-              {change} kg
-            </h2>
-          </div>
-
-          <div className="bg-white p-6 rounded-3xl shadow border">
-            <p className="text-sm text-slate-500">Workouts Done</p>
-            <h2 className="text-2xl font-bold mt-2">
-              {totalWorkouts}
-            </h2>
-          </div>
-
+        {/* Stats grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <StatCard label="Latest Weight" value={latestWeight != null ? `${latestWeight} kg` : "--"} />
+          <StatCard
+            label="Weight Change"
+            value={
+              weightChange != null
+                ? `${weightChange > 0 ? "+" : ""}${weightChange} kg`
+                : "--"
+            }
+            color={
+              weightChange != null
+                ? weightChange < 0
+                  ? "text-green-600"
+                  : weightChange > 0
+                    ? "text-rose-600"
+                    : "text-slate-900"
+                : undefined
+            }
+          />
+          <StatCard label="Total Workouts" value={String(totalWorkouts)} />
+          <StatCard label="Calories Burned" value={`${totalCaloriesBurned.toLocaleString()} kcal`} />
         </div>
 
-        {/* WEIGHT CHART */}
+        {/* Streak cards */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="rounded-3xl border border-orange-200 bg-orange-50 p-6 shadow-sm">
+            <p className="text-sm text-orange-600 font-medium">🔥 Current Streak</p>
+            <p className="mt-2 text-4xl font-bold text-orange-700">{streak.current} days</p>
+            <p className="mt-1 text-xs text-orange-500">Keep going — don't break the chain!</p>
+          </div>
+          <div className="rounded-3xl border border-purple-200 bg-purple-50 p-6 shadow-sm">
+            <p className="text-sm text-purple-600 font-medium">🏆 Longest Streak</p>
+            <p className="mt-2 text-4xl font-bold text-purple-700">{streak.longest} days</p>
+            <p className="mt-1 text-xs text-purple-500">Your personal best</p>
+          </div>
+        </div>
+
+        {/* Weight chart */}
         <div className="bg-white p-6 rounded-3xl shadow border">
-          <h2 className="text-lg font-semibold mb-4">Weight Progress</h2>
+          <div className="flex items-start justify-between flex-wrap gap-3 mb-4">
+            <div>
+              <h2 className="text-lg font-semibold">Weight Progress</h2>
+              <p className="text-sm text-slate-500">Actual weight + AI trend line</p>
+            </div>
+            {weightPrediction && (
+              <div className="rounded-2xl border border-cyan-200 bg-cyan-50 px-4 py-2 text-sm">
+                <p className="text-cyan-600 font-medium">
+                  {weightPrediction.direction === "losing"
+                    ? "📉 Losing"
+                    : weightPrediction.direction === "gaining"
+                      ? "📈 Gaining"
+                      : "⚖️ Maintaining"}
+                  {" "}~{Math.abs(weightPrediction.ratePerWeek)} kg/week
+                </p>
+                <p className="text-xs text-cyan-500 mt-0.5">
+                  Predicted in ~6 entries: {weightPrediction.predicted} kg
+                </p>
+              </div>
+            )}
+          </div>
 
-          {weightData.length === 0 ? (
-            <p className="text-center text-slate-500 py-10">
-              No weight data yet
-            </p>
+          {weightChartData.length === 0 ? (
+            <p className="text-center text-slate-500 py-10">No weight data yet. Log your weight in the Progress tab.</p>
           ) : (
             <div className="w-full h-[300px]">
               <ResponsiveContainer>
-                <LineChart data={weightData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
+                <LineChart data={weightChartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                  <YAxis tick={{ fontSize: 12 }} domain={["auto", "auto"]} />
                   <Tooltip />
                   <Line
                     type="monotone"
                     dataKey="weight"
                     stroke="#7c3aed"
                     strokeWidth={3}
+                    dot={{ r: 4 }}
+                    name="Actual"
                   />
+                  {weightChartData.some((d) => d.predicted != null) && (
+                    <Line
+                      type="monotone"
+                      dataKey="predicted"
+                      stroke="#06b6d4"
+                      strokeWidth={2}
+                      strokeDasharray="5 5"
+                      dot={false}
+                      name="Trend"
+                    />
+                  )}
                 </LineChart>
               </ResponsiveContainer>
             </div>
           )}
         </div>
 
-        {/* WORKOUT CHART */}
+        {/* Workout activity chart */}
         <div className="bg-white p-6 rounded-3xl shadow border">
-          <h2 className="text-lg font-semibold mb-4">
-            Weekly Workout Activity
-          </h2>
+          <h2 className="text-lg font-semibold mb-1">Workout Activity</h2>
+          <p className="text-sm text-slate-500 mb-4">Sessions logged per day</p>
 
-          {workoutData.length === 0 ? (
-            <p className="text-center text-slate-500 py-10">
-              No workout data yet
-            </p>
+          {workoutActivityData.length === 0 ? (
+            <p className="text-center text-slate-500 py-10">No workout data yet. Log a workout in the Progress tab.</p>
           ) : (
             <div className="w-full h-[300px]">
               <ResponsiveContainer>
-                <BarChart data={workoutData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="day" />
-                  <YAxis />
+                <BarChart data={workoutActivityData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="day" tick={{ fontSize: 12 }} />
+                  <YAxis tick={{ fontSize: 12 }} />
                   <Tooltip />
-                  <Bar dataKey="workouts" fill="#06b6d4" />
+                  <Bar dataKey="workouts" fill="#7c3aed" radius={[6, 6, 0, 0]} name="Sessions" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           )}
         </div>
 
+        {/* Calories burned chart */}
+        {workoutActivityData.some((d) => d.calories > 0) && (
+          <div className="bg-white p-6 rounded-3xl shadow border">
+            <h2 className="text-lg font-semibold mb-1">Calories Burned</h2>
+            <p className="text-sm text-slate-500 mb-4">Total kcal burned per day</p>
+            <div className="w-full h-[250px]">
+              <ResponsiveContainer>
+                <BarChart data={workoutActivityData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="day" tick={{ fontSize: 12 }} />
+                  <YAxis tick={{ fontSize: 12 }} />
+                  <Tooltip />
+                  <Bar dataKey="calories" fill="#f97316" radius={[6, 6, 0, 0]} name="kcal burned" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+
+        {/* Weekly AI Report */}
+        <div className="bg-white p-6 rounded-3xl shadow border">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+            <div>
+              <h2 className="text-lg font-semibold">Weekly AI Fitness Report</h2>
+              <p className="text-sm text-slate-500">Get a personalised AI summary of your last 7 days</p>
+            </div>
+            <button
+              onClick={generateReport}
+              disabled={loadingReport}
+              className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-purple-600 to-cyan-500 px-5 py-2.5 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed transition"
+            >
+              {loadingReport ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                "Generate Report"
+              )}
+            </button>
+          </div>
+
+          {reportError && (
+            <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+              {reportError}
+            </div>
+          )}
+
+          {reportStats && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+              <MiniStat label="Workouts" value={String(reportStats.workoutCount ?? 0)} />
+              <MiniStat label="Calories Burned" value={`${reportStats.totalCaloriesBurned ?? 0} kcal`} />
+              <MiniStat label="Start Weight" value={reportStats.startWeight != null ? `${reportStats.startWeight} kg` : "--"} />
+              <MiniStat
+                label="Weight Change"
+                value={
+                  reportStats.weightChange != null
+                    ? `${(reportStats.weightChange as number) > 0 ? "+" : ""}${reportStats.weightChange} kg`
+                    : "--"
+                }
+              />
+            </div>
+          )}
+
+          {report && (
+            <div className="rounded-2xl bg-gradient-to-br from-purple-50 to-cyan-50 border border-purple-100 p-5">
+              <p className="text-sm font-semibold text-purple-700 mb-2">Your Weekly Report</p>
+              <p className="text-sm leading-7 text-slate-700 whitespace-pre-line">{report}</p>
+            </div>
+          )}
+
+          {!report && !reportError && !loadingReport && (
+            <div className="rounded-2xl bg-slate-50 border border-slate-200 p-6 text-center text-sm text-slate-500">
+              Click &quot;Generate Report&quot; to get your personalised AI fitness summary for the past week.
+            </div>
+          )}
+        </div>
+
       </div>
+    </div>
+  )
+}
+
+function MiniStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl bg-slate-50 border border-slate-200 p-3 text-center">
+      <p className="text-xs text-slate-500">{label}</p>
+      <p className="text-base font-semibold text-slate-900 mt-0.5">{value}</p>
+    </div>
+  )
+}
+
+function StatCard({
+  label,
+  value,
+  color,
+}: {
+  label: string
+  value: string
+  color?: string
+}) {
+  return (
+    <div className="bg-white p-5 rounded-3xl shadow border">
+      <p className="text-sm text-slate-500">{label}</p>
+      <p className={`text-2xl font-bold mt-1 ${color ?? "text-slate-900"}`}>{value}</p>
     </div>
   )
 }

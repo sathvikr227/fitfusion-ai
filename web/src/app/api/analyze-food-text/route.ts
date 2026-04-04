@@ -119,7 +119,7 @@ Return JSON exactly in this format:
         confidence: 0,
         notes: "Text analysis failed",
       },
-      { status: 200 }
+      { status: 500 }
     )
   }
 }
