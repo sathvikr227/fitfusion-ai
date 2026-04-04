@@ -20,6 +20,9 @@ export default function ProfilePage() {
   const [dietPreference, setDietPreference] = useState("")
   const [trainingStyle, setTrainingStyle] = useState("")
 
+  const [height, setHeight] = useState("")
+  const [weight, setWeight] = useState("")
+
   const [injuries, setInjuries] = useState("")
   const [dailyTimeAvailable, setDailyTimeAvailable] = useState("")
   const [sleepHours, setSleepHours] = useState("")
@@ -32,7 +35,7 @@ export default function ProfilePage() {
       } = await supabase.auth.getUser()
 
       if (!user) {
-        router.replace("/auth/login")
+        router.replace("/login")
         return
       }
 
@@ -51,6 +54,8 @@ export default function ProfilePage() {
       if (data) {
         setFullName(data.full_name || "")
         setAge(data.age?.toString() || "")
+        setHeight(data.height?.toString() || "")
+        setWeight(data.weight?.toString() || "")
         setGoal(data.goal || "")
         setActivityLevel(data.activity_level || "")
         setDietPreference(data.diet_preference || "")
@@ -71,6 +76,8 @@ export default function ProfilePage() {
     const fields = [
       fullName,
       age,
+      height,
+      weight,
       goal,
       activityLevel,
       dietPreference,
@@ -103,7 +110,7 @@ export default function ProfilePage() {
       } = await supabase.auth.getUser()
 
       if (!user) {
-        router.replace("/auth/login")
+        router.replace("/login")
         return
       }
 
@@ -111,6 +118,8 @@ export default function ProfilePage() {
         id: user.id,
         full_name: fullName || null,
         age: age ? Number(age) : null,
+        height: height || null,
+        weight: weight || null,
         goal: goal || null,
         activity_level: activityLevel || null,
         diet_preference: dietPreference || null,
@@ -213,7 +222,21 @@ export default function ProfilePage() {
                   label="Age"
                   value={age}
                   onChange={setAge}
-                  placeholder="Enter your age"
+                  placeholder="e.g. 25"
+                  type="number"
+                />
+                <Field
+                  label="Height (cm)"
+                  value={height}
+                  onChange={setHeight}
+                  placeholder="e.g. 175"
+                  type="number"
+                />
+                <Field
+                  label="Current Weight (kg)"
+                  value={weight}
+                  onChange={setWeight}
+                  placeholder="e.g. 72"
                   type="number"
                 />
               </div>
@@ -271,7 +294,7 @@ export default function ProfilePage() {
 
             <SectionCard
               title="Lifestyle"
-              subtitle="These are the missing step 6 details from onboarding."
+              subtitle="Recovery, sleep, and schedule details used in plan generation."
             >
               <div className="grid gap-4 md:grid-cols-2">
                 <Field
@@ -308,7 +331,13 @@ export default function ProfilePage() {
             </SectionCard>
 
             {status ? (
-              <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700 shadow-sm">
+              <div
+                className={`rounded-2xl border p-4 text-sm shadow-sm ${
+                  status.includes("successfully")
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                    : "border-rose-200 bg-rose-50 text-rose-700"
+                }`}
+              >
                 {status}
               </div>
             ) : null}
@@ -318,7 +347,9 @@ export default function ProfilePage() {
             <SectionCard title="Profile Summary" subtitle="A quick snapshot of your setup.">
               <div className="space-y-3">
                 <SummaryRow label="Name" value={fullName} />
-                <SummaryRow label="Age" value={age} />
+                <SummaryRow label="Age" value={age ? `${age} yrs` : ""} />
+                <SummaryRow label="Height" value={height ? `${height} cm` : ""} />
+                <SummaryRow label="Weight" value={weight ? `${weight} kg` : ""} />
                 <SummaryRow label="Goal" value={goal} />
                 <SummaryRow label="Activity" value={activityLevel} />
                 <SummaryRow label="Diet" value={dietPreference} />
