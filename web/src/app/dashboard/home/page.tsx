@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "../../../lib/supabase/client"
 import {
@@ -14,6 +14,9 @@ import {
   Dumbbell,
   ChevronRight,
   Trophy,
+  Droplets,
+  Plus,
+  Minus,
 } from "lucide-react"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -196,6 +199,24 @@ export default function HomeDashboard() {
   const [mealLogs, setMealLogs] = useState<MealLogRow[]>([])
   const [latestPlan, setLatestPlan] = useState<LatestPlan | null>(null)
   const [loading, setLoading] = useState(true)
+
+  // ── Water intake (localStorage, resets daily) ─────────────────────────────
+  const WATER_GOAL = 8
+  const waterKey = `water-${todayStr()}`
+  const [waterCount, setWaterCount] = useState(0)
+
+  useEffect(() => {
+    const saved = parseInt(localStorage.getItem(waterKey) ?? "0", 10)
+    setWaterCount(Number.isFinite(saved) ? saved : 0)
+  }, [waterKey])
+
+  const addWater = useCallback((delta: number) => {
+    setWaterCount((prev) => {
+      const next = Math.max(0, Math.min(WATER_GOAL + 4, prev + delta))
+      localStorage.setItem(waterKey, String(next))
+      return next
+    })
+  }, [waterKey])
 
   useEffect(() => {
     const load = async () => {
@@ -552,6 +573,77 @@ export default function HomeDashboard() {
                 )}
               </div>
             )}
+
+            {/* ── Water intake tracker ── */}
+            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-cyan-50">
+                    <Droplets className="h-5 w-5 text-cyan-500" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-slate-900 text-sm">Water Intake</p>
+                    <p className="text-xs text-slate-500">Daily goal: {WATER_GOAL} glasses</p>
+                  </div>
+                </div>
+                <span className={`text-sm font-bold ${waterCount >= WATER_GOAL ? "text-cyan-500" : "text-slate-700"}`}>
+                  {waterCount}/{WATER_GOAL}
+                </span>
+              </div>
+
+              {/* Glass icons */}
+              <div className="mb-4 flex flex-wrap gap-1.5">
+                {Array.from({ length: WATER_GOAL }).map((_, i) => (
+                  <div
+                    key={i}
+                    className={`flex h-8 w-8 items-center justify-center rounded-xl transition-all ${
+                      i < waterCount
+                        ? "bg-cyan-100 text-cyan-500"
+                        : "bg-slate-100 text-slate-300"
+                    }`}
+                  >
+                    <Droplets className="h-4 w-4" />
+                  </div>
+                ))}
+                {waterCount > WATER_GOAL && (
+                  <span className="flex h-8 items-center px-1 text-xs font-semibold text-cyan-500">
+                    +{waterCount - WATER_GOAL}
+                  </span>
+                )}
+              </div>
+
+              {/* Progress bar */}
+              <div className="mb-4 h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-blue-500 transition-all duration-300"
+                  style={{ width: `${Math.min((waterCount / WATER_GOAL) * 100, 100)}%` }}
+                />
+              </div>
+
+              {/* Controls */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => addWater(-1)}
+                  disabled={waterCount === 0}
+                  className="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-30 transition-all"
+                >
+                  <Minus className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => addWater(1)}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-500 py-2.5 text-sm font-semibold text-white hover:opacity-90 transition-all"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add glass
+                </button>
+              </div>
+
+              {waterCount >= WATER_GOAL && (
+                <p className="mt-3 text-center text-xs font-medium text-cyan-600">
+                  🎉 Daily goal reached!
+                </p>
+              )}
+            </div>
 
             {/* No plan CTA */}
             {!latestPlan && (
