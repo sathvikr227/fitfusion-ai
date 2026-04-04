@@ -266,6 +266,21 @@ export default function AnalyticsPage() {
     return { radarData, bestDay, worstDay, consistencyRate, longRestCount }
   }, [workoutLogs])
 
+  // ── Summary stats ──────────────────────────────────────────────────────────
+
+  const latestWeight = weightLogs.filter((d) => d.weight != null).at(-1)?.weight ?? null
+  const startWeight = weightLogs.filter((d) => d.weight != null)[0]?.weight ?? null
+  const weightChange =
+    latestWeight != null && startWeight != null
+      ? parseFloat((latestWeight - startWeight).toFixed(1))
+      : null
+
+  const totalWorkouts = workoutLogs.length
+  const totalCaloriesBurned = workoutLogs.reduce(
+    (s, d) => s + (d.total_calories || 0),
+    0
+  )
+
   // ── Badges ─────────────────────────────────────────────────────────────────
 
   const badges = useMemo(() => {
@@ -285,21 +300,6 @@ export default function AnalyticsPage() {
       { id: "transformation", name: "Transformation", icon: "✨", description: "Lose 5 kg total", unlocked: weightChange !== null && weightChange <= -5, tier: "gold" as const },
     ]
   }, [totalWorkouts, streak, weightLogs, weightChange])
-
-  // ── Summary stats ──────────────────────────────────────────────────────────
-
-  const latestWeight = weightLogs.filter((d) => d.weight != null).at(-1)?.weight ?? null
-  const startWeight = weightLogs.filter((d) => d.weight != null)[0]?.weight ?? null
-  const weightChange =
-    latestWeight != null && startWeight != null
-      ? parseFloat((latestWeight - startWeight).toFixed(1))
-      : null
-
-  const totalWorkouts = workoutLogs.length
-  const totalCaloriesBurned = workoutLogs.reduce(
-    (s, d) => s + (d.total_calories || 0),
-    0
-  )
 
   const generateReport = async () => {
     if (!userId) return

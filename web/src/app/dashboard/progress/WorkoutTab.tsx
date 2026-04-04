@@ -29,7 +29,6 @@ type WorkoutLogRow = {
   is_assigned: boolean | null
   plan_id: string | null
   total_calories: number | null
-  source: string | null
   created_at: string | null
 }
 
@@ -644,7 +643,6 @@ export default function WorkoutTab() {
       date: todayDateString(),
       is_assigned: params.isAssigned,
       total_calories: params.calories,
-      source: params.isAssigned ? "assigned" : "custom",
     }
 
     if (params.isAssigned) {
