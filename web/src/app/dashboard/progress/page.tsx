@@ -4,9 +4,11 @@ import { useState } from "react"
 import WeightTab from "./WeightTab"
 import WorkoutTab from "./WorkoutTab"
 import DietTab from "./DietTab"
+import PhotosTab from "./PhotosTab"
+import SleepTab from "./SleepTab"
 
 export default function ProgressPage() {
-  const [tab, setTab] = useState<"weight" | "workout" | "diet">("weight")
+  const [tab, setTab] = useState<"weight" | "workout" | "diet" | "photos" | "sleep">("weight")
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-slate-50 to-blue-50 px-4 py-6 md:px-10 md:py-10 text-slate-900">
@@ -66,6 +68,18 @@ export default function ProgressPage() {
               onClick={() => setTab("diet")}
             />
 
+            <TabButton
+              label="Photos"
+              active={tab === "photos"}
+              onClick={() => setTab("photos")}
+            />
+
+            <TabButton
+              label="Sleep"
+              active={tab === "sleep"}
+              onClick={() => setTab("sleep")}
+            />
+
           </div>
         </div>
 
@@ -78,6 +92,8 @@ export default function ProgressPage() {
             {tab === "weight" && <WeightTab />}
             {tab === "workout" && <WorkoutTab />}
             {tab === "diet" && <DietTab />}
+            {tab === "photos" && <PhotosTab />}
+            {tab === "sleep" && <SleepTab />}
 
           </div>
         </div>

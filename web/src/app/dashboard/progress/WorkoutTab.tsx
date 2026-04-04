@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { supabase } from "../../../lib/supabase/client"
+import { MET_VALUES } from "../../../lib/calories"
 
 type Mode = "custom" | "assigned"
 
@@ -43,35 +44,6 @@ type ExerciseLogRow = {
   calories: number | null
 }
 
-const MET: Record<string, number> = {
-  "bench press": 6,
-  "dumbbell press": 6,
-  "incline dumbbell press": 6,
-  "chest press": 6,
-  squat: 5.5,
-  squats: 5.5,
-  deadlift: 6,
-  "shoulder press": 5.8,
-  "overhead press": 5.8,
-  row: 5.8,
-  "barbell row": 5.8,
-  "lat pulldown": 5.5,
-  "bicep curl": 4.8,
-  "tricep extension": 4.8,
-  lunges: 5.3,
-  "leg press": 5.5,
-  "push up": 8,
-  "pull up": 8.5,
-  plank: 3.3,
-  crunch: 4,
-  running: 9.8,
-  jogging: 7,
-  cycling: 7.5,
-  walking: 3.5,
-  cardio: 6.5,
-  treadmill: 7.5,
-  "stationary bike": 7,
-}
 
 const WEEKDAYS = [
   "monday",
@@ -117,8 +89,8 @@ function getCurrentDayName() {
 
 function getMET(exerciseName: string) {
   const lower = exerciseName.toLowerCase()
-  const foundKey = Object.keys(MET).find((key) => lower.includes(key))
-  return foundKey ? MET[foundKey] : 5.5
+  const foundKey = Object.keys(MET_VALUES).find((key) => lower.includes(key))
+  return foundKey ? MET_VALUES[foundKey] : 5.5
 }
 
 function estimateExerciseDurationMinutes(exercise: ExerciseInput) {
@@ -838,10 +810,10 @@ export default function WorkoutTab() {
         </button>
       </div>
 
-      <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+      <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div>
-            <label className="block text-sm font-medium mb-2 text-gray-700">
+            <label className="block text-sm font-medium mb-2 text-slate-700">
               Latest body weight from weight log
             </label>
             <div className="text-2xl font-semibold">
@@ -850,30 +822,30 @@ export default function WorkoutTab() {
           </div>
 
           <div className="text-right">
-            <div className="text-sm text-gray-600">
+            <div className="text-sm text-slate-600">
               🔥 {currentStreak} day streak
             </div>
-            <div className="text-sm text-gray-600 mt-1">
+            <div className="text-sm text-slate-600 mt-1">
               {todayCompleted ? "✅ Already completed today" : "⏳ Not completed today"}
             </div>
           </div>
 
           <button
             onClick={loadData}
-            className="px-4 py-2 rounded-xl border border-gray-200 text-purple-600"
+            className="px-4 py-2 rounded-xl border border-slate-200 text-purple-600"
           >
             Refresh Weight
           </button>
         </div>
 
-        <p className="text-xs text-gray-500 mt-2">
+        <p className="text-xs text-slate-500 mt-2">
           Calories are calculated automatically from your latest logged weight.
         </p>
       </div>
 
       {mode === "custom" && (
         <>
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
             <h2 className="font-semibold text-lg">Add Exercise</h2>
 
             <input
@@ -881,7 +853,7 @@ export default function WorkoutTab() {
               placeholder="Exercise name"
               value={exerciseName}
               onChange={(e) => setExerciseName(e.target.value)}
-              className="w-full border border-gray-200 px-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full border border-slate-200 px-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-purple-500"
             />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -890,7 +862,7 @@ export default function WorkoutTab() {
                 value={sets}
                 onChange={(e) => setSets(e.target.value)}
                 placeholder="Sets (optional)"
-                className="w-full border border-gray-200 px-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full border border-slate-200 px-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-purple-500"
                 min="0"
               />
 
@@ -899,7 +871,7 @@ export default function WorkoutTab() {
                 value={reps}
                 onChange={(e) => setReps(e.target.value)}
                 placeholder="Reps (optional)"
-                className="w-full border border-gray-200 px-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full border border-slate-200 px-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-purple-500"
                 min="0"
               />
 
@@ -908,7 +880,7 @@ export default function WorkoutTab() {
                 value={duration}
                 onChange={(e) => setDuration(e.target.value)}
                 placeholder="Duration in minutes (optional)"
-                className="w-full border border-gray-200 px-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full border border-slate-200 px-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-purple-500"
                 min="0"
               />
 
@@ -917,7 +889,7 @@ export default function WorkoutTab() {
                 value={weight}
                 onChange={(e) => setWeight(e.target.value)}
                 placeholder="Dumbbell / barbell weight (optional)"
-                className="w-full border border-gray-200 px-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full border border-slate-200 px-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-purple-500"
                 min="0"
               />
             </div>
@@ -931,10 +903,10 @@ export default function WorkoutTab() {
           </div>
 
           {exercises.length > 0 && (
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-3">
+            <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-3">
               <div className="flex items-center justify-between gap-4 flex-wrap">
                 <h3 className="font-semibold">Current Session</h3>
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-slate-600">
                   Estimated calories: <strong>{currentSessionCalories} kcal</strong>
                 </span>
               </div>
@@ -947,11 +919,11 @@ export default function WorkoutTab() {
                   return (
                     <div
                       key={`${ex.name}-${index}`}
-                      className="flex items-start justify-between gap-4 border border-gray-100 rounded-xl p-3"
+                      className="flex items-start justify-between gap-4 border border-slate-200 rounded-xl p-3"
                     >
                       <div>
                         <div className="font-medium">{ex.name}</div>
-                        <div className="text-sm text-gray-600">
+                        <div className="text-sm text-slate-600">
                           {ex.sets ? `${ex.sets} sets` : null}
                           {ex.sets && ex.reps ? " × " : ""}
                           {ex.reps ? `${ex.reps} reps` : null}
@@ -961,7 +933,7 @@ export default function WorkoutTab() {
                       </div>
 
                       <div className="text-right">
-                        <div className="text-sm text-gray-700">
+                        <div className="text-sm text-slate-700">
                           {bodyWeightKg > 0 ? `${calories} kcal` : "No weight"}
                         </div>
                         <button
@@ -990,37 +962,37 @@ export default function WorkoutTab() {
 
       {mode === "assigned" && (
         <div className="space-y-4">
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
             <h2 className="font-semibold text-lg mb-2">Assigned Workout</h2>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-slate-600">
               This shows the AI-generated workout plan for the current day:{" "}
               <strong>{currentDay}</strong>.
             </p>
-            <p className="text-sm text-gray-600 mt-2">
+            <p className="text-sm text-slate-600 mt-2">
               Calories are calculated automatically from your latest logged weight.
             </p>
           </div>
 
           {assignedDays.length === 0 ? (
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 text-gray-600">
+            <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 text-slate-600">
               Start logging workouts to track your progress 💪
             </div>
           ) : (
             <>
               {todayWorkout && (
-                <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+                <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4">
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <h3 className="font-semibold text-xl">
                         {todayWorkout.day} — {todayWorkout.type}
                       </h3>
-                      <p className="text-sm text-gray-600 mt-1">
+                      <p className="text-sm text-slate-600 mt-1">
                         Today's assigned workout
                       </p>
                     </div>
 
                     <div className="text-right">
-                      <div className="text-sm text-gray-700">
+                      <div className="text-sm text-slate-700">
                         Estimated:{" "}
                         <strong>{todayWorkout.estimatedCalories || "—"} kcal</strong>
                       </div>
@@ -1032,11 +1004,11 @@ export default function WorkoutTab() {
                       {todayWorkout.exercises.map((ex, idx) => (
                         <div
                           key={`${ex.name}-${idx}`}
-                          className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 p-3"
+                          className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-3"
                         >
                           <div>
                             <div className="font-medium">{ex.name}</div>
-                            <div className="text-sm text-gray-600">
+                            <div className="text-sm text-slate-600">
                               {ex.sets ? `${ex.sets} sets` : ""}
                               {ex.sets && ex.reps ? " × " : ""}
                               {ex.reps ? `${ex.reps} reps` : ""}
@@ -1048,7 +1020,7 @@ export default function WorkoutTab() {
                       ))}
                     </div>
                   ) : (
-                    <div className="text-sm text-gray-500">
+                    <div className="text-sm text-slate-500">
                       No exercise breakdown available for today’s plan.
                     </div>
                   )}
@@ -1067,7 +1039,7 @@ export default function WorkoutTab() {
                 </div>
               )}
 
-              <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+              <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
                 <h3 className="font-semibold text-lg mb-3">Weekly Workout Plan</h3>
 
                 <div className="grid gap-3">
@@ -1089,12 +1061,12 @@ export default function WorkoutTab() {
                             <div className="font-medium">
                               {day.day} — {day.type}
                             </div>
-                            <div className="text-sm text-gray-600 mt-1">
+                            <div className="text-sm text-slate-600 mt-1">
                               {day.exercises.length} exercise(s)
                             </div>
                           </div>
 
-                          <div className="text-sm text-gray-700">
+                          <div className="text-sm text-slate-700">
                             {day.estimatedCalories ? `${day.estimatedCalories} kcal` : ""}
                           </div>
                         </div>
@@ -1114,7 +1086,7 @@ export default function WorkoutTab() {
         </div>
       )}
 
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
         <div className="flex items-center justify-between gap-4 mb-4">
           <h2 className="font-semibold text-lg">Workout History</h2>
           <button onClick={loadData} className="text-sm text-purple-600 hover:underline">
@@ -1123,9 +1095,9 @@ export default function WorkoutTab() {
         </div>
 
         {loading ? (
-          <div className="text-gray-500">Loading history...</div>
+          <div className="text-slate-500">Loading history...</div>
         ) : logs.length === 0 ? (
-          <div className="text-gray-500">Start logging workouts to track your progress 💪</div>
+          <div className="text-slate-500">Start logging workouts to track your progress 💪</div>
         ) : (
           <div className="space-y-3">
             {logs.map((log) => {
@@ -1137,14 +1109,14 @@ export default function WorkoutTab() {
               return (
                 <div
                   key={log.id}
-                  className="border border-gray-100 rounded-xl p-4 space-y-3"
+                  className="border border-slate-200 rounded-xl p-4 space-y-3"
                 >
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
                     <div>
                       <div className="font-medium">
                         {log.is_assigned ? "Assigned Workout" : "Custom Workout"}
                       </div>
-                      <div className="text-sm text-gray-600">
+                      <div className="text-sm text-slate-600">
                         Date: {log.date || formatDateTime(log.created_at)}
                       </div>
                     </div>
@@ -1165,7 +1137,7 @@ export default function WorkoutTab() {
                             <div className="font-medium text-sm">
                               {ex.exercise_name}
                             </div>
-                            <div className="text-xs text-gray-500">
+                            <div className="text-xs text-slate-500">
                               {ex.sets ? `${ex.sets} sets` : ""}
                               {ex.sets && ex.reps ? " × " : ""}
                               {ex.reps ? `${ex.reps} reps` : ""}
@@ -1173,7 +1145,7 @@ export default function WorkoutTab() {
                               {ex.weight ? ` • ${ex.weight} kg` : ""}
                             </div>
                           </div>
-                          <div className="text-xs text-gray-600">
+                          <div className="text-xs text-slate-600">
                             {ex.calories ?? 0} kcal
                           </div>
                         </div>

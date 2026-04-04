@@ -119,7 +119,7 @@ function getHeaders(apiKey: string) {
 }
 
 function buildAllExercisesUrl() {
-  return `https://exercisedb.p.rapidapi.com/exercises`;
+  return `https://exercisedb.p.rapidapi.com/exercises?limit=1300&offset=0`;
 }
 
 function buildApiUrl(query: string) {
@@ -236,7 +236,10 @@ function getBodyPartConfig(query: string): BodyPartConfig | null {
   const n = normalize(query);
   const compact = n.replace(/\s+/g, "");
 
-  if (["chest", "pecs", "pec", "chests"].includes(n) || compact === "chest") {
+  if (
+    n.includes("chest") ||
+    ["pecs", "pec", "chests"].includes(n)
+  ) {
     if (n.includes("upper chest")) {
       return {
         bodyParts: ["chest"],

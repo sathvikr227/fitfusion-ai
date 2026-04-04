@@ -114,7 +114,9 @@ export async function POST(req: Request) {
     )
 
     const detailsData = await detailsRes.json()
-    const serving = detailsData.food?.servings?.serving?.[0]
+    // FatSecret returns serving as array when multiple exist, or plain object when only one
+    const rawServing = detailsData.food?.servings?.serving
+    const serving = Array.isArray(rawServing) ? rawServing[0] : rawServing
 
     return NextResponse.json({
       food: bestFood.food_name,

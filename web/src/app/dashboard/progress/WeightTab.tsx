@@ -130,10 +130,10 @@ export default function WeightTab() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
         <div>
           <h2 className="text-lg font-semibold">Log Weight</h2>
-          <p className="text-sm text-gray-600 mt-1">
+          <p className="text-sm text-slate-600 mt-1">
             Latest weight:{" "}
             <strong>{latestWeight !== null ? `${latestWeight} kg` : "No logs yet"}</strong>
           </p>
@@ -144,7 +144,7 @@ export default function WeightTab() {
           placeholder="Enter weight"
           value={weight}
           onChange={(e) => setWeight(e.target.value)}
-          className="w-full border border-gray-200 px-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-purple-500"
+          className="w-full border border-slate-200 px-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-purple-500"
           min="0"
           step="0.1"
         />
@@ -164,7 +164,7 @@ export default function WeightTab() {
         </div>
       )}
 
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
         <div className="flex items-center justify-between gap-4 mb-4">
           <h2 className="font-semibold text-lg">Weight History</h2>
           <button onClick={loadData} className="text-sm text-purple-600 hover:underline">
@@ -173,17 +173,17 @@ export default function WeightTab() {
         </div>
 
         {loading ? (
-          <div className="text-gray-500">Loading weight history...</div>
+          <div className="text-slate-500">Loading weight history...</div>
         ) : logs.length === 0 ? (
-          <div className="text-gray-500">No weight logs yet.</div>
+          <div className="text-slate-500">No weight logs yet.</div>
         ) : (
           <div className="space-y-3">
             {logs.map((log) => (
               <div
                 key={log.id}
-                className="flex justify-between items-center border border-gray-100 rounded-xl p-4"
+                className="flex justify-between items-center border border-slate-200 rounded-xl p-4"
               >
-                <span className="text-gray-700">
+                <span className="text-slate-700">
                   {formatDate(log.date ?? log.created_at)}
                 </span>
                 <span className="font-semibold">{log.weight} kg</span>

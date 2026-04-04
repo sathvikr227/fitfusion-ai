@@ -3,22 +3,57 @@
 //////////////////////////////////////////////
 
 export const MET_VALUES: Record<string, number> = {
+  // Chest
   "bench press": 6,
-  "incline dumbbell press": 5,
-  "dumbbell press": 5,
-  "push ups": 4,
-  "pull ups": 6,
-  "squats": 6,
+  "chest press": 6,
+  "incline dumbbell press": 6,
+  "dumbbell press": 6,
+  "cable fly": 4.5,
+  "chest fly": 4.5,
+  // Back
+  "barbell row": 5.8,
+  "dumbbell row": 5.8,
+  "lat pulldown": 5.5,
+  "pull up": 8.5,
+  "pull ups": 8.5,
+  "row": 5.8,
+  // Shoulders
+  "shoulder press": 5.8,
+  "overhead press": 5.8,
+  "lateral raises": 3.5,
+  // Arms
+  "bicep curl": 4.8,
+  "bicep curls": 4.8,
+  "tricep extension": 4.8,
+  "tricep dips": 4.8,
+  // Legs
+  "squat": 5.5,
+  "squats": 5.5,
   "deadlift": 6,
-  "lunges": 5,
-  "shoulder press": 5,
-  "bicep curls": 3.5,
-  "tricep dips": 4,
-  "plank": 3,
-  "running": 10,
-  "cycling": 8,
+  "lunges": 5.3,
+  "leg press": 5.5,
+  "leg curl": 4.5,
+  "calf raise": 4,
+  // Core
+  "push up": 8,
+  "push ups": 8,
+  "plank": 3.3,
+  "crunch": 4,
+  "crunches": 4,
+  "leg raises": 4,
+  "mountain climbers": 8,
+  "burpees": 8,
+  // Cardio
+  "running": 9.8,
+  "jogging": 7,
+  "cycling": 7.5,
   "walking": 3.5,
   "jump rope": 12,
+  "treadmill": 7.5,
+  "stationary bike": 7,
+  "cardio": 6.5,
+  "treadmill walk": 3.5,
+  "goblet squats": 5.5,
 };
 
 //////////////////////////////////////////////

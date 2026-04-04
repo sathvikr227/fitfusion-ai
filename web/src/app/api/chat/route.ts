@@ -2,15 +2,20 @@ import { NextResponse } from "next/server"
 import Groq from "groq-sdk"
 import { createClient } from "@supabase/supabase-js"
 
-// Use environment variable instead of hardcoded string
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY, 
-})
+export const runtime = "nodejs"
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+function getGroqClient() {
+  const apiKey = process.env.GROQ_API_KEY
+  if (!apiKey) throw new Error("GROQ_API_KEY is missing")
+  return new Groq({ apiKey })
+}
+
+function getSupabase() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !key) throw new Error("Supabase environment variables are missing")
+  return createClient(url, key)
+}
 
 function extractJson(text: string) {
   const trimmed = text.trim()
@@ -27,6 +32,9 @@ function extractJson(text: string) {
 
 export async function POST(req: Request) {
   try {
+    const groq = getGroqClient()
+    const supabase = getSupabase()
+
     const { message, currentPlan, sessionId } = await req.json()
 
     if (!message || !currentPlan) {
@@ -133,16 +141,8 @@ Use exactly this structure:
 
     const plan = extractJson(raw)
 
-    if (userId) {
-      const { error: savePlanError } = await supabase.from("plans").insert({
-        user_id: userId,
-        plan,
-      })
-
-      if (savePlanError) {
-        console.warn("Plan save warning:", savePlanError)
-      }
-    }
+    // Note: plan persistence to workout_plans is handled by the client (dashboard)
+    // to avoid double writes. We only persist the chat messages here.
 
     if (validSessionId) {
       const { error: saveChatError } = await supabase

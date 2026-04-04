@@ -3,490 +3,586 @@
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "../../../lib/supabase/client"
+import {
+  Activity,
+  Flame,
+  Scale,
+  Target,
+  TrendingDown,
+  TrendingUp,
+  Utensils,
+  Dumbbell,
+  ChevronRight,
+  Trophy,
+} from "lucide-react"
 
-type ProgressLog = {
-  weight: number | null
-  completed: boolean | null
-  calories_burned?: number | null
-  calories_consumed?: number | null
-  log_type?: string | null
-  created_at: string
-}
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-type BodyMetricsRow = {
+type BodyMetrics = {
   bmi: number | null
   estimated_body_fat_percent: number | null
   target_bmi: number | null
   target_body_fat_percent: number | null
   status: string | null
+}
+
+type WorkoutLogRow = {
+  total_calories: number | null
+  date: string | null
   created_at: string
 }
 
-type Meal = {
-  name?: string
-  items?: {
-    food: string
-    calories?: number | null
-    protein?: number | null
-  }[]
-  total_calories?: number | null
+type MealLogRow = {
+  total_calories: number | null
+  date: string | null
 }
 
-type WorkoutDay = {
+type PlanDay = {
   day?: string
   type?: string | null
-  exercises?: {
-    name: string
-    sets?: number | null
-    reps?: number | null
-  }[]
+  exercises?: { name: string; sets?: number | null; reps?: number | null }[]
   estimated_calories_burned?: number | null
 }
 
-type PlanMetrics = {
-  diet_plan?: {
-    meals?: Meal[]
-    daily_total_calories?: number | null
-  }
-  workout_plan?: WorkoutDay[]
-  fitness_metrics?: {
-    bmi?: number | null
-    estimated_body_fat_percent?: number | null
-    target_bmi?: number | null
-    target_body_fat_percent?: number | null
-    status?: string | null
-  }
-  meta?: {
-    rest_days?: number | null
-    workout_days?: number | null
-    total_days?: number | null
-  }
+type PlanMeal = {
+  name?: string
+  items?: { food: string; calories?: number | null; protein?: number | null }[]
+  total_calories?: number | null
 }
 
-function safeParsePlan(value: unknown): PlanMetrics | null {
-  if (!value) return null
-  if (typeof value === "string") {
-    try {
-      return JSON.parse(value) as PlanMetrics
-    } catch {
-      return null
-    }
-  }
-  if (typeof value === "object") return value as PlanMetrics
-  return null
+type LatestPlan = {
+  workout_plan?: PlanDay[]
+  diet_plan?: { meals?: PlanMeal[]; daily_total_calories?: number | null }
+  fitness_metrics?: BodyMetrics
+  meta?: { rest_days?: number; workout_days?: number; intensity?: string }
 }
 
-function asNumber(value: unknown) {
-  const n = Number(value)
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function safeNum(v: unknown) {
+  const n = Number(v)
   return Number.isFinite(n) ? n : 0
 }
 
-function formatDate(value: string) {
-  return new Date(value).toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  })
+function safePlan(value: unknown): LatestPlan | null {
+  if (!value) return null
+  if (typeof value === "string") {
+    try { return JSON.parse(value) as LatestPlan } catch { return null }
+  }
+  if (typeof value === "object") return value as LatestPlan
+  return null
 }
 
-function formatDateTime(value: string) {
-  return new Date(value).toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  })
+function todayStr() {
+  return new Date().toISOString().split("T")[0]
 }
 
-function getMealCalories(meal: Meal) {
-  if (typeof meal.total_calories === "number") return meal.total_calories
-  return (meal.items || []).reduce((sum, item) => sum + asNumber(item.calories), 0)
+function sevenDaysAgo() {
+  const d = new Date()
+  d.setDate(d.getDate() - 7)
+  return d.toISOString().split("T")[0]
 }
 
-function getWorkoutBurn(day: WorkoutDay) {
-  return asNumber(day.estimated_calories_burned)
+function calcStreak(dates: string[]): number {
+  const unique = Array.from(
+    new Set(dates.map((d) => new Date(d).toISOString().split("T")[0]))
+  ).sort().reverse()
+
+  if (unique.length === 0) return 0
+
+  const today = todayStr()
+  const yesterday = new Date()
+  yesterday.setDate(yesterday.getDate() - 1)
+  const yesterdayStr = yesterday.toISOString().split("T")[0]
+
+  if (unique[0] !== today && unique[0] !== yesterdayStr) return 0
+
+  let streak = 1
+  for (let i = 1; i < unique.length; i++) {
+    const prev = new Date(unique[i - 1])
+    const curr = new Date(unique[i])
+    const diffDays = Math.round((prev.getTime() - curr.getTime()) / 86400000)
+    if (diffDays === 1) streak++
+    else break
+  }
+  return streak
 }
+
+function statusColor(status: string | null) {
+  if (!status) return "text-slate-500"
+  const s = status.toLowerCase()
+  if (s === "fit") return "text-emerald-600"
+  if (s === "underweight") return "text-amber-600"
+  if (s === "overweight" || s === "obese") return "text-rose-600"
+  return "text-slate-700"
+}
+
+function statusBg(status: string | null) {
+  if (!status) return "bg-slate-50"
+  const s = status.toLowerCase()
+  if (s === "fit") return "bg-emerald-50 border-emerald-200"
+  if (s === "underweight") return "bg-amber-50 border-amber-200"
+  if (s === "overweight" || s === "obese") return "bg-rose-50 border-rose-200"
+  return "bg-slate-50 border-slate-200"
+}
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function MetricCard({
+  label,
+  value,
+  sub,
+  icon: Icon,
+  accent,
+}: {
+  label: string
+  value: string
+  sub?: string
+  icon: React.ElementType
+  accent?: string
+}) {
+  return (
+    <div className="flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className={`inline-flex w-fit rounded-2xl p-2.5 ${accent ?? "bg-slate-100"}`}>
+        <Icon className="h-5 w-5 text-slate-700" />
+      </div>
+      <div>
+        <p className="text-xs text-slate-500">{label}</p>
+        <p className="mt-0.5 text-2xl font-bold tracking-tight text-slate-900">{value}</p>
+        {sub && <p className="mt-0.5 text-xs text-slate-500">{sub}</p>}
+      </div>
+    </div>
+  )
+}
+
+function QuickLink({
+  label,
+  sub,
+  href,
+  icon: Icon,
+}: {
+  label: string
+  sub: string
+  href: string
+  icon: React.ElementType
+}) {
+  const router = useRouter()
+  return (
+    <button
+      onClick={() => router.push(href)}
+      className="group flex items-center gap-4 rounded-3xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-purple-300 hover:shadow-md"
+    >
+      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-600 to-cyan-500 text-white">
+        <Icon className="h-5 w-5" />
+      </div>
+      <div className="flex-1">
+        <p className="font-semibold text-slate-900">{label}</p>
+        <p className="text-xs text-slate-500">{sub}</p>
+      </div>
+      <ChevronRight className="h-4 w-4 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-purple-600" />
+    </button>
+  )
+}
+
+// ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function HomeDashboard() {
   const router = useRouter()
 
   const [username, setUsername] = useState("User")
-  const [streak, setStreak] = useState(0)
   const [latestWeight, setLatestWeight] = useState<number | null>(null)
-  const [recentLogs, setRecentLogs] = useState<ProgressLog[]>([])
-  const [totalCaloriesBurned, setTotalCaloriesBurned] = useState(0)
-  const [totalCaloriesConsumed, setTotalCaloriesConsumed] = useState(0)
-  const [latestMetrics, setLatestMetrics] = useState<BodyMetricsRow | null>(null)
-  const [latestPlan, setLatestPlan] = useState<PlanMetrics | null>(null)
+  const [metrics, setMetrics] = useState<BodyMetrics | null>(null)
+  const [workoutLogs, setWorkoutLogs] = useState<WorkoutLogRow[]>([])
+  const [mealLogs, setMealLogs] = useState<MealLogRow[]>([])
+  const [latestPlan, setLatestPlan] = useState<LatestPlan | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const load = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const { data: { user } } = await supabase.auth.getUser()
 
-      if (!user) {
-        router.push("/login")
-        return
-      }
+      if (!user) { router.push("/login"); return }
 
-      setUsername(user.email?.split("@")[0] || "User")
+      setUsername(user.email?.split("@")[0] ?? "User")
 
-      const [logsResult, metricsResult, planResult] = await Promise.all([
+      const since = sevenDaysAgo()
+
+      const [
+        weightRes,
+        metricsRes,
+        workoutRes,
+        mealRes,
+        planRes,
+      ] = await Promise.all([
         supabase
-          .from("progress_logs")
-          .select("*")
+          .from("weight_logs")
+          .select("weight, date")
           .eq("user_id", user.id)
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("body_metrics")
-          .select("*")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false })
+          .order("date", { ascending: false, nullsFirst: false })
           .limit(1)
           .maybeSingle(),
         supabase
+          .from("body_metrics")
+          .select("bmi, estimated_body_fat_percent, target_bmi, target_body_fat_percent, status")
+          .eq("user_id", user.id)
+          .order("date", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        supabase
+          .from("workout_logs")
+          .select("total_calories, date, created_at")
+          .eq("user_id", user.id)
+          .gte("date", since),
+        supabase
+          .from("meal_logs")
+          .select("total_calories, date")
+          .eq("user_id", user.id)
+          .gte("date", since),
+        supabase
           .from("workout_plans")
-          .select("*")
+          .select("plan")
           .eq("user_id", user.id)
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle(),
       ])
 
-      const logs = logsResult.data ?? []
-      setRecentLogs(logs.slice(0, 5))
-
-      const latestWeightLog = logs.find((d) => d.weight !== null && d.weight !== undefined)
-      setLatestWeight(latestWeightLog?.weight ?? null)
-
-      let streakCount = 0
-      for (let i = 0; i < logs.length; i++) {
-        if (logs[i].completed) streakCount++
-        else break
-      }
-      setStreak(streakCount)
-
-      setTotalCaloriesBurned(
-        logs.reduce((sum, d) => sum + (d.calories_burned || 0), 0)
-      )
-
-      setTotalCaloriesConsumed(
-        logs.reduce((sum, d) => sum + (d.calories_consumed || 0), 0)
-      )
-
-      if (metricsResult.data) {
-        setLatestMetrics(metricsResult.data as BodyMetricsRow)
-      }
-
-      if (planResult.data?.plan) {
-        setLatestPlan(safeParsePlan(planResult.data.plan))
-      }
+      if (weightRes.data?.weight != null) setLatestWeight(weightRes.data.weight)
+      if (metricsRes.data) setMetrics(metricsRes.data as BodyMetrics)
+      setWorkoutLogs(workoutRes.data ?? [])
+      setMealLogs(mealRes.data ?? [])
+      if (planRes.data?.plan) setLatestPlan(safePlan(planRes.data.plan))
 
       setLoading(false)
     }
-
     load()
   }, [router])
 
+  // ── Derived stats ──────────────────────────────────────────────────────────
+
+  const streak = useMemo(() => {
+    return calcStreak(workoutLogs.map((w) => w.date ?? w.created_at))
+  }, [workoutLogs])
+
+  const weeklyCaloriesBurned = useMemo(() => {
+    return workoutLogs.reduce((s, w) => s + safeNum(w.total_calories), 0)
+  }, [workoutLogs])
+
+  const weeklyCaloriesConsumed = useMemo(() => {
+    return mealLogs.reduce((s, m) => s + safeNum(m.total_calories), 0)
+  }, [mealLogs])
+
+  const workoutSessionsThisWeek = workoutLogs.length
+
+  // ── Plan summary ───────────────────────────────────────────────────────────
+
   const planSummary = useMemo(() => {
-    const plan = latestPlan
-    const meals = plan?.diet_plan?.meals ?? []
-    const workouts = plan?.workout_plan ?? []
-
-    const dietCalories =
-      plan?.diet_plan?.daily_total_calories ??
-      meals.reduce((sum, meal) => sum + getMealCalories(meal), 0)
-
-    const workoutCalories = workouts.reduce((sum, day) => sum + getWorkoutBurn(day), 0)
-
-    const workoutDays = workouts.filter(
-      (day) => String(day.type ?? "").toLowerCase() !== "rest" && getWorkoutBurn(day) > 0
-    ).length
+    if (!latestPlan) return null
+    const meals = latestPlan.diet_plan?.meals ?? []
+    const workoutDays = latestPlan.workout_plan ?? []
+    const activeWorkoutDays = workoutDays.filter(
+      (d) => d.type?.toLowerCase() !== "rest"
+    )
+    const dailyCalories =
+      latestPlan.diet_plan?.daily_total_calories ??
+      meals.reduce((s, m) => s + safeNum(m.total_calories), 0)
+    const totalBurn = workoutDays.reduce((s, d) => s + safeNum(d.estimated_calories_burned), 0)
 
     return {
       mealCount: meals.length,
-      workoutDayCount: workoutDays,
-      dietCalories,
-      workoutCalories,
+      workoutDayCount: activeWorkoutDays.length,
+      dailyCalories,
+      totalWeeklyBurn: totalBurn,
       firstMeal: meals[0]?.name ?? "—",
-      firstWorkout: workouts[0]?.day ?? "—",
+      todayWorkout: workoutDays[new Date().getDay() === 0 ? 6 : new Date().getDay() - 1] ?? null,
     }
   }, [latestPlan])
 
+  // ── Today's workout card ───────────────────────────────────────────────────
+  const todayWorkout = planSummary?.todayWorkout
+  const isRestDay = todayWorkout?.type?.toLowerCase() === "rest"
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-slate-900 bg-gradient-to-br from-white via-slate-50 to-blue-50">
-        Loading...
+      <div className="min-h-screen bg-gradient-to-br from-white via-slate-50 to-blue-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="mx-auto mb-4 h-10 w-10 rounded-full border-2 border-purple-200 border-t-purple-600 animate-spin" />
+          <p className="text-sm text-slate-600">Loading dashboard...</p>
+        </div>
       </div>
     )
   }
 
-  const bmi = latestMetrics?.bmi ?? null
-  const bodyFat = latestMetrics?.estimated_body_fat_percent ?? null
-  const targetBmi = latestMetrics?.target_bmi ?? null
-  const targetBodyFat = latestMetrics?.target_body_fat_percent ?? null
-  const status = latestMetrics?.status ?? "—"
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-slate-50 to-blue-50 text-slate-900 px-6 py-8 md:px-10">
-      <div className="mx-auto max-w-7xl space-y-8">
+    <div className="min-h-screen bg-gradient-to-br from-white via-slate-50 to-blue-50 text-slate-900">
+      <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 md:px-8 md:py-10">
+
+        {/* ── Welcome header ── */}
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-sm font-medium text-slate-500">FitFusion AI Dashboard</p>
-            <h1 className="mt-1 text-4xl font-semibold tracking-tight">
-              Welcome back, {username} 👋
+            <p className="text-sm font-medium text-purple-600 uppercase tracking-wide">FitFusion AI</p>
+            <h1 className="mt-1 text-3xl font-bold tracking-tight md:text-4xl">
+              Welcome back, {username}
             </h1>
-            <p className="mt-2 text-slate-500">
-              Track your body metrics, latest plan, and daily progress in one place.
+            <p className="mt-2 text-sm text-slate-500">
+              Here's your fitness snapshot for today.
             </p>
           </div>
 
-          <div className="rounded-3xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
-            <p className="text-xs uppercase tracking-wide text-slate-500">Current streak</p>
-            <div className="mt-1 text-3xl font-bold">{streak} days 🔥</div>
+          <div className="flex items-center gap-3">
+            {streak > 0 && (
+              <div className="flex items-center gap-2 rounded-2xl border border-orange-200 bg-orange-50 px-4 py-3">
+                <Flame className="h-5 w-5 text-orange-500" />
+                <div>
+                  <p className="text-xs text-orange-500">Streak</p>
+                  <p className="text-lg font-bold text-orange-700">{streak} days</p>
+                </div>
+              </div>
+            )}
+            <div className="flex items-center gap-2 rounded-2xl border border-purple-200 bg-purple-50 px-4 py-3">
+              <Trophy className="h-5 w-5 text-purple-500" />
+              <div>
+                <p className="text-xs text-purple-500">This week</p>
+                <p className="text-lg font-bold text-purple-700">{workoutSessionsThisWeek} sessions</p>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-sm text-slate-500">Latest Weight</p>
-            <h2 className="mt-2 text-3xl font-bold tracking-tight">
-              {latestWeight !== null ? `${latestWeight} kg` : "--"}
-            </h2>
-          </div>
-
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-sm text-slate-500">BMI</p>
-            <h2 className="mt-2 text-3xl font-bold tracking-tight">
-              {bmi !== null ? bmi.toFixed(1) : "--"}
-            </h2>
-          </div>
-
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-sm text-slate-500">Body Fat %</p>
-            <h2 className="mt-2 text-3xl font-bold tracking-tight">
-              {bodyFat !== null ? `${bodyFat.toFixed(1)}%` : "--"}
-            </h2>
-          </div>
-
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-sm text-slate-500">Status</p>
-            <h2 className="mt-2 text-3xl font-bold tracking-tight">{status}</h2>
-          </div>
+        {/* ── Body metrics ── */}
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <MetricCard
+            label="Weight"
+            value={latestWeight != null ? `${latestWeight} kg` : "--"}
+            sub="Latest logged"
+            icon={Scale}
+            accent="bg-blue-50"
+          />
+          <MetricCard
+            label="BMI"
+            value={metrics?.bmi != null ? String(metrics.bmi) : "--"}
+            sub={metrics?.status ?? ""}
+            icon={Activity}
+            accent="bg-purple-50"
+          />
+          <MetricCard
+            label="Body Fat %"
+            value={metrics?.estimated_body_fat_percent != null ? `${metrics.estimated_body_fat_percent}%` : "--"}
+            sub={metrics?.target_body_fat_percent != null ? `Target: ${metrics.target_body_fat_percent}%` : undefined}
+            icon={Target}
+            accent="bg-cyan-50"
+          />
+          <MetricCard
+            label="Target BMI"
+            value={metrics?.target_bmi != null ? String(metrics.target_bmi) : "--"}
+            sub={metrics?.status ? `Current: ${metrics.status}` : undefined}
+            icon={TrendingDown}
+            accent="bg-emerald-50"
+          />
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-sm text-slate-500">Target BMI</p>
-            <h2 className="mt-2 text-3xl font-bold tracking-tight">
-              {targetBmi !== null ? targetBmi.toFixed(1) : "--"}
-            </h2>
-          </div>
-
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-sm text-slate-500">Target Body Fat %</p>
-            <h2 className="mt-2 text-3xl font-bold tracking-tight">
-              {targetBodyFat !== null ? `${targetBodyFat.toFixed(1)}%` : "--"}
-            </h2>
-          </div>
-
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-sm text-slate-500">Calories Burned</p>
-            <h2 className="mt-2 text-3xl font-bold tracking-tight text-purple-600">
-              {totalCaloriesBurned} kcal
-            </h2>
-          </div>
-
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-sm text-slate-500">Calories Consumed</p>
-            <h2 className="mt-2 text-3xl font-bold tracking-tight text-cyan-600">
-              {totalCaloriesConsumed} kcal
-            </h2>
-          </div>
+        {/* ── This week's calorie summary ── */}
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <MetricCard
+            label="Calories Burned"
+            value={`${weeklyCaloriesBurned.toLocaleString()} kcal`}
+            sub="This week"
+            icon={Flame}
+            accent="bg-orange-50"
+          />
+          <MetricCard
+            label="Calories Consumed"
+            value={`${weeklyCaloriesConsumed.toLocaleString()} kcal`}
+            sub="This week"
+            icon={Utensils}
+            accent="bg-green-50"
+          />
+          <MetricCard
+            label="Plan — Daily Calories"
+            value={planSummary?.dailyCalories ? `${planSummary.dailyCalories} kcal` : "--"}
+            sub="From your current plan"
+            icon={TrendingUp}
+            accent="bg-purple-50"
+          />
+          <MetricCard
+            label="Weekly Workout Burn"
+            value={planSummary?.totalWeeklyBurn ? `${planSummary.totalWeeklyBurn} kcal` : "--"}
+            sub="Estimated from plan"
+            icon={Dumbbell}
+            accent="bg-cyan-50"
+          />
         </div>
 
         <div className="grid gap-6 xl:grid-cols-12">
           <div className="space-y-6 xl:col-span-8">
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <h2 className="text-xl font-semibold">Latest Plan Snapshot</h2>
-                  <p className="mt-1 text-sm text-slate-500">
-                    Quick view of the most recent plan you confirmed.
-                  </p>
-                </div>
-                <button
-                  onClick={() => router.push("/dashboard/plan")}
-                  className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
-                >
-                  Open plan
-                </button>
-              </div>
 
-              <div className="mt-6 grid gap-4 md:grid-cols-2">
-                <div className="rounded-2xl bg-slate-50 p-4">
-                  <p className="text-sm text-slate-500">Meals</p>
-                  <p className="mt-1 text-2xl font-bold">{planSummary.mealCount}</p>
-                  <p className="mt-2 text-sm text-slate-600">
-                    First meal: {planSummary.firstMeal}
-                  </p>
-                </div>
-
-                <div className="rounded-2xl bg-slate-50 p-4">
-                  <p className="text-sm text-slate-500">Workout days</p>
-                  <p className="mt-1 text-2xl font-bold">{planSummary.workoutDayCount}</p>
-                  <p className="mt-2 text-sm text-slate-600">
-                    First workout: {planSummary.firstWorkout}
-                  </p>
+            {/* ── Today's workout ── */}
+            {todayWorkout && (
+              <div className={`rounded-3xl border p-6 shadow-sm ${isRestDay ? "border-slate-200 bg-white" : "border-purple-200 bg-gradient-to-br from-purple-50 to-cyan-50"}`}>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-wide text-purple-600">Today</p>
+                    <h2 className="mt-1 text-xl font-bold text-slate-900">
+                      {isRestDay ? "Rest Day" : `${todayWorkout.day ?? "Workout"} — ${todayWorkout.type ?? "Training"}`}
+                    </h2>
+                    {!isRestDay && todayWorkout.estimated_calories_burned != null && (
+                      <p className="mt-1 text-sm text-slate-500">
+                        Est. {todayWorkout.estimated_calories_burned} kcal burn
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => router.push("/dashboard/progress")}
+                    className="shrink-0 rounded-2xl bg-gradient-to-r from-purple-600 to-cyan-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:opacity-90 transition"
+                  >
+                    Log it
+                  </button>
                 </div>
 
-                <div className="rounded-2xl bg-slate-50 p-4">
-                  <p className="text-sm text-slate-500">Diet total</p>
-                  <p className="mt-1 text-2xl font-bold">{planSummary.dietCalories} kcal</p>
-                </div>
-
-                <div className="rounded-2xl bg-slate-50 p-4">
-                  <p className="text-sm text-slate-500">Workout burn</p>
-                  <p className="mt-1 text-2xl font-bold">{planSummary.workoutCalories} kcal</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid gap-6 md:grid-cols-3">
-              <button
-                onClick={() => router.push("/dashboard/progress")}
-                className="rounded-3xl border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-              >
-                <h3 className="text-lg font-semibold">Log Workout / Diet</h3>
-                <p className="mt-2 text-sm text-slate-500">
-                  Track workouts, meals, and weight.
-                </p>
-              </button>
-
-              <button
-                onClick={() => router.push("/dashboard/analytics")}
-                className="rounded-3xl border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-              >
-                <h3 className="text-lg font-semibold">Analytics</h3>
-                <p className="mt-2 text-sm text-slate-500">
-                  See your progress over time.
-                </p>
-              </button>
-
-              <button
-                onClick={() => router.push("/dashboard/plan")}
-                className="rounded-3xl border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-              >
-                <h3 className="text-lg font-semibold">Your Plan</h3>
-                <p className="mt-2 text-sm text-slate-500">
-                  View and update your AI plan.
-                </p>
-              </button>
-            </div>
-          </div>
-
-          <div className="space-y-6 xl:col-span-4">
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h2 className="text-xl font-semibold">Body Metrics</h2>
-              <p className="mt-1 text-sm text-slate-500">
-                Latest saved metrics from your confirmed plan.
-              </p>
-
-              <div className="mt-5 space-y-3 text-sm">
-                <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
-                  <span className="text-slate-500">BMI</span>
-                  <span className="font-semibold">{bmi !== null ? bmi.toFixed(1) : "--"}</span>
-                </div>
-                <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
-                  <span className="text-slate-500">Body Fat %</span>
-                  <span className="font-semibold">
-                    {bodyFat !== null ? `${bodyFat.toFixed(1)}%` : "--"}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
-                  <span className="text-slate-500">Target BMI</span>
-                  <span className="font-semibold">
-                    {targetBmi !== null ? targetBmi.toFixed(1) : "--"}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
-                  <span className="text-slate-500">Target Body Fat %</span>
-                  <span className="font-semibold">
-                    {targetBodyFat !== null ? `${targetBodyFat.toFixed(1)}%` : "--"}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
-                  <span className="text-slate-500">Status</span>
-                  <span className="font-semibold">{status}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h2 className="text-xl font-semibold">Recent Activity</h2>
-              <p className="mt-1 text-sm text-slate-500">
-                Your latest logs at a glance.
-              </p>
-
-              <div className="mt-5 space-y-3">
-                {recentLogs.length === 0 ? (
-                  <p className="text-sm text-slate-500">No activity yet.</p>
-                ) : (
-                  recentLogs.map((log, i) => (
-                    <div
-                      key={`${log.created_at}-${i}`}
-                      className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <p className="font-medium">
-                            {formatDateTime(log.created_at)}
-                          </p>
-                          <p className="text-xs text-slate-500">
-                            {log.log_type ?? "activity"}
-                          </p>
-                        </div>
-                        <span className="text-sm font-semibold">
-                          {log.completed ? "✅ Completed" : "—"}
+                {!isRestDay && Array.isArray(todayWorkout.exercises) && todayWorkout.exercises.length > 0 && (
+                  <div className="mt-5 space-y-2">
+                    {todayWorkout.exercises.map((ex, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center justify-between rounded-2xl bg-white/70 px-4 py-2.5 text-sm backdrop-blur"
+                      >
+                        <span className="font-medium text-slate-900">{ex.name}</span>
+                        <span className="text-slate-500">
+                          {ex.sets != null && ex.reps != null
+                            ? `${ex.sets} × ${ex.reps}`
+                            : ex.sets != null
+                              ? `${ex.sets} sets`
+                              : ""}
                         </span>
                       </div>
+                    ))}
+                  </div>
+                )}
 
-                      <div className="mt-3 grid grid-cols-2 gap-2 text-sm text-slate-600">
-                        <div>Weight: {log.weight !== null ? `${log.weight} kg` : "--"}</div>
-                        <div>Burn: {log.calories_burned ?? 0} kcal</div>
-                        <div>Consumed: {log.calories_consumed ?? 0} kcal</div>
-                        <div>Done: {log.completed ? "Yes" : "No"}</div>
-                      </div>
-                    </div>
-                  ))
+                {isRestDay && (
+                  <p className="mt-3 text-sm text-slate-500">
+                    Recovery is part of the plan. Stretch, hydrate, and sleep well.
+                  </p>
                 )}
               </div>
+            )}
+
+            {/* ── Plan snapshot ── */}
+            {planSummary && (
+              <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="mb-5 flex items-center justify-between gap-3">
+                  <div>
+                    <h2 className="text-lg font-semibold">Current Plan Snapshot</h2>
+                    <p className="text-sm text-slate-500">Summary from your latest AI-generated plan</p>
+                  </div>
+                  <button
+                    onClick={() => router.push("/dashboard/plan")}
+                    className="flex items-center gap-1.5 rounded-2xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
+                  >
+                    View full plan
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  {[
+                    { label: "Meals / day", value: String(planSummary.mealCount) },
+                    { label: "Workout days", value: String(planSummary.workoutDayCount) },
+                    { label: "Daily intake", value: `${planSummary.dailyCalories} kcal` },
+                    { label: "Weekly burn", value: `${planSummary.totalWeeklyBurn} kcal` },
+                  ].map(({ label, value }) => (
+                    <div key={label} className="rounded-2xl bg-slate-50 p-4">
+                      <p className="text-xs text-slate-500">{label}</p>
+                      <p className="mt-1 text-xl font-bold text-slate-900">{value}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── Quick links ── */}
+            <div className="grid gap-3 sm:grid-cols-3">
+              <QuickLink
+                label="Log Progress"
+                sub="Workout, meals, weight"
+                href="/dashboard/progress"
+                icon={ClipboardIcon}
+              />
+              <QuickLink
+                label="Analytics"
+                sub="Charts and trends"
+                href="/dashboard/analytics"
+                icon={ChartIcon}
+              />
+              <QuickLink
+                label="Get Help"
+                sub="Recipes and exercises"
+                href="/dashboard/help"
+                icon={HelpIcon}
+              />
             </div>
           </div>
-        </div>
 
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-semibold">Weekly Summary</h2>
-          <div className="mt-5 grid gap-4 md:grid-cols-3">
-            <div className="rounded-2xl bg-slate-50 p-4">
-              <p className="text-sm text-slate-500">Confirmed plan calories</p>
-              <p className="mt-1 text-2xl font-bold">{planSummary.dietCalories} kcal</p>
-            </div>
-            <div className="rounded-2xl bg-slate-50 p-4">
-              <p className="text-sm text-slate-500">Estimated burn</p>
-              <p className="mt-1 text-2xl font-bold">{planSummary.workoutCalories} kcal</p>
-            </div>
-            <div className="rounded-2xl bg-slate-50 p-4">
-              <p className="text-sm text-slate-500">Net daily calories</p>
-              <p className="mt-1 text-2xl font-bold">
-                {planSummary.dietCalories - Math.round(planSummary.workoutCalories / Math.max(planSummary.workoutDayCount || 1, 1))} kcal
-              </p>
-            </div>
+          {/* ── Sidebar ── */}
+          <div className="space-y-6 xl:col-span-4">
+
+            {/* Status card */}
+            {metrics && (
+              <div className={`rounded-3xl border p-6 shadow-sm ${statusBg(metrics.status)}`}>
+                <h2 className="text-lg font-semibold text-slate-900">Fitness Status</h2>
+                <p className={`mt-2 text-3xl font-bold ${statusColor(metrics.status)}`}>
+                  {metrics.status ?? "--"}
+                </p>
+                <div className="mt-5 space-y-2.5 text-sm">
+                  {[
+                    { label: "BMI", value: metrics.bmi != null ? String(metrics.bmi) : "--" },
+                    { label: "Body Fat", value: metrics.estimated_body_fat_percent != null ? `${metrics.estimated_body_fat_percent}%` : "--" },
+                    { label: "Target BMI", value: metrics.target_bmi != null ? String(metrics.target_bmi) : "--" },
+                    { label: "Target BF%", value: metrics.target_body_fat_percent != null ? `${metrics.target_body_fat_percent}%` : "--" },
+                  ].map(({ label, value }) => (
+                    <div key={label} className="flex items-center justify-between rounded-xl bg-white/60 px-3 py-2">
+                      <span className="text-slate-500">{label}</span>
+                      <span className="font-semibold text-slate-900">{value}</span>
+                    </div>
+                  ))}
+                </div>
+                {!metrics.bmi && (
+                  <p className="mt-4 text-xs text-slate-500">
+                    Generate a plan to calculate your metrics.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* No plan CTA */}
+            {!latestPlan && (
+              <div className="rounded-3xl border border-dashed border-purple-300 bg-purple-50 p-6 text-center shadow-sm">
+                <Dumbbell className="mx-auto h-8 w-8 text-purple-400" />
+                <h3 className="mt-3 font-semibold text-slate-900">No plan yet</h3>
+                <p className="mt-1 text-sm text-slate-500">
+                  Generate your personalized AI workout and diet plan to get started.
+                </p>
+                <button
+                  onClick={() => router.push("/generate")}
+                  className="mt-4 w-full rounded-2xl bg-gradient-to-r from-purple-600 to-cyan-500 py-2.5 text-sm font-semibold text-white hover:opacity-90 transition"
+                >
+                  Generate Plan
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
     </div>
   )
+}
+
+// ── Inline icon stand-ins to keep imports minimal ─────────────────────────────
+function ClipboardIcon({ className }: { className?: string }) {
+  return <Activity className={className} />
+}
+function ChartIcon({ className }: { className?: string }) {
+  return <TrendingUp className={className} />
+}
+function HelpIcon({ className }: { className?: string }) {
+  return <Target className={className} />
 }
