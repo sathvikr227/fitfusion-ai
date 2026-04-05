@@ -490,6 +490,8 @@ function normalizeMeal(meal: any, index: number) {
   }
 }
 
+const PLAN_WEEK_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+
 function normalizeWorkoutDay(day: any, index: number) {
   const exercises = Array.isArray(day?.exercises)
     ? day.exercises.map((ex: any) => ({
@@ -499,8 +501,17 @@ function normalizeWorkoutDay(day: any, index: number) {
       }))
     : []
 
+  // Prefer the AI-generated day name if it looks like a real weekday;
+  // fall back to Monday–Sunday by position so the UI can always match real dates
+  const rawDay = day?.day ? String(day.day) : null
+  const isWeekdayName = rawDay
+    ? /^(monday|tuesday|wednesday|thursday|friday|saturday|sunday)$/i.test(rawDay.trim())
+    : false
+  const resolvedDay = isWeekdayName ? rawDay!.charAt(0).toUpperCase() + rawDay!.slice(1).toLowerCase()
+    : (PLAN_WEEK_DAYS[index] ?? `Day ${index + 1}`)
+
   return {
-    day: String(day?.day ?? `Day ${index + 1}`),
+    day: resolvedDay,
     type: day?.type ? String(day.type) : null,
     exercises,
     estimated_calories_burned:
@@ -540,7 +551,8 @@ function enforceWeeklyStructure(plan: any, restDays: number, intensity: "low" | 
   const workoutPlan = Array.isArray(plan.workout_plan) ? [...plan.workout_plan] : []
 
   while (workoutPlan.length < 7) {
-    workoutPlan.push(defaultWorkoutDay(`Day ${workoutPlan.length + 1}`, workoutPlan.length, intensity))
+    const idx = workoutPlan.length
+    workoutPlan.push(defaultWorkoutDay(PLAN_WEEK_DAYS[idx] ?? `Day ${idx + 1}`, idx, intensity))
   }
 
   if (workoutPlan.length > 7) {
@@ -548,7 +560,7 @@ function enforceWeeklyStructure(plan: any, restDays: number, intensity: "low" | 
   }
 
   const forced = workoutPlan.map((day: any, index: number) => {
-    const dayLabel = String(day?.day ?? `Day ${index + 1}`)
+    const dayLabel = String(day?.day ?? PLAN_WEEK_DAYS[index] ?? `Day ${index + 1}`)
     const shouldBeRest = index >= 7 - restDays
 
     if (shouldBeRest) {
