@@ -145,6 +145,7 @@ export default function PlanPage() {
   }, [workoutDays])
 
   const dailyWorkoutBurn = useMemo(() => {
+    if (activeWorkoutDays === 0) return 0
     return Math.round(totalWorkoutBurn / activeWorkoutDays)
   }, [totalWorkoutBurn, activeWorkoutDays])
 
@@ -342,12 +343,16 @@ export default function PlanPage() {
     setUpgradingDifficulty(true)
     setStatus(null)
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { user }, } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
       if (!user) { router.replace("/"); return }
 
       const res = await fetch("/api/generate-plan", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session?.access_token ?? ""}`,
+        },
         body: JSON.stringify({ userId: user.id, difficultyBoost: true }),
       })
       const data = await res.json()
@@ -377,10 +382,12 @@ export default function PlanPage() {
         return
       }
 
+      const { data: { session } } = await supabase.auth.getSession()
       const res = await fetch("/api/generate-plan", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${session?.access_token ?? ""}`,
         },
         body: JSON.stringify({
           userId: user.id,

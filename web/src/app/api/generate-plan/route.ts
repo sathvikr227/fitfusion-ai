@@ -747,6 +747,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "User ID is required" }, { status: 400 })
     }
 
+    const token = req.headers.get("Authorization")?.replace("Bearer ", "") ?? ""
+    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token)
+    if (authError || !authUser || authUser.id !== userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
     let profile: JsonValue | null = null
 
     const byId = await supabase

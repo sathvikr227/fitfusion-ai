@@ -29,6 +29,13 @@ export async function POST(req: Request) {
       )
     }
 
+    // Verify the caller is the user they claim to be
+    const token = req.headers.get("Authorization")?.replace("Bearer ", "") ?? ""
+    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token)
+    if (authError || !authUser || authUser.id !== userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
     const today = new Date().toISOString().split("T")[0]
 
     //////////////////////////////////////////////

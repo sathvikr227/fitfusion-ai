@@ -63,16 +63,16 @@ Respond ONLY with valid JSON in this exact format:
     })
   } catch (error: any) {
     console.error("Recipe help error:", error)
-    // Graceful fallback
+    // Graceful fallback — use `query` captured before the error
     return NextResponse.json({
       found: false,
       category: "diet",
-      query: String((await req.json().catch(() => ({}))).query || ""),
+      query,
       title: "Recipe not found",
       ingredients: [],
       steps: ["Could not generate recipe. Please try a different food name."],
       tips: ["Try searching on YouTube using the link below."],
-      videoUrl: `https://www.youtube.com/results?search_query=${encodeURIComponent(String((await req.json().catch(() => ({}))).query || "") + " recipe")}`,
+      videoUrl: `https://www.youtube.com/results?search_query=${encodeURIComponent(query + " recipe")}`,
     })
   }
 }

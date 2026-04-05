@@ -36,6 +36,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "userId is required" }, { status: 400 })
     }
 
+    const token = req.headers.get("Authorization")?.replace("Bearer ", "") ?? ""
+    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token)
+    if (authError || !authUser || authUser.id !== userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
     const since = last7Days()
 
     // Fetch last 7 days of workout logs

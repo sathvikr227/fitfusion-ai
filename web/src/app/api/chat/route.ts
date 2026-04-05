@@ -41,6 +41,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 })
     }
 
+    // Verify caller is authenticated
+    const token = req.headers.get("Authorization")?.replace("Bearer ", "") ?? ""
+    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token)
+    if (authError || !authUser) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
     const validSessionId = sessionId || null
 
     let history: Array<{ role: "user" | "assistant" | "system"; content: string }> =
