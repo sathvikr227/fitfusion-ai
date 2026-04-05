@@ -1,13 +1,8 @@
 import { NextResponse } from "next/server"
 
-let accessToken: string | null = null
-let tokenExpiry = 0
-
+// Always fetch a fresh token per invocation — module-level cache is unreliable
+// on Vercel serverless because cold starts don't share memory between invocations.
 async function getAccessToken() {
-  if (accessToken && Date.now() < tokenExpiry) {
-    return accessToken
-  }
-
   const res = await fetch("https://oauth.fatsecret.com/connect/token", {
     method: "POST",
     headers: {
@@ -22,11 +17,7 @@ async function getAccessToken() {
   })
 
   const data = await res.json()
-
-  accessToken = data.access_token
-  tokenExpiry = Date.now() + data.expires_in * 1000
-
-  return accessToken
+  return data.access_token as string
 }
 
 // ✅ NORMALIZE INDIAN FOOD SEARCH

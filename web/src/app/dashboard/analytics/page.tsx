@@ -34,6 +34,42 @@ type WorkoutLog = {
   created_at: string
 }
 
+// ─── K-Means clustering ────────────────────────────────────────────────────────
+
+function kMeans(points: number[][], k: number, maxIter = 40): { clusters: number[]; centroids: number[][] } {
+  if (points.length === 0) return { clusters: [], centroids: [] }
+  const n = points.length
+  const dim = points[0].length
+  if (n <= k) return { clusters: points.map((_, i) => i), centroids: points.slice() }
+
+  // Deterministic init: pick k evenly spaced points
+  const step = Math.floor(n / k)
+  const centroids = Array.from({ length: k }, (_, i) => [...points[i * step]])
+  let clusters = new Array(n).fill(0)
+
+  for (let iter = 0; iter < maxIter; iter++) {
+    const newClusters = points.map((p) => {
+      let best = 0
+      let minDist = Infinity
+      for (let ci = 0; ci < k; ci++) {
+        const d = centroids[ci].reduce((s, v, di) => s + (v - p[di]) ** 2, 0)
+        if (d < minDist) { minDist = d; best = ci }
+      }
+      return best
+    })
+    if (newClusters.every((c, i) => c === clusters[i])) break
+    clusters = newClusters
+    for (let ci = 0; ci < k; ci++) {
+      const pts = points.filter((_, i) => clusters[i] === ci)
+      if (pts.length === 0) continue
+      for (let di = 0; di < dim; di++) {
+        centroids[ci][di] = pts.reduce((s, p) => s + p[di], 0) / pts.length
+      }
+    }
+  }
+  return { clusters, centroids }
+}
+
 // ─── Linear regression (weight prediction) ────────────────────────────────────
 
 function linearRegression(points: { x: number; y: number }[]) {
@@ -225,7 +261,7 @@ export default function AnalyticsPage() {
     return calculateStreak(dates)
   }, [workoutLogs])
 
-  // ── Habit pattern analysis ─────────────────────────────────────────────────
+  // ── Habit pattern analysis + K-Means clustering ───────────────────────────
 
   const habitPatterns = useMemo(() => {
     const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
@@ -239,7 +275,6 @@ export default function AnalyticsPage() {
     })
 
     const radarData = DAYS.map((day) => ({ day, workouts: dayCounts[day] }))
-
     const sortedDays = [...DAYS].sort((a, b) => dayCounts[b] - dayCounts[a])
     const bestDay = sortedDays[0]
     const worstDay = sortedDays[sortedDays.length - 1]
@@ -253,7 +288,6 @@ export default function AnalyticsPage() {
       : 0
     const consistencyRate = totalDays > 0 ? Math.min(100, Math.round((workoutLogs.length / totalDays) * 100)) : 0
 
-    // Count consecutive rest gaps > 2 days
     const sortedDates = Array.from(
       new Set(workoutLogs.map((l) => (l.date ?? l.created_at.split("T")[0])))
     ).sort()
@@ -263,7 +297,88 @@ export default function AnalyticsPage() {
       if (gap > 2) longRestCount++
     }
 
-    return { radarData, bestDay, worstDay, consistencyRate, longRestCount }
+    // ── K-Means clustering on workout sessions ────────────────────────────────
+    // Features: [day_of_week (0–6), normalized calories (0–1)]
+    const maxCals = Math.max(...workoutLogs.map((l) => l.total_calories || 0), 1)
+    const points = workoutLogs.map((log) => {
+      const dayIdx = new Date(log.date ?? log.created_at).getDay()
+      const calNorm = (log.total_calories || 0) / maxCals
+      return [dayIdx / 6, calNorm] // normalize day 0–1 too
+    })
+
+    const K = Math.min(3, workoutLogs.length)
+    const { clusters, centroids } = kMeans(points, K)
+
+    const clusterLabels = centroids.map((c) => {
+      const calPct = c[1] * 100
+      if (calPct >= 65) return "High Intensity"
+      if (calPct >= 30) return "Moderate"
+      return "Light / Recovery"
+    })
+
+    const clusterSizes = Array.from({ length: K }, (_, ci) =>
+      clusters.filter((c) => c === ci).length
+    )
+
+    const kMeansClusters = clusterLabels.map((label, i) => ({
+      label,
+      count: clusterSizes[i],
+      avgCalories: Math.round(centroids[i][1] * maxCals),
+      dominantDay: DAYS[Math.round(centroids[i][0] * 6)],
+    }))
+
+    return { radarData, bestDay, worstDay, consistencyRate, longRestCount, kMeansClusters }
+  }, [workoutLogs])
+
+  // ── Injury / wellness risk prediction ─────────────────────────────────────
+
+  const injuryRisk = useMemo(() => {
+    if (workoutLogs.length === 0) return null
+
+    const today = new Date()
+    const last14 = workoutLogs.filter((l) => {
+      const d = new Date(l.date ?? l.created_at)
+      return (today.getTime() - d.getTime()) / (1000 * 60 * 60 * 24) <= 14
+    })
+    const last7 = last14.filter((l) => {
+      const d = new Date(l.date ?? l.created_at)
+      return (today.getTime() - d.getTime()) / (1000 * 60 * 60 * 24) <= 7
+    })
+
+    const workoutsLast7 = new Set(last7.map((l) => (l.date ?? l.created_at.split("T")[0]))).size
+
+    // Find max consecutive workout days
+    const sortedDates = Array.from(
+      new Set(workoutLogs.map((l) => (l.date ?? l.created_at.split("T")[0])))
+    ).sort().reverse()
+
+    let maxConsecutive = 1, currentRun = 1
+    for (let i = 1; i < sortedDates.length; i++) {
+      const gap = (new Date(sortedDates[i - 1]).getTime() - new Date(sortedDates[i]).getTime()) / (1000 * 60 * 60 * 24)
+      if (Math.round(gap) === 1) { currentRun++; maxConsecutive = Math.max(maxConsecutive, currentRun) }
+      else currentRun = 1
+    }
+
+    let level: "low" | "moderate" | "high"
+    let message: string
+    const flags: string[] = []
+
+    if (maxConsecutive >= 6 || workoutsLast7 >= 6) {
+      level = "high"
+      message = "Overtraining detected — schedule at least 1–2 rest days this week."
+      if (maxConsecutive >= 6) flags.push(`${maxConsecutive} consecutive workout days`)
+      if (workoutsLast7 >= 6) flags.push(`${workoutsLast7} sessions in last 7 days`)
+    } else if (maxConsecutive >= 4 || workoutsLast7 >= 5) {
+      level = "moderate"
+      message = "High training load — monitor fatigue and prioritise sleep and nutrition."
+      if (maxConsecutive >= 4) flags.push(`${maxConsecutive} consecutive workout days`)
+      if (workoutsLast7 >= 5) flags.push(`${workoutsLast7} sessions in last 7 days`)
+    } else {
+      level = "low"
+      message = "Training load looks healthy — good balance of work and recovery."
+    }
+
+    return { level, message, flags, workoutsLast7, maxConsecutive }
   }, [workoutLogs])
 
   // ── Summary stats ──────────────────────────────────────────────────────────
@@ -476,6 +591,50 @@ export default function AnalyticsPage() {
           </div>
         </div>
 
+        {/* Injury / Wellness Risk */}
+        {injuryRisk && (
+          <div className={`rounded-3xl border p-5 ${
+            injuryRisk.level === "high"
+              ? "border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-900/20"
+              : injuryRisk.level === "moderate"
+                ? "border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20"
+                : "border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20"
+          }`}>
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">{injuryRisk.level === "high" ? "🚨" : injuryRisk.level === "moderate" ? "⚠️" : "✅"}</span>
+              <div className="flex-1">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <p className={`font-semibold capitalize ${
+                    injuryRisk.level === "high" ? "text-rose-700 dark:text-rose-300"
+                    : injuryRisk.level === "moderate" ? "text-amber-700 dark:text-amber-300"
+                    : "text-emerald-700 dark:text-emerald-300"
+                  }`}>
+                    {injuryRisk.level === "high" ? "High Injury Risk" : injuryRisk.level === "moderate" ? "Moderate Load" : "Low Risk"} — Wellness Score
+                  </p>
+                  <div className="flex gap-3 text-xs font-medium">
+                    <span className="rounded-xl bg-white/60 dark:bg-black/20 px-2.5 py-1">
+                      {injuryRisk.workoutsLast7} sessions / 7 days
+                    </span>
+                    <span className="rounded-xl bg-white/60 dark:bg-black/20 px-2.5 py-1">
+                      {injuryRisk.maxConsecutive} day max streak
+                    </span>
+                  </div>
+                </div>
+                <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{injuryRisk.message}</p>
+                {injuryRisk.flags.length > 0 && (
+                  <ul className="mt-2 space-y-0.5">
+                    {injuryRisk.flags.map((f, i) => (
+                      <li key={i} className="text-xs text-slate-500 dark:text-slate-400 flex gap-1.5">
+                        <span>→</span><span>{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Habit Pattern Analysis */}
         {workoutLogs.length >= 3 && (
           <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow border border-slate-200 dark:border-slate-700">
@@ -531,6 +690,32 @@ export default function AnalyticsPage() {
                 </div>
               </div>
             </div>
+
+            {/* K-Means clusters */}
+            {habitPatterns.kMeansClusters.length > 0 && (
+              <div className="mt-6 pt-5 border-t border-slate-100 dark:border-slate-700">
+                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-3">
+                  K-Means Session Clusters
+                </p>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  {habitPatterns.kMeansClusters.map((cluster, i) => {
+                    const colors = [
+                      "border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-900/20",
+                      "border-cyan-200 dark:border-cyan-800 bg-cyan-50 dark:bg-cyan-900/20",
+                      "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800",
+                    ]
+                    const textColors = ["text-purple-700 dark:text-purple-300", "text-cyan-700 dark:text-cyan-300", "text-slate-700 dark:text-slate-300"]
+                    return (
+                      <div key={i} className={`rounded-2xl border p-4 ${colors[i % 3]}`}>
+                        <p className={`text-sm font-semibold ${textColors[i % 3]}`}>{cluster.label}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{cluster.count} sessions · ~{cluster.avgCalories} kcal avg</p>
+                        <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Peak: {cluster.dominantDay}</p>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         )}
 

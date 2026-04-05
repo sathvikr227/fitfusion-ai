@@ -64,6 +64,17 @@ function normalizeExerciseName(name: string) {
   return name.toLowerCase().trim()
 }
 
+function findMET(exerciseName: string): number {
+  const normalized = normalizeExerciseName(exerciseName)
+  // Exact match first
+  if (MET_VALUES[normalized] !== undefined) return MET_VALUES[normalized]
+  // Substring match — handles "Dumbbell Chest Press" matching "chest press"
+  for (const [key, met] of Object.entries(MET_VALUES)) {
+    if (normalized.includes(key) || key.includes(normalized)) return met
+  }
+  return 5 // default MET
+}
+
 //////////////////////////////////////////////
 // 🔥 WORKOUT CALORIE CALCULATION
 //////////////////////////////////////////////
@@ -77,9 +88,7 @@ export function calculateWorkoutCalories(
   durationMinutes: number,
   exerciseName: string
 ) {
-  const normalized = normalizeExerciseName(exerciseName)
-
-  const MET = MET_VALUES[normalized] ?? 5 // default if unknown
+  const MET = findMET(exerciseName)
 
   const durationHours = durationMinutes / 60
 

@@ -216,13 +216,13 @@ export default function HomeDashboard() {
   const [reminderTime, setReminderTime] = useState("")
   const [reminderSet, setReminderSet] = useState(false)
   const [showReminderInput, setShowReminderInput] = useState(false)
+  const [userId, setUserId] = useState<string | null>(null)
 
   useEffect(() => {
-    const saved = parseInt(localStorage.getItem(waterKey) ?? "0", 10)
-    setWaterMl(Number.isFinite(saved) ? saved : 0)
+    // Load reminder from localStorage
     const savedReminder = localStorage.getItem("workout-reminder-time")
     if (savedReminder) { setReminderTime(savedReminder); setReminderSet(true) }
-  }, [waterKey])
+  }, [])
 
   const saveReminder = useCallback((time: string) => {
     if (!time) return
@@ -260,10 +260,18 @@ export default function HomeDashboard() {
   const addWater = useCallback((delta: number) => {
     setWaterMl((prev) => {
       const next = Math.max(0, Math.min(waterGoalMl + 1000, prev + delta * STEP_ML))
+      // Persist to localStorage as fast fallback
       localStorage.setItem(waterKey, String(next))
+      // Persist to Supabase if logged in
+      if (userId) {
+        supabase.from("water_logs").upsert(
+          { user_id: userId, date: todayStr(), amount_ml: next },
+          { onConflict: "user_id,date" }
+        ).then(() => {}) // fire-and-forget
+      }
       return next
     })
-  }, [waterKey, waterGoalMl])
+  }, [waterKey, waterGoalMl, userId])
 
   useEffect(() => {
     const load = async () => {
@@ -272,6 +280,23 @@ export default function HomeDashboard() {
       if (!user) { router.push("/login"); return }
 
       setUsername(user.email?.split("@")[0] ?? "User")
+      setUserId(user.id)
+
+      // Load today's water intake from Supabase
+      const today = todayStr()
+      const { data: waterData } = await supabase
+        .from("water_logs")
+        .select("amount_ml")
+        .eq("user_id", user.id)
+        .eq("date", today)
+        .maybeSingle()
+      if (waterData?.amount_ml != null) {
+        setWaterMl(waterData.amount_ml)
+      } else {
+        // Fallback: localStorage for today
+        const saved = parseInt(localStorage.getItem(`water-ml-${today}`) ?? "0", 10)
+        setWaterMl(Number.isFinite(saved) ? saved : 0)
+      }
 
       const since = sevenDaysAgo()
 

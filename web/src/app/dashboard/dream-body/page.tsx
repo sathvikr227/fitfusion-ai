@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { supabase } from "../../../lib/supabase/client"
 import {
   Sparkles,
@@ -71,6 +72,7 @@ const feasibilityBg = {
 }
 
 export default function DreamBodyPage() {
+  const router = useRouter()
   const [currentWeight, setCurrentWeight] = useState("")
   const [targetWeight, setTargetWeight] = useState("")
   const [currentBodyFat, setCurrentBodyFat] = useState("")
@@ -85,11 +87,11 @@ export default function DreamBodyPage() {
   const [roadmap, setRoadmap] = useState<Roadmap | null>(null)
   const [error, setError] = useState("")
 
-  // Pre-fill from profile
+  // Auth guard + pre-fill from profile
   useEffect(() => {
     const load = async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      if (!user) { router.replace("/login"); return }
 
       const { data: profile } = await supabase
         .from("profiles")
@@ -351,6 +353,19 @@ export default function DreamBodyPage() {
             )}
           </button>
         </div>
+
+        {/* Loading skeleton */}
+        {loading && (
+          <div className="space-y-6 animate-pulse">
+            <div className="h-20 rounded-3xl bg-slate-200 dark:bg-slate-800" />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="h-44 rounded-3xl bg-slate-200 dark:bg-slate-800" />
+              <div className="h-44 rounded-3xl bg-slate-200 dark:bg-slate-800" />
+            </div>
+            <div className="h-64 rounded-3xl bg-slate-200 dark:bg-slate-800" />
+            <div className="h-32 rounded-3xl bg-slate-200 dark:bg-slate-800" />
+          </div>
+        )}
 
         {/* Results */}
         {roadmap && (

@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+export const runtime = "nodejs"
+
 type ExerciseDbItem = {
   id?: string | number;
   name?: string;

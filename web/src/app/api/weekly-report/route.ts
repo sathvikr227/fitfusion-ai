@@ -54,6 +54,14 @@ export async function POST(req: Request) {
       .gte("date", since)
       .order("date", { ascending: true })
 
+    // Fetch last 7 days of meal logs
+    const { data: mealLogs } = await supabase
+      .from("meal_logs")
+      .select("calories, logged_at")
+      .eq("user_id", userId)
+      .gte("logged_at", since)
+      .order("logged_at", { ascending: true })
+
     // profiles.id IS the auth user UUID — no user_id column on profiles
     const { data: profileData } = await supabase
       .from("profiles")
@@ -68,6 +76,12 @@ export async function POST(req: Request) {
       (s, d) => s + (d.total_calories || 0),
       0
     ) ?? 0
+
+    const totalCaloriesIn = mealLogs?.reduce((s, m) => s + (m.calories || 0), 0) ?? 0
+    const mealDays = mealLogs?.length
+      ? new Set(mealLogs.map((m) => m.logged_at?.split("T")[0])).size
+      : 0
+    const avgDailyCaloriesIn = mealDays > 0 ? Math.round(totalCaloriesIn / mealDays) : null
 
     const weightEntries = weightLogs ?? []
     const startWeight = weightEntries[0]?.weight ?? null
@@ -89,6 +103,8 @@ Activity level: ${profile?.activity_level ?? "Not specified"}
 This week's data:
 - Workouts completed: ${workoutCount}
 - Total calories burned: ${totalCaloriesBurned} kcal
+- Average daily calories consumed: ${avgDailyCaloriesIn != null ? `${avgDailyCaloriesIn} kcal` : "N/A"}
+- Calorie balance (in - out): ${avgDailyCaloriesIn != null ? `${avgDailyCaloriesIn - Math.round(totalCaloriesBurned / 7)} kcal/day net` : "N/A"}
 - Weight at start of week: ${startWeight ?? "N/A"} kg
 - Weight at end of week: ${endWeight ?? "N/A"} kg
 - Weight change: ${weightChange != null ? `${weightChange > 0 ? "+" : ""}${weightChange} kg` : "N/A"}

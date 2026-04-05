@@ -1,14 +1,54 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { supabase } from "../../../lib/supabase/client"
 import WeightTab from "./WeightTab"
 import WorkoutTab from "./WorkoutTab"
 import DietTab from "./DietTab"
 import PhotosTab from "./PhotosTab"
 import SleepTab from "./SleepTab"
 
+function calcStreak(dates: string[]): number {
+  const unique = Array.from(
+    new Set(dates.map((d) => new Date(d).toISOString().split("T")[0]))
+  ).sort().reverse()
+  if (unique.length === 0) return 0
+  const today = new Date().toISOString().split("T")[0]
+  const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1)
+  const yStr = yesterday.toISOString().split("T")[0]
+  if (unique[0] !== today && unique[0] !== yStr) return 0
+  let streak = 1
+  for (let i = 1; i < unique.length; i++) {
+    const diff = Math.round((new Date(unique[i - 1]).getTime() - new Date(unique[i]).getTime()) / 86400000)
+    if (diff === 1) streak++
+    else break
+  }
+  return streak
+}
+
 export default function ProgressPage() {
   const [tab, setTab] = useState<"weight" | "workout" | "diet" | "photos" | "sleep">("weight")
+  const [streak, setStreak] = useState<number | null>(null)
+  const [todayActive, setTodayActive] = useState(false)
+
+  useEffect(() => {
+    const load = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const today = new Date().toISOString().split("T")[0]
+      const { data } = await supabase
+        .from("workout_logs")
+        .select("date, created_at")
+        .eq("user_id", user.id)
+        .order("date", { ascending: false })
+        .limit(60)
+      if (!data) return
+      const dates = data.map((r: any) => r.date ?? r.created_at)
+      setStreak(calcStreak(dates))
+      setTodayActive(dates.some((d: string) => (d ?? "").startsWith(today)))
+    }
+    load()
+  }, [])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-slate-50 to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 px-4 py-6 md:px-10 md:py-10 text-slate-900 dark:text-white">
@@ -36,12 +76,14 @@ export default function ProgressPage() {
           <div className="hidden md:flex gap-4">
             <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-3 shadow-sm">
               <p className="text-xs text-slate-400 uppercase">Streak</p>
-              <p className="text-lg font-semibold">🔥 5 days</p>
+              <p className="text-lg font-semibold">
+                {streak === null ? "—" : streak > 0 ? `🔥 ${streak} day${streak !== 1 ? "s" : ""}` : "0 days"}
+              </p>
             </div>
 
             <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-3 shadow-sm">
               <p className="text-xs text-slate-400 uppercase">Today</p>
-              <p className="text-lg font-semibold">Active</p>
+              <p className="text-lg font-semibold">{todayActive ? "Active ✅" : "Rest"}</p>
             </div>
           </div>
         </div>
