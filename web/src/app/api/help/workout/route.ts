@@ -267,10 +267,23 @@ function getQueryVariants(query: string) {
     "cable fly": ["cable chest fly", "cable crossover"],
     "cable flys": ["cable fly", "cable chest fly", "cable crossover"],
     fly: ["chest fly", "dumbbell fly", "cable fly"],
-    pushup: ["push-up", "push up"],
-    pullup: ["pull-up", "pull up"],
-    squat: ["barbell squat", "bodyweight squat"],
+    pushup:    ["push-up", "push up"],
+    "push up": ["push-up", "pushup"],
+    "push-up": ["push up", "pushup"],
+    pullup:    ["pull-up", "pull up"],
+    "pull up": ["pull-up", "pullup"],
+    "pull-up": ["pull up", "pullup"],
+    squat:    ["barbell squat", "bodyweight squat"],
     deadlift: ["barbell deadlift"],
+    curl:     ["bicep curl", "dumbbell curl", "barbell curl"],
+    "bicep curl": ["barbell curl", "dumbbell curl"],
+    lunge:    ["forward lunge", "reverse lunge", "walking lunge"],
+    row:      ["dumbbell row", "barbell row", "cable row"],
+    press:    ["bench press", "shoulder press", "dumbbell press"],
+    "bench press": ["barbell bench press", "dumbbell bench press"],
+    dip:      ["chest dip", "tricep dip"],
+    crunch:   ["ab crunch", "bicycle crunch"],
+    plank:    ["forearm plank", "plank hold"],
   };
 
   if (smartMap[n]) {
@@ -592,6 +605,10 @@ async function fetchAllExercises(): Promise<ExerciseDbItem[] | null> {
   return exerciseCachePromise;
 }
 
+// Minimum score for an ExerciseDB result to be trusted.
+// Score of 30 means the exercise name at least partially contains the query.
+const MIN_EXERCISE_SCORE = 30;
+
 async function fetchFromExerciseDb(query: string): Promise<WorkoutSingleResponse | null> {
   const allExercises = await fetchAllExercises();
   if (!allExercises || allExercises.length === 0) return null;
@@ -618,8 +635,12 @@ async function fetchFromExerciseDb(query: string): Promise<WorkoutSingleResponse
     .filter(({ item }) => Boolean(item?.name))
     .sort((a, b) => b.score - a.score);
 
-  const best = scored[0]?.item;
+  // Reject if the best score is too low — it means ExerciseDB found something
+  // unrelated (e.g. returning "3/4 sit-up" for "push up")
+  const topScore = scored[0]?.score ?? 0;
+  if (topScore < MIN_EXERCISE_SCORE) return null;
 
+  const best = scored[0]?.item;
   if (!best) return null;
 
   const bestName = normalize(best.name ?? "");
@@ -675,6 +696,22 @@ async function fetchByBodyPart(query: string): Promise<WorkoutListResponse | nul
   };
 }
 
+// Body-part keywords — queries matching these are "list" searches, not single exercises
+const BODY_PART_KEYWORDS = [
+  "chest", "back", "shoulder", "shoulders", "arm", "arms",
+  "bicep", "biceps", "tricep", "triceps",
+  "leg", "legs", "quad", "quads", "quadriceps",
+  "hamstring", "hamstrings", "glute", "glutes",
+  "calf", "calves", "core", "abs", "waist",
+  "upper body", "lower body", "full body", "cardio",
+  "pecs", "pec", "lats", "lat",
+];
+
+function isBodyPartQuery(query: string): boolean {
+  const q = normalize(query);
+  return BODY_PART_KEYWORDS.some((kw) => q === kw || q === kw + "s");
+}
+
 async function handleQuery(query: string) {
   const normalizedQuery = query.trim();
 
@@ -682,28 +719,37 @@ async function handleQuery(query: string) {
     return NextResponse.json({ error: "Query is required" }, { status: 400 });
   }
 
-  // 1️⃣ Try ExerciseDB (RapidAPI) first
-  try {
-    const bodyPartResult = await fetchByBodyPart(normalizedQuery);
-    if (bodyPartResult && bodyPartResult.exercises.length > 0) {
-      return NextResponse.json(bodyPartResult);
+  const bodyPart = isBodyPartQuery(normalizedQuery);
+
+  if (bodyPart) {
+    // For body-part queries: Groq is primary (always returns 8 good exercises).
+    // ExerciseDB is used only if Groq fails, since its dataset may be limited.
+    const groqResult = await fetchWorkoutFromGroq(normalizedQuery);
+    if (groqResult) return NextResponse.json(groqResult);
+
+    try {
+      const dbResult = await fetchByBodyPart(normalizedQuery);
+      if (dbResult && dbResult.exercises.length >= 3) return NextResponse.json(dbResult);
+    } catch (err) {
+      console.error("ExerciseDB body-part fetch error:", err);
+    }
+  } else {
+    // For specific exercise queries: ExerciseDB first (has GIFs), Groq as fallback.
+    try {
+      const dbResult = await fetchFromExerciseDb(normalizedQuery);
+      // Only accept if it has real content (muscles or steps) — rejects low-score guesses
+      if (dbResult && (dbResult.muscles.length > 0 || dbResult.steps.length > 0)) {
+        return NextResponse.json(dbResult);
+      }
+    } catch (err) {
+      console.error("ExerciseDB single fetch error:", err);
     }
 
-    const apiResult = await fetchFromExerciseDb(normalizedQuery);
-    if (apiResult && (apiResult.muscles.length > 0 || apiResult.steps.length > 0)) {
-      return NextResponse.json(apiResult);
-    }
-  } catch (error) {
-    console.error("ExerciseDB fetch error:", error);
+    const groqResult = await fetchWorkoutFromGroq(normalizedQuery);
+    if (groqResult) return NextResponse.json(groqResult);
   }
 
-  // 2️⃣ Fallback to Groq AI (always available, no quota issues)
-  const groqResult = await fetchWorkoutFromGroq(normalizedQuery);
-  if (groqResult) {
-    return NextResponse.json(groqResult);
-  }
-
-  // 3️⃣ Last-resort static fallback
+  // Last-resort static fallback
   return NextResponse.json({
     found: false,
     category: "workout",
