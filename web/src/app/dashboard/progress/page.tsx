@@ -8,6 +8,9 @@ import DietTab from "./DietTab"
 import PhotosTab from "./PhotosTab"
 import SleepTab from "./SleepTab"
 import StrengthTab from "./StrengthTab"
+import MeasurementsTab from "./MeasurementsTab"
+import CardioTab from "./CardioTab"
+import MoodTab from "./MoodTab"
 
 function calcStreak(dates: string[]): number {
   const unique = Array.from(
@@ -28,7 +31,7 @@ function calcStreak(dates: string[]): number {
 }
 
 export default function ProgressPage() {
-  const [tab, setTab] = useState<"weight" | "workout" | "diet" | "photos" | "sleep" | "strength">("weight")
+  const [tab, setTab] = useState<"weight" | "workout" | "diet" | "photos" | "sleep" | "strength" | "measurements" | "cardio" | "mood">("weight")
   const [streak, setStreak] = useState<number | null>(null)
   const [todayActive, setTodayActive] = useState(false)
 
@@ -90,44 +93,18 @@ export default function ProgressPage() {
         </div>
 
         {/* 🔥 TAB SWITCHER (PRO UI) */}
-        <div className="flex justify-center">
-          <div className="flex gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-1 rounded-2xl shadow-sm">
+        <div className="flex justify-center overflow-x-auto pb-1">
+          <div className="flex gap-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-1 rounded-2xl shadow-sm flex-wrap justify-center">
 
-            <TabButton
-              label="Weight"
-              active={tab === "weight"}
-              onClick={() => setTab("weight")}
-            />
-
-            <TabButton
-              label="Workout"
-              active={tab === "workout"}
-              onClick={() => setTab("workout")}
-            />
-
-            <TabButton
-              label="Diet"
-              active={tab === "diet"}
-              onClick={() => setTab("diet")}
-            />
-
-            <TabButton
-              label="Photos"
-              active={tab === "photos"}
-              onClick={() => setTab("photos")}
-            />
-
-            <TabButton
-              label="Sleep"
-              active={tab === "sleep"}
-              onClick={() => setTab("sleep")}
-            />
-
-            <TabButton
-              label="Strength"
-              active={tab === "strength"}
-              onClick={() => setTab("strength")}
-            />
+            <TabButton label="Weight" active={tab === "weight"} onClick={() => setTab("weight")} />
+            <TabButton label="Workout" active={tab === "workout"} onClick={() => setTab("workout")} />
+            <TabButton label="Diet" active={tab === "diet"} onClick={() => setTab("diet")} />
+            <TabButton label="Photos" active={tab === "photos"} onClick={() => setTab("photos")} />
+            <TabButton label="Sleep" active={tab === "sleep"} onClick={() => setTab("sleep")} />
+            <TabButton label="Strength" active={tab === "strength"} onClick={() => setTab("strength")} />
+            <TabButton label="Measurements" active={tab === "measurements"} onClick={() => setTab("measurements")} />
+            <TabButton label="Cardio" active={tab === "cardio"} onClick={() => setTab("cardio")} />
+            <TabButton label="Mood" active={tab === "mood"} onClick={() => setTab("mood")} />
 
           </div>
         </div>
@@ -144,6 +121,9 @@ export default function ProgressPage() {
             {tab === "photos" && <PhotosTab />}
             {tab === "sleep" && <SleepTab />}
             {tab === "strength" && <StrengthTab />}
+            {tab === "measurements" && <MeasurementsTab />}
+            {tab === "cardio" && <CardioTab />}
+            {tab === "mood" && <MoodTab />}
 
           </div>
         </div>
