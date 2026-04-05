@@ -1,6 +1,127 @@
 import { NextResponse } from "next/server";
+import Groq from "groq-sdk";
 
 export const runtime = "nodejs"
+
+// ── Groq AI fallback ──────────────────────────────────────────────────────────
+function getGroqClient() {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) throw new Error("GROQ_API_KEY is missing");
+  return new Groq({ apiKey });
+}
+
+function extractJson(text: string): string {
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (fenced) return fenced[1].trim();
+  const obj = text.match(/\{[\s\S]*\}/);
+  if (obj) return obj[0];
+  return text.trim();
+}
+
+async function fetchWorkoutFromGroq(query: string): Promise<WorkoutSingleResponse | WorkoutListResponse | null> {
+  try {
+    const groq = getGroqClient();
+
+    // Detect if this is a body-part / muscle-group query
+    const bodyPartKeywords = [
+      "chest", "back", "shoulder", "shoulders", "arm", "arms", "bicep", "biceps",
+      "tricep", "triceps", "leg", "legs", "quad", "quads", "hamstring", "hamstrings",
+      "glute", "glutes", "calf", "calves", "core", "abs", "waist", "upper body",
+      "lower body", "full body", "cardio",
+    ];
+    const isBodyPart = bodyPartKeywords.some(
+      (kw) => query.toLowerCase().includes(kw) && query.split(" ").length <= 3
+    );
+
+    if (isBodyPart) {
+      const prompt = `You are a certified personal trainer. List 8 great exercises for "${query}".
+
+Respond ONLY with valid JSON:
+{
+  "title": "${titleCase(query)} Exercises",
+  "exercises": [
+    {
+      "title": "Exercise Name",
+      "bodyPart": "${query}",
+      "target": ["primary muscle"],
+      "equipment": ["equipment needed"],
+      "videoUrl": "https://www.youtube.com/results?search_query=Exercise+Name+proper+form"
+    }
+  ],
+  "tips": ["tip 1", "tip 2", "tip 3"]
+}`;
+
+      const completion = await groq.chat.completions.create({
+        model: "llama-3.3-70b-versatile",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.3,
+        max_tokens: 1000,
+      });
+
+      const raw = completion.choices[0]?.message?.content || "";
+      const parsed = JSON.parse(extractJson(raw));
+
+      return {
+        found: true,
+        category: "workout",
+        type: "list",
+        query,
+        title: parsed.title || `${titleCase(query)} Exercises`,
+        exercises: (parsed.exercises || []).map((ex: any) => ({
+          title: String(ex.title || "Exercise"),
+          gifUrl: null,
+          target: Array.isArray(ex.target) ? ex.target : [ex.target || query],
+          equipment: Array.isArray(ex.equipment) ? ex.equipment : [ex.equipment || "bodyweight"],
+          bodyPart: String(ex.bodyPart || query),
+          videoUrl: ex.videoUrl || `https://www.youtube.com/results?search_query=${encodeURIComponent(ex.title + " proper form")}`,
+        })),
+        steps: [],
+        tips: parsed.tips || ["Use controlled form.", "Start light and progress gradually.", "Stop if you feel sharp pain."],
+        videoUrl: `https://www.youtube.com/results?search_query=${encodeURIComponent(query + " exercises")}`,
+        gifUrl: null,
+        source: "api",
+      } as WorkoutListResponse;
+    }
+
+    // Single exercise query
+    const prompt = `You are a certified personal trainer. Give a clear guide for "${query}".
+
+Respond ONLY with valid JSON:
+{
+  "title": "Exercise Name",
+  "muscles": ["primary muscle", "secondary muscle"],
+  "steps": ["Step 1", "Step 2", "Step 3", "Step 4", "Step 5"],
+  "tips": ["Tip 1", "Tip 2", "Tip 3"]
+}`;
+
+    const completion = await groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.3,
+      max_tokens: 600,
+    });
+
+    const raw = completion.choices[0]?.message?.content || "";
+    const parsed = JSON.parse(extractJson(raw));
+
+    return {
+      found: true,
+      category: "workout",
+      type: "single",
+      query,
+      title: parsed.title || titleCase(query),
+      muscles: Array.isArray(parsed.muscles) ? parsed.muscles : [],
+      steps: Array.isArray(parsed.steps) ? parsed.steps : [],
+      tips: Array.isArray(parsed.tips) ? parsed.tips : [],
+      videoUrl: `https://www.youtube.com/results?search_query=${encodeURIComponent(query + " proper form")}`,
+      gifUrl: null,
+      source: "api",
+    } as WorkoutSingleResponse;
+  } catch (err) {
+    console.error("Groq workout fallback error:", err);
+    return null;
+  }
+}
 
 type ExerciseDbItem = {
   id?: string | number;
@@ -561,20 +682,28 @@ async function handleQuery(query: string) {
     return NextResponse.json({ error: "Query is required" }, { status: 400 });
   }
 
+  // 1️⃣ Try ExerciseDB (RapidAPI) first
   try {
     const bodyPartResult = await fetchByBodyPart(normalizedQuery);
-    if (bodyPartResult) {
+    if (bodyPartResult && bodyPartResult.exercises.length > 0) {
       return NextResponse.json(bodyPartResult);
     }
 
     const apiResult = await fetchFromExerciseDb(normalizedQuery);
-    if (apiResult) {
+    if (apiResult && (apiResult.muscles.length > 0 || apiResult.steps.length > 0)) {
       return NextResponse.json(apiResult);
     }
   } catch (error) {
     console.error("ExerciseDB fetch error:", error);
   }
 
+  // 2️⃣ Fallback to Groq AI (always available, no quota issues)
+  const groqResult = await fetchWorkoutFromGroq(normalizedQuery);
+  if (groqResult) {
+    return NextResponse.json(groqResult);
+  }
+
+  // 3️⃣ Last-resort static fallback
   return NextResponse.json({
     found: false,
     category: "workout",
@@ -582,10 +711,16 @@ async function handleQuery(query: string) {
     query: normalizedQuery,
     title: titleCase(normalizedQuery),
     muscles: [],
-    steps: [],
+    steps: [
+      "Start with a proper warm-up before performing this exercise.",
+      "Focus on controlled movement throughout the full range of motion.",
+      "Keep your core engaged and maintain proper posture.",
+      "Breathe steadily — exhale on exertion, inhale on the return.",
+    ],
     tips: [
-      "No workout found from the API for this query.",
-      "Try a different exercise name or a body part like chest, core, back, or legs.",
+      "Start with light weight and progress gradually.",
+      "Stop immediately if you feel sharp or joint pain.",
+      "Watch the YouTube video for a proper form demo.",
     ],
     videoUrl: `https://www.youtube.com/results?search_query=${encodeURIComponent(
       normalizedQuery + " proper form"
