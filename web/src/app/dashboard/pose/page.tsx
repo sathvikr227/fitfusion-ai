@@ -14,6 +14,8 @@ const LM = {
   R_HIP: 24,      L_HIP: 23,
   R_KNEE: 26,     L_KNEE: 25,
   R_ANKLE: 28,    L_ANKLE: 27,
+  R_HEEL: 30,     L_HEEL: 29,
+  NOSE: 0,
 }
 
 interface ExerciseDef {
@@ -26,42 +28,122 @@ interface ExerciseDef {
   cameraHint: string
 }
 
+// ── Exercise categories for grouping in the UI ────────────────────────────────
+export const EXERCISE_CATEGORIES: Record<string, string[]> = {
+  "Upper Body": ["bicep_curl", "tricep_extension", "lateral_raise", "shoulder_press", "pushup", "dumbbell_row"],
+  "Lower Body":  ["squat", "lunge", "deadlift", "calf_raise"],
+  "Full Body":   ["hip_thrust"],
+}
+
 const EXERCISES: Record<string, ExerciseDef> = {
+  // ── Upper Body ─────────────────────────────────────────────────────────────
   bicep_curl: {
     name: "Bicep Curl",
     icon: "💪",
     landmarks: [LM.R_SHOULDER, LM.R_ELBOW, LM.R_WRIST],
     downCondition: (a) => a > 150,
-    upCondition: (a) => a < 50,
+    upCondition:   (a) => a < 50,
     formTip: "Keep elbow pinned to your side throughout the movement",
     cameraHint: "Face camera sideways — show your full arm",
   },
-  squat: {
-    name: "Squat",
-    icon: "🏋️",
-    landmarks: [LM.R_HIP, LM.R_KNEE, LM.R_ANKLE],
-    downCondition: (a) => a < 100,
-    upCondition: (a) => a > 160,
-    formTip: "Keep chest up, knees tracking over toes",
-    cameraHint: "Stand sideways to the camera — full body visible",
-  },
-  pushup: {
-    name: "Push-up",
-    icon: "🔄",
+  tricep_extension: {
+    name: "Tricep Extension",
+    icon: "🦾",
     landmarks: [LM.R_SHOULDER, LM.R_ELBOW, LM.R_WRIST],
-    downCondition: (a) => a < 90,
-    upCondition: (a) => a > 150,
-    formTip: "Keep a straight line from head to heels — no sagging hips",
-    cameraHint: "Place camera at floor level, sideways to your body",
+    downCondition: (a) => a < 65,   // elbow fully bent overhead
+    upCondition:   (a) => a > 150,  // arm fully extended
+    formTip: "Keep your upper arm vertical and elbow pointing straight up",
+    cameraHint: "Face camera sideways — full arm visible from shoulder to wrist",
+  },
+  lateral_raise: {
+    name: "Lateral Raise",
+    icon: "↔️",
+    // Angle at shoulder between hip→shoulder→elbow
+    landmarks: [LM.R_HIP, LM.R_SHOULDER, LM.R_ELBOW],
+    downCondition: (a) => a < 30,   // arm at side
+    upCondition:   (a) => a > 75,   // arm raised to ~90°
+    formTip: "Lead with elbows, stop at shoulder height — don't shrug",
+    cameraHint: "Face the camera directly — both arms must be visible",
   },
   shoulder_press: {
     name: "Shoulder Press",
     icon: "⬆️",
     landmarks: [LM.R_ELBOW, LM.R_SHOULDER, LM.R_HIP],
     downCondition: (a) => a < 70,
-    upCondition: (a) => a > 150,
+    upCondition:   (a) => a > 150,
     formTip: "Brace your core — don't arch your lower back",
     cameraHint: "Face camera sideways — full upper body visible",
+  },
+  pushup: {
+    name: "Push-up",
+    icon: "🔄",
+    landmarks: [LM.R_SHOULDER, LM.R_ELBOW, LM.R_WRIST],
+    downCondition: (a) => a < 90,
+    upCondition:   (a) => a > 150,
+    formTip: "Keep a straight line from head to heels — no sagging hips",
+    cameraHint: "Place camera at floor level, sideways to your body",
+  },
+  dumbbell_row: {
+    name: "Dumbbell Row",
+    icon: "🚣",
+    // Angle at shoulder between hip→shoulder→elbow; arm goes from extended (down) to pulled (up)
+    landmarks: [LM.R_HIP, LM.R_SHOULDER, LM.R_ELBOW],
+    downCondition: (a) => a > 140,  // arm hanging down
+    upCondition:   (a) => a < 65,   // elbow pulled to hip
+    formTip: "Keep your back flat — drive elbow up and back, not out",
+    cameraHint: "Camera sideways — brace one hand on a bench, show full torso",
+  },
+
+  // ── Lower Body ─────────────────────────────────────────────────────────────
+  squat: {
+    name: "Squat",
+    icon: "🏋️",
+    landmarks: [LM.R_HIP, LM.R_KNEE, LM.R_ANKLE],
+    downCondition: (a) => a < 100,
+    upCondition:   (a) => a > 160,
+    formTip: "Keep chest up, knees tracking over toes",
+    cameraHint: "Stand sideways to the camera — full body visible",
+  },
+  lunge: {
+    name: "Lunge",
+    icon: "🦵",
+    landmarks: [LM.R_HIP, LM.R_KNEE, LM.R_ANKLE],
+    downCondition: (a) => a < 105,  // knee at ~90° at the bottom
+    upCondition:   (a) => a > 160,  // leg straight at top
+    formTip: "Keep front knee above ankle — don't let it cave inward",
+    cameraHint: "Stand sideways to camera — full leg must be visible",
+  },
+  deadlift: {
+    name: "Deadlift",
+    icon: "🏗️",
+    // Hip hinge: angle at hip between shoulder→hip→knee
+    landmarks: [LM.R_SHOULDER, LM.R_HIP, LM.R_KNEE],
+    downCondition: (a) => a < 90,   // hinged forward, bar near floor
+    upCondition:   (a) => a > 165,  // fully locked out, hips under shoulders
+    formTip: "Drive hips forward to stand — keep bar close, back straight",
+    cameraHint: "Camera sideways — full body from head to feet visible",
+  },
+  calf_raise: {
+    name: "Calf Raise",
+    icon: "🦶",
+    // Angle at ankle: knee→ankle→heel
+    landmarks: [LM.R_KNEE, LM.R_ANKLE, LM.R_HEEL],
+    downCondition: (a) => a > 90,   // heel down, ankle dorsiflexed
+    upCondition:   (a) => a < 70,   // heel raised, ankle plantarflexed
+    formTip: "Rise onto the balls of your feet — hold for 1 second at the top",
+    cameraHint: "Camera sideways at ankle height — full lower leg visible",
+  },
+
+  // ── Full Body ──────────────────────────────────────────────────────────────
+  hip_thrust: {
+    name: "Hip Thrust",
+    icon: "🍑",
+    // Angle at hip between shoulder→hip→knee
+    landmarks: [LM.R_SHOULDER, LM.R_HIP, LM.R_KNEE],
+    downCondition: (a) => a < 90,   // hips dropped near floor
+    upCondition:   (a) => a > 160,  // hips fully extended
+    formTip: "Squeeze glutes at the top — chin tucked, ribs down",
+    cameraHint: "Camera sideways at hip height — back against a bench",
   },
 }
 
@@ -80,7 +162,7 @@ function calcAngle(
 const SKELETON_CONNECTIONS: [number, number][] = [
   [11, 12], [11, 13], [13, 15], [12, 14], [14, 16],
   [11, 23], [12, 24], [23, 24], [23, 25], [24, 26],
-  [25, 27], [26, 28],
+  [25, 27], [26, 28], [27, 29], [28, 30],
 ]
 
 type Mode = "camera" | "video"
@@ -443,22 +525,35 @@ export default function PosePage() {
         {/* Left — video area */}
         <div className="lg:col-span-2 space-y-4">
 
-          {/* Exercise selector */}
-          <div className="flex flex-wrap gap-2">
-            {Object.entries(EXERCISES).map(([key, def]) => (
-              <button
-                key={key}
-                onClick={() => { setExercise(key); resetReps() }}
-                disabled={isRunning && isCameraMode}
-                className={`flex items-center gap-2 rounded-2xl border px-4 py-2 text-sm font-medium transition-all disabled:opacity-50 ${
-                  exercise === key
-                    ? "bg-gradient-to-r from-purple-600 to-cyan-500 text-white border-transparent shadow-lg"
-                    : "bg-white text-slate-700 dark:text-slate-300 border-slate-200 hover:border-purple-300"
-                }`}
-              >
-                <span>{def.icon}</span>
-                {def.name}
-              </button>
+          {/* Exercise selector — grouped by category */}
+          <div className="space-y-2">
+            {Object.entries(EXERCISE_CATEGORIES).map(([category, keys]) => (
+              <div key={category}>
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1.5">
+                  {category}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {keys.map((key) => {
+                    const def = EXERCISES[key]
+                    if (!def) return null
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => { setExercise(key); resetReps() }}
+                        disabled={isRunning && isCameraMode}
+                        className={`flex items-center gap-2 rounded-2xl border px-3 py-1.5 text-sm font-medium transition-all disabled:opacity-50 ${
+                          exercise === key
+                            ? "bg-gradient-to-r from-purple-600 to-cyan-500 text-white border-transparent shadow-lg"
+                            : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-purple-300"
+                        }`}
+                      >
+                        <span>{def.icon}</span>
+                        {def.name}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
             ))}
           </div>
 
