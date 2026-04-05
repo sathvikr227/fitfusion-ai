@@ -16,6 +16,10 @@ import {
   Loader2,
   ChevronRight,
   RefreshCw,
+  Upload,
+  X,
+  Camera,
+  Zap,
 } from "lucide-react"
 
 type Feasibility = {
@@ -87,6 +91,14 @@ export default function DreamBodyPage() {
   const [roadmap, setRoadmap] = useState<Roadmap | null>(null)
   const [error, setError] = useState("")
 
+  // Photo inspiration state
+  const [photoFile, setPhotoFile] = useState<File | null>(null)
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+  const [photoAnalysis, setPhotoAnalysis] = useState<any>(null)
+  const [photoLoading, setPhotoLoading] = useState(false)
+  const [photoError, setPhotoError] = useState("")
+  const [showPhotoSection, setShowPhotoSection] = useState(false)
+
   // Auth guard + pre-fill from profile
   useEffect(() => {
     const load = async () => {
@@ -119,6 +131,40 @@ export default function DreamBodyPage() {
     }
     load()
   }, [])
+
+  const handlePhotoSelect = (file: File) => {
+    setPhotoFile(file)
+    setPhotoAnalysis(null)
+    setPhotoError("")
+    const reader = new FileReader()
+    reader.onload = (e) => setPhotoPreview(e.target?.result as string)
+    reader.readAsDataURL(file)
+  }
+
+  const analyzePhoto = async () => {
+    if (!photoFile) return
+    setPhotoLoading(true)
+    setPhotoError("")
+    setPhotoAnalysis(null)
+    try {
+      const fd = new FormData()
+      fd.append("image", photoFile)
+      const res = await fetch("/api/analyze-inspiration", { method: "POST", body: fd })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Failed to analyze")
+      setPhotoAnalysis(data.analysis)
+    } catch (err: any) {
+      setPhotoError(err.message || "Failed to analyze photo")
+    } finally {
+      setPhotoLoading(false)
+    }
+  }
+
+  const applyPhotoAnalysis = () => {
+    if (!photoAnalysis) return
+    if (photoAnalysis.primaryGoal) setGoal(photoAnalysis.primaryGoal)
+    if (photoAnalysis.suggestedTargetBodyFat) setTargetBodyFat(String(photoAnalysis.suggestedTargetBodyFat))
+  }
 
   const generate = async () => {
     if (!currentWeight || !targetWeight) {
@@ -177,6 +223,158 @@ export default function DreamBodyPage() {
           <p className="mt-2 text-slate-500 dark:text-slate-400">
             Enter your goals and get a personalised AI roadmap — calories, macros, workout split, and milestones.
           </p>
+        </div>
+
+        {/* Photo Inspiration Section */}
+        <div className="rounded-3xl border border-purple-200 dark:border-purple-800 bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 p-6 shadow-sm">
+          <button
+            onClick={() => setShowPhotoSection((v) => !v)}
+            className="flex w-full items-center justify-between"
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-r from-purple-600 to-cyan-500 text-white">
+                <Camera className="h-5 w-5" />
+              </div>
+              <div className="text-left">
+                <p className="font-semibold text-slate-900 dark:text-white">Inspiration Photo Analyzer</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Upload a celebrity or physique photo — AI will build your plan around it</p>
+              </div>
+            </div>
+            <span className="text-xs font-medium text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/40 px-3 py-1 rounded-full">
+              {showPhotoSection ? "Hide" : "Try it"}
+            </span>
+          </button>
+
+          {showPhotoSection && (
+            <div className="mt-5 space-y-4">
+              {/* Upload area */}
+              {!photoPreview ? (
+                <label className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-purple-300 dark:border-purple-700 bg-white dark:bg-slate-900 p-10 cursor-pointer hover:border-purple-500 transition">
+                  <Upload className="h-8 w-8 text-purple-400" />
+                  <div className="text-center">
+                    <p className="text-sm font-medium text-slate-700 dark:text-slate-300">Drop a photo here or click to upload</p>
+                    <p className="text-xs text-slate-400 mt-1">Celebrity, athlete, or any physique photo · JPG, PNG, WebP</p>
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0]
+                      if (f) handlePhotoSelect(f)
+                    }}
+                  />
+                </label>
+              ) : (
+                <div className="flex gap-4 items-start">
+                  <div className="relative shrink-0">
+                    <img
+                      src={photoPreview}
+                      alt="Inspiration"
+                      className="h-40 w-32 rounded-2xl object-cover border border-slate-200 dark:border-slate-700 shadow"
+                    />
+                    <button
+                      onClick={() => { setPhotoPreview(null); setPhotoFile(null); setPhotoAnalysis(null); setPhotoError("") }}
+                      className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-slate-800 text-white flex items-center justify-center hover:bg-red-500 transition"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+
+                  <div className="flex-1 space-y-3">
+                    {!photoAnalysis && (
+                      <button
+                        onClick={analyzePhoto}
+                        disabled={photoLoading}
+                        className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-purple-600 to-cyan-500 text-white font-semibold text-sm shadow hover:opacity-90 transition disabled:opacity-60"
+                      >
+                        {photoLoading ? (
+                          <><Loader2 className="h-4 w-4 animate-spin" /> Analyzing physique...</>
+                        ) : (
+                          <><Zap className="h-4 w-4" /> Analyze This Physique</>
+                        )}
+                      </button>
+                    )}
+                    {photoError && (
+                      <p className="text-sm text-red-500 bg-red-50 dark:bg-red-900/20 rounded-xl px-3 py-2">{photoError}</p>
+                    )}
+
+                    {/* Analysis result */}
+                    {photoAnalysis && (
+                      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 space-y-3">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                          <p className="font-semibold text-sm text-slate-900 dark:text-white">AI Analysis Complete</p>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-2.5">
+                            <p className="text-slate-400">Physique Type</p>
+                            <p className="font-semibold text-slate-900 dark:text-white mt-0.5">{photoAnalysis.physiqueType}</p>
+                          </div>
+                          <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-2.5">
+                            <p className="text-slate-400">Est. Body Fat</p>
+                            <p className="font-semibold text-slate-900 dark:text-white mt-0.5">{photoAnalysis.estimatedBodyFat}</p>
+                          </div>
+                          <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-2.5">
+                            <p className="text-slate-400">Muscle Level</p>
+                            <p className="font-semibold text-slate-900 dark:text-white mt-0.5">{photoAnalysis.muscleLevel}</p>
+                          </div>
+                          <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-2.5">
+                            <p className="text-slate-400">Time Estimate</p>
+                            <p className="font-semibold text-slate-900 dark:text-white mt-0.5">{photoAnalysis.estimatedTimeToAchieve}</p>
+                          </div>
+                        </div>
+
+                        {photoAnalysis.observations && (
+                          <div>
+                            <p className="text-xs font-medium text-slate-500 mb-1.5">Key Observations</p>
+                            <ul className="space-y-1">
+                              {photoAnalysis.observations.map((o: string, i: number) => (
+                                <li key={i} className="text-xs text-slate-700 dark:text-slate-300 flex gap-1.5">
+                                  <span className="text-purple-500 shrink-0">•</span>{o}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-1 gap-1.5 text-xs">
+                          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl px-3 py-2">
+                            <span className="text-blue-500 font-medium">Workout: </span>
+                            <span className="text-slate-700 dark:text-slate-300">{photoAnalysis.workoutFocus}</span>
+                          </div>
+                          <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl px-3 py-2">
+                            <span className="text-amber-500 font-medium">Diet: </span>
+                            <span className="text-slate-700 dark:text-slate-300">{photoAnalysis.dietApproach}</span>
+                          </div>
+                          {photoAnalysis.keyMuscleGroups && (
+                            <div className="bg-purple-50 dark:bg-purple-900/20 rounded-xl px-3 py-2">
+                              <span className="text-purple-500 font-medium">Focus Muscles: </span>
+                              <span className="text-slate-700 dark:text-slate-300">{photoAnalysis.keyMuscleGroups.join(", ")}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {photoAnalysis.inspiration && (
+                          <p className="text-xs italic text-slate-500 dark:text-slate-400 border-l-2 border-purple-400 pl-3">
+                            {photoAnalysis.inspiration}
+                          </p>
+                        )}
+
+                        <button
+                          onClick={applyPhotoAnalysis}
+                          className="w-full py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-cyan-500 text-white text-xs font-semibold hover:opacity-90 transition"
+                        >
+                          Apply to My Plan Form
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Form */}

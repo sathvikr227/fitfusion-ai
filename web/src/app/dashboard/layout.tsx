@@ -17,6 +17,13 @@ import {
   Sun,
   Moon,
   Star,
+  Timer,
+  Calculator,
+  CheckSquare,
+  Trophy,
+  Heart,
+  Pill,
+  AlertTriangle,
 } from "lucide-react"
 import VoiceAssistant from "../../components/VoiceAssistant"
 
@@ -40,6 +47,13 @@ export default function DashboardLayout({
     { name: "Analytics", href: "/dashboard/analytics", icon: LineChart },
     { name: "Pose Tracker", href: "/dashboard/pose", icon: ScanLine },
     { name: "Dream Body", href: "/dashboard/dream-body", icon: Star },
+    { name: "Timer", href: "/dashboard/timer", icon: Timer },
+    { name: "Tools", href: "/dashboard/tools", icon: Calculator },
+    { name: "Habits", href: "/dashboard/habits", icon: CheckSquare },
+    { name: "Achievements", href: "/dashboard/achievements", icon: Trophy },
+    { name: "Vitals", href: "/dashboard/vitals", icon: Heart },
+    { name: "Supplements", href: "/dashboard/supplements", icon: Pill },
+    { name: "Injuries", href: "/dashboard/injuries", icon: AlertTriangle },
     { name: "Help", href: "/dashboard/help", icon: CircleHelp },
     { name: "Profile", href: "/dashboard/profile", icon: UserCog },
   ]

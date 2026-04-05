@@ -82,8 +82,35 @@ function formatDateTime(value: string | null | undefined) {
   return d.toLocaleString()
 }
 
+const WEEK_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+
+/** Returns 0 for Monday … 6 for Sunday (consistent with WEEK_DAYS array). */
+function dayIndexForToday(): number {
+  const jsDay = new Date().getDay() // 0 = Sunday
+  return jsDay === 0 ? 6 : jsDay - 1
+}
+
+/** Returns "YYYY-MM-DD" for the weekday at the given index within the current week. */
+function getDateForDayIndex(index: number): string {
+  const today = new Date()
+  const diff = index - dayIndexForToday()
+  const target = new Date(today)
+  target.setDate(today.getDate() + diff)
+  return target.toISOString().split("T")[0]
+}
+
+/**
+ * Old plans used "Day 1"–"Day 7" labels. Remap them to real weekday names so
+ * the matching logic against today's day works correctly.
+ */
+function normalizeDayLabels(days: AssignedDay[]): AssignedDay[] {
+  const hasOldFormat = days.some((d) => /^day\s*\d+$/i.test(d.day.trim()))
+  if (!hasOldFormat) return days
+  return days.map((d, i) => ({ ...d, day: WEEK_DAYS[i] ?? d.day }))
+}
+
 function getCurrentDayName() {
-  return new Date().toLocaleDateString("en-US", { weekday: "long" })
+  return WEEK_DAYS[dayIndexForToday()]
 }
 
 function getMET(exerciseName: string) {
@@ -392,6 +419,8 @@ export default function WorkoutTab() {
   const [currentStreak, setCurrentStreak] = useState(0)
 
   const currentDay = useMemo(() => getCurrentDayName(), [])
+  const todayDayIndex = useMemo(() => dayIndexForToday(), [])
+  const [selectedDayIndex, setSelectedDayIndex] = useState<number>(dayIndexForToday)
   const bodyWeightKg = latestWeight
 
   const currentSessionCalories = useMemo(
@@ -399,15 +428,25 @@ export default function WorkoutTab() {
     [exercises, bodyWeightKg]
   )
 
-  const todayWorkout = useMemo(() => {
+  const selectedDayDate = useMemo(() => getDateForDayIndex(selectedDayIndex), [selectedDayIndex])
+
+  const selectedDayWorkout = useMemo(() => {
     if (!assignedDays.length) return null
-
-    const exact = assignedDays.find(
-      (d) => d.day.toLowerCase() === currentDay.toLowerCase()
+    // Match by weekday name first; fall back to position index
+    const byName = assignedDays.find(
+      (d) => d.day.toLowerCase() === WEEK_DAYS[selectedDayIndex].toLowerCase()
     )
+    return byName ?? assignedDays[selectedDayIndex] ?? assignedDays[0]
+  }, [assignedDays, selectedDayIndex])
 
-    return exact ?? assignedDays[0]
-  }, [assignedDays, currentDay])
+  // Keep todayWorkout as an alias for backward compat elsewhere
+  const todayWorkout = selectedDayWorkout
+
+  /** True if a workout has already been logged for the currently selected day */
+  const selectedDayCompleted = useMemo(
+    () => logs.some((row) => row.date === selectedDayDate),
+    [logs, selectedDayDate]
+  )
 
   useEffect(() => {
     loadData()
@@ -501,6 +540,8 @@ export default function WorkoutTab() {
     let parsedDays: AssignedDay[] = []
     try {
       parsedDays = parseWorkoutPlanFromPlanText(latestPlanRow.plan)
+      // Remap "Day 1" → "Monday" etc. for old plans so the day-matching works correctly
+      parsedDays = normalizeDayLabels(parsedDays)
     } catch (err) {
       console.error("Error parsing plan:", err)
       parsedDays = []
@@ -607,18 +648,16 @@ export default function WorkoutTab() {
     setExercises((prev) => prev.filter((_, i) => i !== index))
   }
 
-  async function checkTodayWorkoutExists(currentUserId: string) {
-    const today = todayDateString()
-
+  async function checkWorkoutExistsForDate(currentUserId: string, date: string) {
     const { data, error } = await supabase
       .from("workout_logs")
       .select("id")
       .eq("user_id", currentUserId)
-      .eq("date", today)
+      .eq("date", date)
       .limit(1)
 
     if (error) {
-      console.error("Error checking today's workout:", error.message)
+      console.error("Error checking workout for date:", error.message)
       return false
     }
 
@@ -630,17 +669,18 @@ export default function WorkoutTab() {
     planId: string | null
     exercises: ExerciseInput[]
     calories: number
+    date: string
   }) {
     if (!userId) return null
 
-    const alreadyExists = await checkTodayWorkoutExists(userId)
+    const alreadyExists = await checkWorkoutExistsForDate(userId, params.date)
     if (alreadyExists) {
-      throw new Error("Workout already logged for today.")
+      throw new Error("Workout already logged for this day.")
     }
 
     const insertData: any = {
       user_id: userId,
-      date: todayDateString(),
+      date: params.date,
       is_assigned: params.isAssigned,
       total_calories: params.calories,
     }
@@ -704,7 +744,7 @@ export default function WorkoutTab() {
       return
     }
 
-    const exists = await checkTodayWorkoutExists(userId)
+    const exists = await checkWorkoutExistsForDate(userId, todayDateString())
     if (exists) {
       setStatusMessage("You already logged a workout today.")
       return
@@ -721,6 +761,7 @@ export default function WorkoutTab() {
         planId: null,
         exercises,
         calories: totalCalories,
+        date: todayDateString(),
       })
 
       setExercises([])
@@ -740,9 +781,10 @@ export default function WorkoutTab() {
   async function completeAssignedWorkout(day: AssignedDay) {
     if (!userId) return
 
-    const exists = await checkTodayWorkoutExists(userId)
+    const targetDate = selectedDayDate
+    const exists = await checkWorkoutExistsForDate(userId, targetDate)
     if (exists) {
-      setStatusMessage("Today's workout already completed ✅")
+      setStatusMessage(`${day.day}'s workout already completed ✅`)
       return
     }
 
@@ -765,6 +807,7 @@ export default function WorkoutTab() {
         planId: currentPlanId,
         exercises: day.exercises,
         calories: caloriesBurned,
+        date: targetDate,
       })
 
       await loadWorkoutLogs(userId)
@@ -961,13 +1004,43 @@ export default function WorkoutTab() {
       {mode === "assigned" && (
         <div className="space-y-4">
           <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
-            <h2 className="font-semibold text-lg mb-2">Assigned Workout</h2>
-            <p className="text-sm text-slate-600 dark:text-slate-400">
-              This shows the AI-generated workout plan for the current day:{" "}
+            <h2 className="font-semibold text-lg mb-3">Assigned Workout</h2>
+
+            {/* Day-of-week navigation row */}
+            <div className="flex gap-1 flex-wrap">
+              {WEEK_DAYS.map((dayName, idx) => {
+                const isToday = idx === todayDayIndex
+                const isSelected = idx === selectedDayIndex
+                const dayDate = getDateForDayIndex(idx)
+                const isCompleted = logs.some((row) => row.date === dayDate)
+
+                return (
+                  <button
+                    key={dayName}
+                    onClick={() => setSelectedDayIndex(idx)}
+                    className={`relative flex-1 min-w-[40px] py-2 rounded-xl text-xs font-medium transition border
+                      ${isSelected
+                        ? "bg-purple-600 text-white border-purple-600"
+                        : isToday
+                          ? "bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-700"
+                          : "bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600"
+                      }`}
+                  >
+                    {dayName.slice(0, 3)}
+                    {isToday && !isSelected && (
+                      <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-purple-500" />
+                    )}
+                    {isCompleted && (
+                      <span className="block text-[10px] mt-0.5 text-green-500">✓</span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+              Tap a day to view and log that day’s workout. Today is{" "}
               <strong>{currentDay}</strong>.
-            </p>
-            <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">
-              Calories are calculated automatically from your latest logged weight.
             </p>
           </div>
 
@@ -977,32 +1050,32 @@ export default function WorkoutTab() {
             </div>
           ) : (
             <>
-              {todayWorkout && (
+              {selectedDayWorkout && (
                 <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-4">
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <h3 className="font-semibold text-xl">
-                        {todayWorkout.day} — {todayWorkout.type}
+                        {selectedDayWorkout.day} — {selectedDayWorkout.type}
                       </h3>
                       <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                        Today's assigned workout
+                        {selectedDayIndex === todayDayIndex ? "Today’s workout" : selectedDayDate}
                       </p>
                     </div>
 
                     <div className="text-right">
                       <div className="text-sm text-slate-700 dark:text-slate-300">
                         Estimated:{" "}
-                        <strong>{todayWorkout.estimatedCalories || "—"} kcal</strong>
+                        <strong>{selectedDayWorkout.estimatedCalories || "—"} kcal</strong>
                       </div>
                     </div>
                   </div>
 
-                  {todayWorkout.exercises.length > 0 ? (
+                  {selectedDayWorkout.exercises.length > 0 ? (
                     <div className="space-y-2">
-                      {todayWorkout.exercises.map((ex, idx) => (
+                      {selectedDayWorkout.exercises.map((ex, idx) => (
                         <div
                           key={`${ex.name}-${idx}`}
-                          className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-3"
+                          className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 dark:border-slate-700 p-3"
                         >
                           <div>
                             <div className="font-medium">{ex.name}</div>
@@ -1019,60 +1092,23 @@ export default function WorkoutTab() {
                     </div>
                   ) : (
                     <div className="text-sm text-slate-500 dark:text-slate-400">
-                      No exercise breakdown available for today’s plan.
+                      Rest day — no exercises scheduled.
                     </div>
                   )}
 
                   <button
-                    onClick={() => completeAssignedWorkout(todayWorkout)}
-                    disabled={saving || todayCompleted}
+                    onClick={() => completeAssignedWorkout(selectedDayWorkout)}
+                    disabled={saving || selectedDayCompleted}
                     className="w-full py-3 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition disabled:opacity-60"
                   >
-                    {todayCompleted
-                      ? "Already Completed Today"
+                    {selectedDayCompleted
+                      ? `${selectedDayWorkout.day} Already Completed ✓`
                       : saving
                         ? "Saving..."
-                        : "Mark Today as Completed"}
+                        : `Log ${selectedDayWorkout.day}’s Workout`}
                   </button>
                 </div>
               )}
-
-              <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
-                <h3 className="font-semibold text-lg mb-3">Weekly Workout Plan</h3>
-
-                <div className="grid gap-3">
-                  {assignedDays.map((day) => {
-                    const isToday =
-                      day.day.toLowerCase() === currentDay.toLowerCase()
-
-                    return (
-                      <div
-                        key={`${day.day}-${day.type}`}
-                        className={`rounded-xl border p-4 ${
-                          isToday
-                            ? "border-purple-500 bg-purple-50"
-                            : "border-slate-100 dark:border-slate-600 bg-white dark:bg-slate-700"
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-4">
-                          <div>
-                            <div className="font-medium">
-                              {day.day} — {day.type}
-                            </div>
-                            <div className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                              {day.exercises.length} exercise(s)
-                            </div>
-                          </div>
-
-                          <div className="text-sm text-slate-700 dark:text-slate-300">
-                            {day.estimatedCalories ? `${day.estimatedCalories} kcal` : ""}
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
             </>
           )}
         </div>
