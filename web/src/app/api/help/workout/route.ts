@@ -34,7 +34,7 @@ async function fetchWorkoutFromGroq(query: string): Promise<WorkoutSingleRespons
     );
 
     if (isBodyPart) {
-      const prompt = `You are a certified personal trainer. List 8 great exercises for "${query}".
+      const prompt = `You are a certified personal trainer. List 24 diverse exercises for "${query}". Include beginner, intermediate, and advanced options. Cover different equipment types: barbell, dumbbell, cable, machine, and bodyweight. Make sure all 24 are distinct exercises.
 
 Respond ONLY with valid JSON:
 {
@@ -43,7 +43,7 @@ Respond ONLY with valid JSON:
     {
       "title": "Exercise Name",
       "bodyPart": "${query}",
-      "target": ["primary muscle"],
+      "target": ["primary muscle", "secondary muscle"],
       "equipment": ["equipment needed"],
       "videoUrl": "https://www.youtube.com/results?search_query=Exercise+Name+proper+form"
     }
@@ -54,8 +54,8 @@ Respond ONLY with valid JSON:
       const completion = await groq.chat.completions.create({
         model: "llama-3.3-70b-versatile",
         messages: [{ role: "user", content: prompt }],
-        temperature: 0.3,
-        max_tokens: 1000,
+        temperature: 0.4,
+        max_tokens: 3000,
       });
 
       const raw = completion.choices[0]?.message?.content || "";
