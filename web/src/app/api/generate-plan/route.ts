@@ -582,7 +582,7 @@ function enforceWeeklyStructure(plan: any, restDays: number, intensity: "low" | 
   }
 }
 
-function buildPrompt(profile: JsonValue, restDays: number, metrics: JsonValue) {
+function buildPrompt(profile: JsonValue, restDays: number, metrics: JsonValue, difficultyBoost = false) {
   const training = getTrainingIntensity(profile)
   const workoutDays = 7 - restDays
 
@@ -693,7 +693,16 @@ ${
 - Keep the plan realistic and balanced
 - Make the response valid JSON only
 
-User profile:
+${difficultyBoost ? `ADAPTIVE DIFFICULTY UPGRADE:
+The user has completed 75%+ of their assigned workouts over the last 2 weeks. Increase workout intensity noticeably:
+- Add 1 extra set to each strength exercise
+- Increase reps by 2-3 per set
+- Add 1 new challenging compound exercise per workout day
+- Reduce rest time between sets (suggest 60-90s instead of 2min)
+- Increase estimated_calories_burned by 15-20%
+Keep the plan safe and injury-free. Just make it more challenging overall.
+
+` : ""}User profile:
 Goal: ${goal}
 Age: ${age}
 Gender: ${gender}
@@ -767,7 +776,8 @@ export async function POST(req: Request) {
     const restDays = getRestDays(profile, body)
     const metrics = calculateFitnessMetrics(profile)
     const training = getTrainingIntensity(profile)
-    const prompt = buildPrompt(profile, restDays, metrics)
+    const difficultyBoost = body?.difficultyBoost === true
+    const prompt = buildPrompt(profile, restDays, metrics, difficultyBoost)
 
     const response = await groq.chat.completions.create({
       model: "llama-3.3-70b-versatile",

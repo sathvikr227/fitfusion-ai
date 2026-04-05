@@ -109,11 +109,10 @@ export default function WeightTab() {
     setSaving(true)
     setStatusMessage("")
 
-    const { error } = await supabase.from("weight_logs").insert({
-      user_id: userId,
-      weight: weightValue,
-      date: todayDateString(),
-    })
+    const { error } = await supabase.from("weight_logs").upsert(
+      { user_id: userId, weight: weightValue, date: todayDateString() },
+      { onConflict: "user_id,date" }
+    )
 
     setSaving(false)
 

@@ -104,6 +104,8 @@ export default function PlanPage() {
   const [status, setStatus] = useState<string | null>(null)
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
+  const [completionRate, setCompletionRate] = useState<number | null>(null)
+  const [upgradingDifficulty, setUpgradingDifficulty] = useState(false)
 
   // Grocery list
   type GroceryItem = { name: string; qty: string }
@@ -176,13 +178,22 @@ export default function PlanPage() {
 
       setUserId(user.id)
 
-      const { data: s } = await supabase
+      let { data: s } = await supabase
         .from("chat_sessions")
         .select("id")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle()
+
+      if (!s?.id) {
+        const { data: newSession } = await supabase
+          .from("chat_sessions")
+          .insert({ user_id: user.id })
+          .select("id")
+          .maybeSingle()
+        s = newSession
+      }
 
       if (s?.id) setSessionId(s.id)
 
@@ -204,6 +215,24 @@ export default function PlanPage() {
         .limit(8)
 
       if (allPlans) setHistory(allPlans as PlanHistoryItem[])
+
+      // Adaptive difficulty: check assigned workout completion rate over last 14 days
+      const since14 = new Date()
+      since14.setDate(since14.getDate() - 14)
+      const { data: recentLogs } = await supabase
+        .from("workout_logs")
+        .select("date, is_assigned")
+        .eq("user_id", user.id)
+        .eq("is_assigned", true)
+        .gte("date", since14.toISOString().split("T")[0])
+
+      if (recentLogs && recentLogs.length > 0) {
+        const uniqueDays = new Set(recentLogs.map((r: any) => r.date)).size
+        // Rate relative to 14 days (conservative denominator)
+        setCompletionRate(Math.round((uniqueDays / 14) * 100))
+      } else {
+        setCompletionRate(0)
+      }
 
       setLoading(false)
     }
@@ -306,6 +335,30 @@ export default function PlanPage() {
       setGroceryError(err instanceof Error ? err.message : "Failed to generate grocery list")
     } finally {
       setLoadingGroceries(false)
+    }
+  }
+
+  const handleUpgradeDifficulty = async () => {
+    setUpgradingDifficulty(true)
+    setStatus(null)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { router.replace("/"); return }
+
+      const res = await fetch("/api/generate-plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id, difficultyBoost: true }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.error || "Failed to upgrade plan")
+      setStatus("🔥 Plan upgraded to higher difficulty!")
+      setCompletionRate(0)
+      router.refresh()
+    } catch (err: any) {
+      setStatus(err.message || "Failed to upgrade plan")
+    } finally {
+      setUpgradingDifficulty(false)
     }
   }
 
@@ -585,6 +638,27 @@ export default function PlanPage() {
 
               {status ? <p className="mt-3 text-sm text-slate-600 dark:text-slate-400">{status}</p> : null}
             </div>
+            {/* Adaptive Difficulty Upgrade Banner */}
+            {completionRate !== null && completionRate >= 75 && (
+              <div className="rounded-3xl border border-emerald-200 dark:border-emerald-700 bg-gradient-to-r from-emerald-50 to-cyan-50 dark:from-emerald-900/20 dark:to-cyan-900/20 p-5 shadow-sm flex flex-col sm:flex-row sm:items-center gap-4">
+                <div className="flex-1">
+                  <p className="font-semibold text-emerald-800 dark:text-emerald-300 text-base">
+                    🔥 You&apos;re crushing it! Ready to level up?
+                  </p>
+                  <p className="text-sm text-emerald-700 dark:text-emerald-400 mt-0.5">
+                    You completed {completionRate}% of your assigned workouts in the last 2 weeks. Your current plan may be too easy.
+                  </p>
+                </div>
+                <button
+                  onClick={handleUpgradeDifficulty}
+                  disabled={upgradingDifficulty}
+                  className="shrink-0 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 px-5 py-2.5 text-sm font-semibold text-white transition"
+                >
+                  {upgradingDifficulty ? "Upgrading..." : "Upgrade Difficulty"}
+                </button>
+              </div>
+            )}
+
             {/* Grocery List */}
             <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">

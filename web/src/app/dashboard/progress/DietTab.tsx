@@ -12,6 +12,7 @@ import {
   Loader2,
   Plus,
   RotateCcw,
+  Scan,
   Sparkles,
   Upload,
   UtensilsCrossed,
@@ -243,6 +244,13 @@ export default function DietTab() {
   const [quantity, setQuantity] = useState("")
   const [notes, setNotes] = useState("")
   const [showAdvanced, setShowAdvanced] = useState(false)
+  const [showBarcodeModal, setShowBarcodeModal] = useState(false)
+  const [barcodeInput, setBarcodeInput] = useState("")
+  const [barcodeLoading, setBarcodeLoading] = useState(false)
+  const [barcodeError, setBarcodeError] = useState("")
+  const videoRef = useRef<HTMLVideoElement | null>(null)
+  const barcodeStreamRef = useRef<MediaStream | null>(null)
+  const barcodeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const [selectedFileName, setSelectedFileName] = useState("")
 
   const [mealItems, setMealItems] = useState<FoodItem[]>([])
@@ -420,6 +428,97 @@ export default function DietTab() {
     setMessage(`${item.food} added to ${mealLabel[item.mealType]}.`)
     setError("")
     resetComposer()
+  }
+
+  async function lookupBarcode(code: string) {
+    if (!code.trim()) {
+      setBarcodeError("Enter a barcode number.")
+      return
+    }
+    setBarcodeLoading(true)
+    setBarcodeError("")
+    try {
+      const res = await fetch("/api/food-db/barcode", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ barcode: code.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setBarcodeError(data.error ?? "Product not found.")
+        return
+      }
+      closeBarcodeModal()
+      addItem({
+        food: data.food,
+        quantity: data.quantity,
+        mealType,
+        source: "db",
+        calories: asNumber(data.calories),
+        protein: asNumber(data.protein),
+        carbs: asNumber(data.carbs),
+        fat: asNumber(data.fat),
+        notes: "From barcode scan",
+      })
+    } catch {
+      setBarcodeError("Network error. Try again.")
+    } finally {
+      setBarcodeLoading(false)
+    }
+  }
+
+  function closeBarcodeModal() {
+    setShowBarcodeModal(false)
+    setBarcodeInput("")
+    setBarcodeError("")
+    setBarcodeLoading(false)
+    if (barcodeIntervalRef.current) {
+      clearInterval(barcodeIntervalRef.current)
+      barcodeIntervalRef.current = null
+    }
+    if (barcodeStreamRef.current) {
+      barcodeStreamRef.current.getTracks().forEach((t) => t.stop())
+      barcodeStreamRef.current = null
+    }
+  }
+
+  async function startCameraScanner() {
+    setBarcodeError("")
+    try {
+      if (!("BarcodeDetector" in window)) {
+        setBarcodeError("Camera scanning not supported in this browser. Enter the barcode number manually below.")
+        return
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+      barcodeStreamRef.current = stream
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream
+        videoRef.current.play()
+      }
+      // @ts-ignore
+      const detector = new (window as any).BarcodeDetector({ formats: ["ean_13", "ean_8", "upc_a", "upc_e", "code_128", "code_39"] })
+      barcodeIntervalRef.current = setInterval(async () => {
+        if (!videoRef.current) return
+        try {
+          const results = await detector.detect(videoRef.current)
+          if (results.length > 0) {
+            const code = results[0].rawValue
+            clearInterval(barcodeIntervalRef.current!)
+            barcodeIntervalRef.current = null
+            if (barcodeStreamRef.current) {
+              barcodeStreamRef.current.getTracks().forEach((t) => t.stop())
+              barcodeStreamRef.current = null
+            }
+            setBarcodeInput(code)
+            lookupBarcode(code)
+          }
+        } catch {
+          // frame not ready yet
+        }
+      }, 400)
+    } catch {
+      setBarcodeError("Camera access denied. Enter the barcode number manually below.")
+    }
   }
 
   async function analyzeFoodText() {
@@ -963,6 +1062,14 @@ export default function DietTab() {
               </button>
 
               <button
+                onClick={() => { setShowBarcodeModal(true); setBarcodeError("") }}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-200 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/30 px-5 py-3 text-sm font-semibold text-emerald-700 dark:text-emerald-400 transition hover:bg-emerald-100 dark:hover:bg-emerald-900/50"
+              >
+                <Scan className="h-4 w-4" />
+                Scan barcode
+              </button>
+
+              <button
                 onClick={() => setShowAdvanced((v) => !v)}
                 className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-5 py-3 text-sm font-semibold text-slate-700 dark:text-slate-300 transition hover:bg-slate-50 dark:hover:bg-slate-700"
               >
@@ -1258,6 +1365,95 @@ export default function DietTab() {
           </div>
         </div>
       </div>
+
+      {/* Barcode Modal */}
+      {showBarcodeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-slate-800 shadow-2xl overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-700">
+              <div className="flex items-center gap-2">
+                <Scan className="h-5 w-5 text-emerald-500" />
+                <h3 className="font-semibold text-slate-900 dark:text-white">Barcode Scanner</h3>
+              </div>
+              <button
+                onClick={closeBarcodeModal}
+                className="rounded-full p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+              >
+                <X className="h-4 w-4 text-slate-500" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              {/* Camera view */}
+              <div className="relative overflow-hidden rounded-2xl bg-slate-900 aspect-video flex items-center justify-center">
+                <video
+                  ref={videoRef}
+                  className="w-full h-full object-cover"
+                  muted
+                  playsInline
+                />
+                {!barcodeStreamRef.current && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-white">
+                    <Camera className="h-10 w-10 opacity-40" />
+                    <button
+                      onClick={startCameraScanner}
+                      className="rounded-xl bg-emerald-500 hover:bg-emerald-600 px-5 py-2 text-sm font-semibold transition"
+                    >
+                      Start Camera
+                    </button>
+                  </div>
+                )}
+                {/* Scanning overlay */}
+                {barcodeStreamRef.current && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="w-48 h-24 border-2 border-emerald-400 rounded-lg opacity-70">
+                      <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-emerald-400 rounded-tl" />
+                      <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-emerald-400 rounded-tr" />
+                      <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-emerald-400 rounded-bl" />
+                      <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-emerald-400 rounded-br" />
+                    </div>
+                    <p className="absolute bottom-3 text-xs text-white/70">Align barcode within frame</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Manual input */}
+              <div>
+                <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                  Or enter barcode manually
+                </label>
+                <div className="mt-1.5 flex gap-2">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={barcodeInput}
+                    onChange={(e) => setBarcodeInput(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && lookupBarcode(barcodeInput)}
+                    placeholder="e.g. 8901063052492"
+                    className="flex-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-3 py-2.5 text-sm outline-none focus:border-emerald-400 dark:text-white"
+                  />
+                  <button
+                    onClick={() => lookupBarcode(barcodeInput)}
+                    disabled={barcodeLoading || !barcodeInput.trim()}
+                    className="rounded-xl bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 px-4 py-2.5 text-sm font-semibold text-white transition"
+                  >
+                    {barcodeLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Look up"}
+                  </button>
+                </div>
+              </div>
+
+              {barcodeError && (
+                <p className="text-sm text-rose-500">{barcodeError}</p>
+              )}
+
+              <p className="text-xs text-slate-400 text-center">
+                Powered by Open Food Facts — works with packaged food barcodes worldwide
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

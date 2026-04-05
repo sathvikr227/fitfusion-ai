@@ -13,8 +13,10 @@ export default function SignupPage() {
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
 
   const handleSignup = async () => {
+    if (loading) return
     setError(null)
 
     if (password !== confirm) {
@@ -27,22 +29,23 @@ export default function SignupPage() {
       return
     }
 
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: name,
-        },
-      },
-    })
+    setLoading(true)
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { full_name: name } },
+      })
 
-    if (error) {
-      setError(error.message)
-      return
+      if (error) {
+        setError(error.message)
+        return
+      }
+
+      router.push('/onboarding')
+    } finally {
+      setLoading(false)
     }
-
-    router.push('/onboarding')
   }
 
   return (
@@ -89,6 +92,7 @@ export default function SignupPage() {
             placeholder="Confirm Password"
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSignup()}
             className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
           />
 
@@ -96,9 +100,10 @@ export default function SignupPage() {
 
           <button
             onClick={handleSignup}
-            className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-cyan-500 text-white font-semibold hover:opacity-90 transition"
+            disabled={loading}
+            className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-cyan-500 text-white font-semibold hover:opacity-90 transition disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            Create Account
+            {loading ? 'Creating account...' : 'Create Account'}
           </button>
 
         </div>

@@ -211,36 +211,8 @@ export default function GeneratePage() {
         return
       }
 
-      const planToSave =
-        typeof planContent === "string"
-          ? safeJsonParse(planContent) ?? planContent
-          : planContent
-
-      const currentMetrics = (planToSave as StructuredPlan)?.fitness_metrics ?? savedMetrics ?? null
-
-      const { error: planSaveError } = await supabase.from("workout_plans").insert({
-        user_id: user.id,
-        plan: planToSave,
-      })
-
-      if (planSaveError) throw planSaveError
-
-      if (currentMetrics) {
-        const { error: metricsSaveError } = await supabase.from("body_metrics").insert({
-          user_id: user.id,
-          bmi: currentMetrics.bmi ?? null,
-          estimated_body_fat_percent: currentMetrics.estimated_body_fat_percent ?? null,
-          target_bmi: currentMetrics.target_bmi ?? null,
-          target_body_fat_percent: currentMetrics.target_body_fat_percent ?? null,
-          status: currentMetrics.status ?? null,
-          created_at: new Date().toISOString(),
-        })
-
-        if (metricsSaveError) {
-          console.warn("Metrics save warning:", metricsSaveError.message)
-        }
-      }
-
+      // Plan + body_metrics are already saved by /api/generate-plan when the plan is generated.
+      // No second insert needed — just redirect.
       setSuccess("Plan saved successfully.")
       router.push("/dashboard/home")
     } catch (err: any) {

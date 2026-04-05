@@ -133,6 +133,14 @@ export default function ProfilePage() {
       if (error) {
         setStatus(error.message)
       } else {
+        // Sync weight to weight_logs so charts stay accurate
+        const weightNum = weight ? Number(weight) : null
+        if (weightNum && Number.isFinite(weightNum) && weightNum > 0) {
+          await supabase.from("weight_logs").upsert(
+            { user_id: user.id, weight: weightNum, date: new Date().toISOString().split("T")[0] },
+            { onConflict: "user_id,date" }
+          )
+        }
         setStatus("Profile updated successfully ✅")
       }
     } catch (err) {

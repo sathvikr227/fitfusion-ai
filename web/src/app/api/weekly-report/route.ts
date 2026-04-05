@@ -57,7 +57,7 @@ export async function POST(req: Request) {
     // Fetch last 7 days of meal logs
     const { data: mealLogs } = await supabase
       .from("meal_logs")
-      .select("calories, logged_at")
+      .select("total_calories, logged_at")
       .eq("user_id", userId)
       .gte("logged_at", since)
       .order("logged_at", { ascending: true })
@@ -77,7 +77,7 @@ export async function POST(req: Request) {
       0
     ) ?? 0
 
-    const totalCaloriesIn = mealLogs?.reduce((s, m) => s + (m.calories || 0), 0) ?? 0
+    const totalCaloriesIn = mealLogs?.reduce((s, m) => s + ((m as any).total_calories || 0), 0) ?? 0
     const mealDays = mealLogs?.length
       ? new Set(mealLogs.map((m) => m.logged_at?.split("T")[0])).size
       : 0

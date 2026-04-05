@@ -148,6 +148,7 @@ export default function AnalyticsPage() {
 
   const [weightLogs, setWeightLogs] = useState<WeightLog[]>([])
   const [workoutLogs, setWorkoutLogs] = useState<WorkoutLog[]>([])
+  const [sleepByDate, setSleepByDate] = useState<Map<string, number>>(new Map())
   const [loading, setLoading] = useState(true)
   const [userId, setUserId] = useState<string | null>(null)
 
@@ -170,7 +171,7 @@ export default function AnalyticsPage() {
 
       setUserId(user.id)
 
-      const [weightRes, workoutRes] = await Promise.all([
+      const [weightRes, workoutRes, sleepRes] = await Promise.all([
         supabase
           .from("weight_logs")
           .select("weight, date, created_at")
@@ -181,10 +182,19 @@ export default function AnalyticsPage() {
           .select("total_calories, date, created_at")
           .eq("user_id", user.id)
           .order("date", { ascending: true, nullsFirst: false }),
+        supabase
+          .from("sleep_logs")
+          .select("date, sleep_hours")
+          .eq("user_id", user.id),
       ])
 
       if (weightRes.data) setWeightLogs(weightRes.data)
       if (workoutRes.data) setWorkoutLogs(workoutRes.data)
+      if (sleepRes.data) {
+        const m = new Map<string, number>()
+        sleepRes.data.forEach((r: any) => { if (r.date && r.sleep_hours != null) m.set(r.date, Number(r.sleep_hours)) })
+        setSleepByDate(m)
+      }
 
       setLoading(false)
     }
@@ -298,12 +308,15 @@ export default function AnalyticsPage() {
     }
 
     // ── K-Means clustering on workout sessions ────────────────────────────────
-    // Features: [day_of_week (0–6), normalized calories (0–1)]
+    // Features: [day_of_week (0–1), calories (0–1), sleep_hours (0–1)]
     const maxCals = Math.max(...workoutLogs.map((l) => l.total_calories || 0), 1)
+    const maxSleep = 10 // normalize against 10h max
     const points = workoutLogs.map((log) => {
+      const dateStr = (log.date ?? log.created_at ?? "").split("T")[0]
       const dayIdx = new Date(log.date ?? log.created_at).getDay()
       const calNorm = (log.total_calories || 0) / maxCals
-      return [dayIdx / 6, calNorm] // normalize day 0–1 too
+      const sleepNorm = (sleepByDate.get(dateStr) ?? 7) / maxSleep // default 7h if no log
+      return [dayIdx / 6, calNorm, sleepNorm]
     })
 
     const K = Math.min(3, workoutLogs.length)
@@ -311,6 +324,8 @@ export default function AnalyticsPage() {
 
     const clusterLabels = centroids.map((c) => {
       const calPct = c[1] * 100
+      const sleepH = c[2] * maxSleep
+      if (calPct >= 65 && sleepH >= 7) return "High Intensity + Well Rested"
       if (calPct >= 65) return "High Intensity"
       if (calPct >= 30) return "Moderate"
       return "Light / Recovery"
@@ -325,10 +340,11 @@ export default function AnalyticsPage() {
       count: clusterSizes[i],
       avgCalories: Math.round(centroids[i][1] * maxCals),
       dominantDay: DAYS[Math.round(centroids[i][0] * 6)],
+      avgSleep: Math.round(centroids[i][2] * maxSleep * 10) / 10,
     }))
 
     return { radarData, bestDay, worstDay, consistencyRate, longRestCount, kMeansClusters }
-  }, [workoutLogs])
+  }, [workoutLogs, sleepByDate])
 
   // ── Injury / wellness risk prediction ─────────────────────────────────────
 
@@ -709,7 +725,7 @@ export default function AnalyticsPage() {
                       <div key={i} className={`rounded-2xl border p-4 ${colors[i % 3]}`}>
                         <p className={`text-sm font-semibold ${textColors[i % 3]}`}>{cluster.label}</p>
                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{cluster.count} sessions · ~{cluster.avgCalories} kcal avg</p>
-                        <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Peak: {cluster.dominantDay}</p>
+                        <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Peak: {cluster.dominantDay} · Sleep: {cluster.avgSleep}h avg</p>
                       </div>
                     )
                   })}

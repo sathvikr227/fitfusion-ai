@@ -7,6 +7,7 @@ import WorkoutTab from "./WorkoutTab"
 import DietTab from "./DietTab"
 import PhotosTab from "./PhotosTab"
 import SleepTab from "./SleepTab"
+import StrengthTab from "./StrengthTab"
 
 function calcStreak(dates: string[]): number {
   const unique = Array.from(
@@ -27,7 +28,7 @@ function calcStreak(dates: string[]): number {
 }
 
 export default function ProgressPage() {
-  const [tab, setTab] = useState<"weight" | "workout" | "diet" | "photos" | "sleep">("weight")
+  const [tab, setTab] = useState<"weight" | "workout" | "diet" | "photos" | "sleep" | "strength">("weight")
   const [streak, setStreak] = useState<number | null>(null)
   const [todayActive, setTodayActive] = useState(false)
 
@@ -122,6 +123,12 @@ export default function ProgressPage() {
               onClick={() => setTab("sleep")}
             />
 
+            <TabButton
+              label="Strength"
+              active={tab === "strength"}
+              onClick={() => setTab("strength")}
+            />
+
           </div>
         </div>
 
@@ -136,6 +143,7 @@ export default function ProgressPage() {
             {tab === "diet" && <DietTab />}
             {tab === "photos" && <PhotosTab />}
             {tab === "sleep" && <SleepTab />}
+            {tab === "strength" && <StrengthTab />}
 
           </div>
         </div>
