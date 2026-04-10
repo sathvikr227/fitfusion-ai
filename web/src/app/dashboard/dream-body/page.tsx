@@ -20,6 +20,8 @@ import {
   X,
   Camera,
   Zap,
+  Save,
+  ArrowRight,
 } from "lucide-react"
 
 type Feasibility = {
@@ -90,6 +92,8 @@ export default function DreamBodyPage() {
   const [loading, setLoading] = useState(false)
   const [roadmap, setRoadmap] = useState<Roadmap | null>(null)
   const [error, setError] = useState("")
+  const [saving, setSaving] = useState(false)
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saved" | "error">("idle")
 
   // Photo inspiration state
   const [photoFile, setPhotoFile] = useState<File | null>(null)
@@ -200,6 +204,51 @@ export default function DreamBodyPage() {
       setError(err.message || "Something went wrong")
     } finally {
       setLoading(false)
+    }
+  }
+
+  const saveRoadmapAsPlan = async () => {
+    if (!roadmap) return
+    setSaving(true)
+    setSaveStatus("idle")
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { router.replace("/login"); return }
+
+      // 1. Save calorie + macro targets to profile
+      await supabase
+        .from("profiles")
+        .update({
+          calorie_target: roadmap.dailyCalories,
+          protein_target: roadmap.macros.protein,
+          carbs_target: roadmap.macros.carbs,
+          fat_target: roadmap.macros.fat,
+        })
+        .eq("id", session.user.id)
+
+      // 2. Generate and save a full workout plan via the existing API
+      const res = await fetch("/api/generate-plan", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ userId: session.user.id }),
+      })
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error || "Failed to generate workout plan")
+      }
+
+      setSaveStatus("saved")
+      // Navigate to the plan page after a short delay
+      setTimeout(() => router.push("/dashboard/plan"), 1200)
+    } catch (err: any) {
+      console.error("Save roadmap error:", err)
+      setSaveStatus("error")
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -692,6 +741,66 @@ export default function DreamBodyPage() {
                   </li>
                 ))}
               </ul>
+            </div>
+
+            {/* Save & Apply CTA */}
+            <div className="rounded-3xl border-2 border-purple-200 dark:border-purple-700 bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 p-6 space-y-4">
+              <div>
+                <p className="font-bold text-slate-900 dark:text-white text-lg">Ready to make it official?</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                  Save your calorie & macro targets, then generate a full workout plan tailored to this roadmap.
+                </p>
+              </div>
+
+              {saveStatus === "saved" && (
+                <div className="flex items-center gap-2 rounded-2xl bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-700 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">
+                  <CheckCircle2 className="h-4 w-4 shrink-0" />
+                  Plan saved! Redirecting to your dashboard…
+                </div>
+              )}
+              {saveStatus === "error" && (
+                <div className="flex items-center gap-2 rounded-2xl bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 px-4 py-3 text-sm text-rose-600 dark:text-rose-400">
+                  <AlertTriangle className="h-4 w-4 shrink-0" />
+                  Something went wrong. Please try again.
+                </div>
+              )}
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={saveRoadmapAsPlan}
+                  disabled={saving || saveStatus === "saved"}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 py-4 text-sm font-semibold text-white shadow-lg shadow-purple-500/20 transition hover:opacity-90 disabled:opacity-60"
+                >
+                  {saving ? (
+                    <><Loader2 className="h-4 w-4 animate-spin" /> Saving & Generating Plan…</>
+                  ) : saveStatus === "saved" ? (
+                    <><CheckCircle2 className="h-4 w-4" /> Saved!</>
+                  ) : (
+                    <><Save className="h-4 w-4" /> Save & Generate My Workout Plan</>
+                  )}
+                </button>
+                <button
+                  onClick={() => router.push("/dashboard/plan")}
+                  className="flex items-center justify-center gap-2 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-5 py-4 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+                >
+                  View My Plan <ArrowRight className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3 pt-1">
+                <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-700 p-3 text-center">
+                  <p className="text-xl font-extrabold text-purple-600 dark:text-purple-400">{roadmap.dailyCalories.toLocaleString()}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">kcal / day</p>
+                </div>
+                <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-700 p-3 text-center">
+                  <p className="text-xl font-extrabold text-cyan-600 dark:text-cyan-400">{roadmap.workoutSplit.daysPerWeek}x</p>
+                  <p className="text-xs text-slate-400 mt-0.5">days/week</p>
+                </div>
+                <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-700 p-3 text-center">
+                  <p className="text-xl font-extrabold text-indigo-600 dark:text-indigo-400">{roadmap.milestones.length}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">milestones</p>
+                </div>
+              </div>
             </div>
 
             {/* Regenerate */}

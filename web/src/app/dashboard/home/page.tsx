@@ -22,6 +22,7 @@ import {
   Check,
 } from "lucide-react"
 import { InjuryRiskWidget } from "../components/InjuryRiskWidget"
+import { WeeklyCheckIn } from "../components/WeeklyCheckIn"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -442,6 +443,9 @@ export default function HomeDashboard() {
             </div>
           </div>
         </div>
+
+        {/* ── Weekly Check-In ── */}
+        {userId && <WeeklyCheckIn userId={userId} />}
 
         {/* ── Body metrics ── */}
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
