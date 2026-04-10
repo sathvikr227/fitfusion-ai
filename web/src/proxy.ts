@@ -39,7 +39,7 @@ function rateLimit(ip: string, path: string): { allowed: boolean; remaining: num
   return { allowed: true, remaining: limit - entry.count }
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // API route protection
