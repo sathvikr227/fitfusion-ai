@@ -21,6 +21,7 @@ import {
   BellOff,
   Check,
 } from "lucide-react"
+import { InjuryRiskWidget } from "../components/InjuryRiskWidget"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -505,6 +506,9 @@ export default function HomeDashboard() {
             accent="bg-cyan-50"
           />
         </div>
+
+        {/* ── Injury Risk Widget ── */}
+        {userId && <InjuryRiskWidget userId={userId} />}
 
         <div className="grid gap-6 xl:grid-cols-12">
           <div className="space-y-6 xl:col-span-8">

@@ -24,6 +24,7 @@ import {
   Heart,
   Pill,
   AlertTriangle,
+  MessageCircle,
 } from "lucide-react"
 import VoiceAssistant from "../../components/VoiceAssistant"
 
@@ -42,6 +43,7 @@ export default function DashboardLayout({
 
   const navItems = [
     { name: "Home", href: "/dashboard/home", icon: LayoutDashboard },
+    { name: "AI Coach", href: "/dashboard/assistant", icon: MessageCircle },
     { name: "Plan & AI", href: "/dashboard/plan", icon: Bot },
     { name: "Progress", href: "/dashboard/progress", icon: ClipboardList },
     { name: "Analytics", href: "/dashboard/analytics", icon: LineChart },
