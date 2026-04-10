@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
+import { useRouter } from "next/navigation"
 import { supabase } from "../../../lib/supabase/client"
 import {
   Heart,
@@ -184,6 +185,7 @@ function DualLineChart({
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function VitalsPage() {
+  const router = useRouter()
   const [userId, setUserId] = useState<string | null>(null)
   const [logs, setLogs] = useState<VitalsLog[]>([])
   const [loading, setLoading] = useState(true)
@@ -204,9 +206,8 @@ export default function VitalsPage() {
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      if (data.user) {
-        setUserId(data.user.id)
-      }
+      if (data.user) setUserId(data.user.id)
+      else router.replace("/login")
     })
   }, [])
 

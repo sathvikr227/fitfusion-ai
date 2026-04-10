@@ -270,7 +270,6 @@ export default function PlanPage() {
         data.plan ?? data.updatedPlan ?? data.content ?? data.result ?? null
 
       if (nextPlan) {
-        console.log("Saving plan:", nextPlan)
 
         setPlanContent(nextPlan)
         setInput("")
@@ -288,7 +287,6 @@ export default function PlanPage() {
           if (error) {
             console.error("Error saving plan:", error.message)
           } else {
-            console.log("Plan saved successfully ✅")
 
             const { data: allPlans } = await supabase
               .from("workout_plans")

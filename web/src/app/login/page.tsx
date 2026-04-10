@@ -107,7 +107,8 @@ export default function LoginPage() {
 
           <button
             onClick={handleLogin}
-            className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-cyan-500 text-white font-semibold hover:opacity-90 transition"
+            disabled={loading}
+            className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-cyan-500 text-white font-semibold hover:opacity-90 transition disabled:opacity-60"
           >
             {loading ? "Signing in..." : "Sign In"}
           </button>

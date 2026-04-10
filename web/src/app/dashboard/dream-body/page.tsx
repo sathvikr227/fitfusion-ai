@@ -107,13 +107,13 @@ export default function DreamBodyPage() {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("weight_kg, height_cm, age, gender")
+        .select("weight, height, age, gender")
         .eq("id", user.id)
         .maybeSingle()
 
       if (profile) {
-        if (profile.weight_kg) setCurrentWeight(String(profile.weight_kg))
-        if (profile.height_cm) setHeightCm(String(profile.height_cm))
+        if (profile.weight) setCurrentWeight(String(profile.weight))
+        if (profile.height) setHeightCm(String(profile.height))
         if (profile.age) setAge(String(profile.age))
         if (profile.gender) setGender(profile.gender)
       }
@@ -121,13 +121,13 @@ export default function DreamBodyPage() {
       // Also try latest weight log
       const { data: wLog } = await supabase
         .from("weight_logs")
-        .select("weight_kg")
+        .select("weight")
         .eq("user_id", user.id)
-        .order("logged_at", { ascending: false })
+        .order("date", { ascending: false })
         .limit(1)
         .maybeSingle()
 
-      if (wLog?.weight_kg) setCurrentWeight(String(wLog.weight_kg))
+      if (wLog?.weight) setCurrentWeight(String(wLog.weight))
     }
     load()
   }, [])
