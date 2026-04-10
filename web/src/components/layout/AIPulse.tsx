@@ -26,10 +26,10 @@ export default function AIPulse() {
 
       {/* Purpose-driven Text */}
       <div className="mt-10 text-center space-y-2">
-        <h1 className="text-3xl font-light tracking-[0.2em] text-white uppercase">
-          FitFusion <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-300">AI</span>
+        <h1 className="text-3xl font-light tracking-[0.2em] text-slate-800 uppercase">
+          FitFusion <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-cyan-500">AI</span>
         </h1>
-        <p className="text-slate-400 text-sm font-medium tracking-widest uppercase opacity-60">
+        <p className="text-slate-500 text-sm font-medium tracking-widest uppercase">
           Neural Fitness Integration
         </p>
       </div>
