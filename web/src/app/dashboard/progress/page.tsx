@@ -34,11 +34,12 @@ export default function ProgressPage() {
   const [tab, setTab] = useState<"weight" | "workout" | "diet" | "photos" | "sleep" | "strength" | "measurements" | "cardio" | "mood">("weight")
   const [streak, setStreak] = useState<number | null>(null)
   const [todayActive, setTodayActive] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const load = async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      if (!user) { setLoading(false); return }
       const today = new Date().toISOString().split("T")[0]
       const { data } = await supabase
         .from("workout_logs")
@@ -46,10 +47,11 @@ export default function ProgressPage() {
         .eq("user_id", user.id)
         .order("date", { ascending: false })
         .limit(60)
-      if (!data) return
+      if (!data) { setLoading(false); return }
       const dates = data.map((r: any) => r.date ?? r.created_at)
       setStreak(calcStreak(dates))
       setTodayActive(dates.some((d: string) => (d ?? "").startsWith(today)))
+      setLoading(false)
     }
     load()
   }, [])
@@ -78,55 +80,91 @@ export default function ProgressPage() {
 
           {/* OPTIONAL STATS CARD */}
           <div className="hidden md:flex gap-4">
-            <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-3 shadow-sm">
-              <p className="text-xs text-slate-400 uppercase">Streak</p>
-              <p className="text-lg font-semibold">
-                {streak === null ? "—" : streak > 0 ? `🔥 ${streak} day${streak !== 1 ? "s" : ""}` : "0 days"}
-              </p>
-            </div>
+            {loading ? (
+              <>
+                <div className="animate-pulse bg-slate-200 dark:bg-slate-700 rounded-2xl w-28 h-16" />
+                <div className="animate-pulse bg-slate-200 dark:bg-slate-700 rounded-2xl w-28 h-16" />
+              </>
+            ) : (
+              <>
+                <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-3 shadow-sm">
+                  <p className="text-xs text-slate-400 uppercase">Streak</p>
+                  <p className="text-lg font-semibold">
+                    {streak !== null && streak > 0 ? `🔥 ${streak} day${streak !== 1 ? "s" : ""}` : "0 days"}
+                  </p>
+                </div>
 
-            <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-3 shadow-sm">
-              <p className="text-xs text-slate-400 uppercase">Today</p>
-              <p className="text-lg font-semibold">{todayActive ? "Active ✅" : "Rest"}</p>
-            </div>
+                <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-3 shadow-sm">
+                  <p className="text-xs text-slate-400 uppercase">Today</p>
+                  <p className="text-lg font-semibold">{todayActive ? "Active ✅" : "Rest"}</p>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
         {/* 🔥 TAB SWITCHER (PRO UI) */}
-        <div className="flex justify-center overflow-x-auto pb-1">
-          <div className="flex gap-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-1 rounded-2xl shadow-sm flex-wrap justify-center">
-
-            <TabButton label="Weight" active={tab === "weight"} onClick={() => setTab("weight")} />
-            <TabButton label="Workout" active={tab === "workout"} onClick={() => setTab("workout")} />
-            <TabButton label="Diet" active={tab === "diet"} onClick={() => setTab("diet")} />
-            <TabButton label="Photos" active={tab === "photos"} onClick={() => setTab("photos")} />
-            <TabButton label="Sleep" active={tab === "sleep"} onClick={() => setTab("sleep")} />
-            <TabButton label="Strength" active={tab === "strength"} onClick={() => setTab("strength")} />
-            <TabButton label="Measurements" active={tab === "measurements"} onClick={() => setTab("measurements")} />
-            <TabButton label="Cardio" active={tab === "cardio"} onClick={() => setTab("cardio")} />
-            <TabButton label="Mood" active={tab === "mood"} onClick={() => setTab("mood")} />
-
+        {loading ? (
+          <div className="flex justify-center">
+            <div className="animate-pulse bg-slate-200 dark:bg-slate-700 rounded-2xl h-12 w-full max-w-3xl" />
           </div>
-        </div>
+        ) : (
+          <div className="flex justify-center overflow-x-auto pb-1">
+            <div className="flex gap-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-1 rounded-2xl shadow-sm flex-wrap justify-center">
+
+              <TabButton label="Weight" active={tab === "weight"} onClick={() => setTab("weight")} />
+              <TabButton label="Workout" active={tab === "workout"} onClick={() => setTab("workout")} />
+              <TabButton label="Diet" active={tab === "diet"} onClick={() => setTab("diet")} />
+              <TabButton label="Photos" active={tab === "photos"} onClick={() => setTab("photos")} />
+              <TabButton label="Sleep" active={tab === "sleep"} onClick={() => setTab("sleep")} />
+              <TabButton label="Strength" active={tab === "strength"} onClick={() => setTab("strength")} />
+              <TabButton label="Measurements" active={tab === "measurements"} onClick={() => setTab("measurements")} />
+              <TabButton label="Cardio" active={tab === "cardio"} onClick={() => setTab("cardio")} />
+              <TabButton label="Mood" active={tab === "mood"} onClick={() => setTab("mood")} />
+
+            </div>
+          </div>
+        )}
 
         {/* 🔥 CONTENT CARD WRAPPER */}
-        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-3xl shadow-sm p-4 md:p-6">
-
-          {/* Smooth transition feel */}
-          <div className="transition-all duration-300">
-
-            {tab === "weight" && <WeightTab />}
-            {tab === "workout" && <WorkoutTab />}
-            {tab === "diet" && <DietTab />}
-            {tab === "photos" && <PhotosTab />}
-            {tab === "sleep" && <SleepTab />}
-            {tab === "strength" && <StrengthTab />}
-            {tab === "measurements" && <MeasurementsTab />}
-            {tab === "cardio" && <CardioTab />}
-            {tab === "mood" && <MoodTab />}
-
+        {loading ? (
+          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-3xl shadow-sm p-4 md:p-6 space-y-4 animate-pulse">
+            {/* Chart skeleton */}
+            <div className="h-6 w-40 bg-slate-200 dark:bg-slate-700 rounded-lg" />
+            <div className="h-4 w-64 bg-slate-200 dark:bg-slate-700 rounded-md" />
+            <div className="h-48 w-full bg-slate-200 dark:bg-slate-700 rounded-2xl" />
+            {/* Stats row skeleton */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="h-16 bg-slate-200 dark:bg-slate-700 rounded-2xl" />
+              ))}
+            </div>
+            {/* Log entry skeleton */}
+            <div className="space-y-2 pt-2">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="h-12 bg-slate-200 dark:bg-slate-700 rounded-xl" />
+              ))}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-3xl shadow-sm p-4 md:p-6">
+
+            {/* Smooth transition feel */}
+            <div className="transition-all duration-300">
+
+              {tab === "weight" && <WeightTab />}
+              {tab === "workout" && <WorkoutTab />}
+              {tab === "diet" && <DietTab />}
+              {tab === "photos" && <PhotosTab />}
+              {tab === "sleep" && <SleepTab />}
+              {tab === "strength" && <StrengthTab />}
+              {tab === "measurements" && <MeasurementsTab />}
+              {tab === "cardio" && <CardioTab />}
+              {tab === "mood" && <MoodTab />}
+
+            </div>
+          </div>
+        )}
 
       </div>
     </div>

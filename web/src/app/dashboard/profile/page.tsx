@@ -27,6 +27,7 @@ export default function ProfilePage() {
   const [dailyTimeAvailable, setDailyTimeAvailable] = useState("")
   const [sleepHours, setSleepHours] = useState("")
   const [restDaysPerWeek, setRestDaysPerWeek] = useState("")
+  const [dietaryRestrictions, setDietaryRestrictions] = useState<string[]>([])
 
   useEffect(() => {
     const load = async () => {
@@ -64,6 +65,7 @@ export default function ProfilePage() {
         setDailyTimeAvailable(data.workout_time || "")
         setSleepHours(data.sleep_hours || "")
         setRestDaysPerWeek(data.days_off?.toString() || "")
+        setDietaryRestrictions(Array.isArray(data.dietary_restrictions) ? data.dietary_restrictions : [])
       }
 
       setLoading(false)
@@ -128,6 +130,7 @@ export default function ProfilePage() {
         workout_time: dailyTimeAvailable || null,
         sleep_hours: sleepHours || null,
         days_off: restDaysPerWeek ? Number(restDaysPerWeek) : null,
+        dietary_restrictions: dietaryRestrictions.length > 0 ? dietaryRestrictions : null,
       })
 
       if (error) {
@@ -336,6 +339,51 @@ export default function ProfilePage() {
                   options={["0", "1", "2", "3", "4", "5", "6"]}
                 />
               </div>
+
+              <div className="mt-5">
+                <label className="mb-3 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Dietary Restrictions
+                </label>
+                <p className="mb-3 text-xs text-slate-500 dark:text-slate-400">
+                  Select all that apply — these will be respected in your meal plans.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    "Vegetarian",
+                    "Vegan",
+                    "Gluten-Free",
+                    "Dairy-Free",
+                    "Keto",
+                    "Paleo",
+                    "Halal",
+                    "Kosher",
+                    "Nut-Free",
+                    "Low-Sodium",
+                  ].map((option) => {
+                    const selected = dietaryRestrictions.includes(option)
+                    return (
+                      <button
+                        key={option}
+                        type="button"
+                        onClick={() =>
+                          setDietaryRestrictions((prev) =>
+                            selected
+                              ? prev.filter((r) => r !== option)
+                              : [...prev, option]
+                          )
+                        }
+                        className={`rounded-full px-4 py-1.5 text-sm font-medium transition-all select-none ${
+                          selected
+                            ? "bg-gradient-to-r from-purple-600 to-cyan-500 text-white shadow-md"
+                            : "border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:border-purple-400"
+                        }`}
+                      >
+                        {option}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
             </SectionCard>
 
             {status ? (
@@ -365,6 +413,10 @@ export default function ProfilePage() {
                 <SummaryRow label="Workout time" value={dailyTimeAvailable} />
                 <SummaryRow label="Sleep" value={sleepHours} />
                 <SummaryRow label="Rest days" value={restDaysPerWeek} />
+                <SummaryRow
+                  label="Restrictions"
+                  value={dietaryRestrictions.length > 0 ? dietaryRestrictions.join(", ") : ""}
+                />
               </div>
             </SectionCard>
 

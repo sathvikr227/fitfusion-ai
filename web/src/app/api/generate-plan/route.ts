@@ -615,6 +615,9 @@ function buildPrompt(profile: JsonValue, restDays: number, metrics: JsonValue, d
     pickFirstDefined(profile, ["activity_level", "activityLevel", "activity", "daily_activity"])
   ) || "N/A"
   const dietType = asText(pickFirstDefined(profile, ["diet_preference", "diet_type", "dietType", "diet", "food_preference"])) || "N/A"
+  const dietaryRestrictions = Array.isArray(profile?.dietary_restrictions) && profile.dietary_restrictions.length > 0
+    ? (profile.dietary_restrictions as string[]).join(", ")
+    : null
   const trainingStyle = asText(pickFirstDefined(profile, ["training_style", "trainingStyle", "workout_style"])) || "N/A"
   const sleepHours = asText(
     pickFirstDefined(profile, ["sleep_hours", "sleepHours", "sleep", "sleep_time"])
@@ -730,6 +733,7 @@ Height: ${height}
 Weight: ${weight}
 Activity level: ${activityLevel}
 Diet type / preference: ${dietType}
+${dietaryRestrictions ? `Dietary restrictions: ${dietaryRestrictions}` : "Dietary restrictions: None"}
 Training style: ${trainingStyle}
 Sleep hours: ${sleepHours}
 Workout time available: ${workoutTime}
@@ -742,6 +746,7 @@ Derived coaching rules:
 - Workout duration guidance: ${training.workoutMinutes ?? "N/A"} minutes
 - Avoid aggravating injuries: ${injuries !== "No" ? "Yes" : "No"}
 - Respect rest days and recovery completely
+${dietaryRestrictions ? `- DIETARY RESTRICTIONS: ${dietaryRestrictions}. ALL meal suggestions MUST comply with these restrictions. Do not include any foods that violate them.` : ""}
 
 Current metrics:
 BMI: ${metrics.bmi ?? "N/A"}

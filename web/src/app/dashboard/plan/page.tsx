@@ -142,6 +142,23 @@ function todayDateStr() {
   return new Date().toISOString().split("T")[0]
 }
 
+function getExerciseTip(name: string): string {
+  const lower = name.toLowerCase()
+  if (lower.includes("squat")) return "Keep your chest up, knees tracking over toes. Drive through your heels on the way up."
+  if (lower.includes("deadlift")) return "Hinge at the hips, keep your back flat. Bar stays close to your body throughout the lift."
+  if (lower.includes("bench")) return "Grip slightly wider than shoulder-width. Lower the bar to your lower chest, drive up explosively."
+  if (lower.includes("row")) return "Squeeze your shoulder blades together at the top. Control the eccentric on the way down."
+  if (lower.includes("pull") || lower.includes("chin")) return "Full hang at the bottom, chin over bar at the top. Engage your lats by thinking 'elbows to hips'."
+  if (lower.includes("press") || lower.includes("overhead")) return "Brace your core to protect your lower back. Press in a straight line overhead."
+  if (lower.includes("lunge")) return "Step far enough that your front knee stays above your ankle, not past your toes."
+  if (lower.includes("plank")) return "Neutral spine, squeeze your glutes and abs. Don't let your hips sag or pike up."
+  if (lower.includes("curl")) return "Keep your elbows pinned to your sides. Full range of motion — don't cheat with momentum."
+  if (lower.includes("tricep") || lower.includes("dip") || lower.includes("extension")) return "Lock your elbows in place and isolate the triceps. Controlled movement throughout."
+  if (lower.includes("calf")) return "Full stretch at the bottom, full contraction at the top. Slow and controlled is better than heavy."
+  if (lower.includes("run") || lower.includes("cardio") || lower.includes("jog")) return "Maintain a conversational pace. Land midfoot, not on your heels."
+  return "Focus on form over weight. Full range of motion and controlled movement build more muscle safely."
+}
+
 export default function PlanPage() {
   const router = useRouter()
 
@@ -161,6 +178,7 @@ export default function PlanPage() {
   // Workout execution tracking
   const [executionMap, setExecutionMap] = useState<Record<string, ExecutionRecord>>({})
   const [savingExercise, setSavingExercise] = useState<string | null>(null)
+  const [expandedExercise, setExpandedExercise] = useState<string | null>(null)
 
   // Grocery list
   type GroceryItem = { name: string; qty: string }
@@ -676,20 +694,30 @@ export default function PlanPage() {
                           )}
                         </div>
                         <div className="min-w-0">
-                          <p
-                            className={`text-sm font-semibold truncate ${
+                          <button
+                            type="button"
+                            onClick={() => setExpandedExercise(expandedExercise === exercise.name ? null : exercise.name)}
+                            className={`text-sm font-semibold truncate text-left w-full ${
                               done
                                 ? "line-through text-slate-400 dark:text-slate-500"
-                                : "text-slate-900 dark:text-white"
-                            }`}
+                                : "text-slate-900 dark:text-white hover:text-purple-600 dark:hover:text-purple-400"
+                            } transition-colors`}
                           >
                             {exercise.name}
-                          </p>
+                            <span className="ml-1 text-xs text-slate-400 dark:text-slate-500 font-normal">
+                              {expandedExercise === exercise.name ? "▲" : "▼"}
+                            </span>
+                          </button>
                           <p className="text-xs text-slate-500 dark:text-slate-400">
                             {exercise.sets ? `${exercise.sets} sets` : ""}
                             {exercise.sets && exercise.reps ? " × " : ""}
                             {exercise.reps ? `${exercise.reps} reps` : ""}
                           </p>
+                          {expandedExercise === exercise.name && (
+                            <p className="mt-1.5 text-xs text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/30 rounded-xl px-3 py-2 leading-relaxed">
+                              💡 {getExerciseTip(exercise.name)}
+                            </p>
+                          )}
                         </div>
                       </div>
                       <button
@@ -789,15 +817,29 @@ export default function PlanPage() {
                             day.exercises.map((exercise, exIndex) => (
                               <div
                                 key={`${exercise.name}-${exIndex}`}
-                                className="flex items-center justify-between gap-4 rounded-xl bg-white dark:bg-slate-700 px-3 py-2 text-sm"
+                                className="rounded-xl bg-white dark:bg-slate-700 px-3 py-2 text-sm"
                               >
-                                <span className="font-medium text-slate-900 dark:text-white">
-                                  {exercise.name}
-                                </span>
-                                <span className="text-slate-500 dark:text-slate-400">
-                                  {exercise.sets ? `${exercise.sets} sets` : "--"}{" "}
-                                  {exercise.reps ? `× ${exercise.reps} reps` : ""}
-                                </span>
+                                <div className="flex items-center justify-between gap-4">
+                                  <button
+                                    type="button"
+                                    onClick={() => setExpandedExercise(expandedExercise === `${day.day}-${exercise.name}` ? null : `${day.day}-${exercise.name}`)}
+                                    className="font-medium text-slate-900 dark:text-white hover:text-purple-600 dark:hover:text-purple-400 transition-colors text-left"
+                                  >
+                                    {exercise.name}
+                                    <span className="ml-1 text-xs text-slate-400 dark:text-slate-500 font-normal">
+                                      {expandedExercise === `${day.day}-${exercise.name}` ? "▲" : "▼"}
+                                    </span>
+                                  </button>
+                                  <span className="text-slate-500 dark:text-slate-400 shrink-0">
+                                    {exercise.sets ? `${exercise.sets} sets` : "--"}{" "}
+                                    {exercise.reps ? `× ${exercise.reps} reps` : ""}
+                                  </span>
+                                </div>
+                                {expandedExercise === `${day.day}-${exercise.name}` && (
+                                  <p className="mt-1.5 text-xs text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/30 rounded-xl px-3 py-2 leading-relaxed">
+                                    💡 {getExerciseTip(exercise.name)}
+                                  </p>
+                                )}
                               </div>
                             ))
                           ) : (
