@@ -116,7 +116,7 @@ export async function POST(req: NextRequest) {
 
       supabase
         .from("sleep_logs")
-        .select("hours_slept, date")
+        .select("duration_hours, date")
         .eq("user_id", userId)
         .gte("date", since),
     ])
@@ -143,7 +143,7 @@ export async function POST(req: NextRequest) {
     const avgSleep =
       sleepRows.length > 0
         ? Math.round(
-            (sleepRows.reduce((s, r) => s + (r.hours_slept ?? 0), 0) / sleepRows.length) * 10
+            (sleepRows.reduce((s, r) => s + (r.duration_hours ?? 0), 0) / sleepRows.length) * 10
           ) / 10
         : null
 

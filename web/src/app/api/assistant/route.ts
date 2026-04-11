@@ -86,14 +86,14 @@ export async function POST(req: Request) {
 
       supabase
         .from("workout_logs")
-        .select("date, exercise_name, sets, reps, weight_kg, duration_minutes, calories_burned")
+        .select("date, total_calories, created_at")
         .eq("user_id", userId)
         .gte("date", thirtyDaysAgo)
         .order("date", { ascending: false }),
 
       supabase
         .from("meal_logs")
-        .select("date, meal_name, total_calories, protein_g, carbs_g, fat_g")
+        .select("date, meal_name, total_calories, protein, carbs, fat")
         .eq("user_id", userId)
         .gte("date", sevenDaysAgo)
         .order("date", { ascending: false }),
@@ -114,13 +114,13 @@ export async function POST(req: Request) {
 
       supabase
         .from("injuries")
-        .select("name, body_part, severity, status")
+        .select("description, severity, status")
         .eq("user_id", userId)
         .neq("status", "healed"),
 
       supabase
         .from("sleep_logs")
-        .select("date, hours, quality")
+        .select("date, duration_hours, quality")
         .eq("user_id", userId)
         .order("date", { ascending: false })
         .limit(7),
@@ -196,7 +196,7 @@ export async function POST(req: Request) {
     // Avg sleep
     let avgSleep: number | null = null
     if (sleepLogs.length > 0) {
-      const total = sleepLogs.reduce((s: number, l: any) => s + (Number(l.hours) || 0), 0)
+      const total = sleepLogs.reduce((s: number, l: any) => s + (Number(l.duration_hours) || 0), 0)
       avgSleep = Math.round((total / sleepLogs.length) * 10) / 10
     }
 
@@ -245,10 +245,8 @@ export async function POST(req: Request) {
             .slice(0, 10)
             .map(
               (w: any) =>
-                `  • ${w.date}: ${w.exercise_name ?? "Workout"}` +
-                (w.sets ? ` ${w.sets}×${w.reps}` : "") +
-                (w.weight_kg ? ` @${w.weight_kg}kg` : "") +
-                (w.calories_burned ? ` (${w.calories_burned} kcal)` : "")
+                `  • ${w.date}: Workout session` +
+                (w.total_calories ? ` (${w.total_calories} kcal burned)` : "")
             )
             .join("\n")
         : "  No workouts logged in last 30 days."
@@ -260,9 +258,9 @@ export async function POST(req: Request) {
             .map(
               (m: any) =>
                 `  • ${m.date}: ${m.meal_name ?? "Meal"} — ${m.total_calories ?? 0} kcal` +
-                (m.protein_g ? ` | P:${m.protein_g}g` : "") +
-                (m.carbs_g ? ` C:${m.carbs_g}g` : "") +
-                (m.fat_g ? ` F:${m.fat_g}g` : "")
+                (m.protein ? ` | P:${m.protein}g` : "") +
+                (m.carbs ? ` C:${m.carbs}g` : "") +
+                (m.fat ? ` F:${m.fat}g` : "")
             )
             .join("\n")
         : "  No meal logs in last 7 days."
@@ -280,7 +278,7 @@ export async function POST(req: Request) {
         ? injuries
             .map(
               (inj: any) =>
-                `  • ${inj.name} (${inj.body_part}) — severity: ${inj.severity}, status: ${inj.status}`
+                `  • ${inj.description} — severity: ${inj.severity}, status: ${inj.status}`
             )
             .join("\n")
         : "  None"
@@ -290,7 +288,7 @@ export async function POST(req: Request) {
         ? sleepLogs
             .map(
               (sl: any) =>
-                `  • ${sl.date}: ${sl.hours}h` + (sl.quality ? ` (quality: ${sl.quality})` : "")
+                `  • ${sl.date}: ${sl.duration_hours}h` + (sl.quality ? ` (quality: ${sl.quality})` : "")
             )
             .join("\n")
         : "  No sleep logs."

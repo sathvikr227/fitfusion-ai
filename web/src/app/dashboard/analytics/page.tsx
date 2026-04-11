@@ -158,7 +158,7 @@ function AnomalyAlerts({
   const [open, setOpen] = useState(alerts.length > 0)
 
   // Re-open if new alerts appear
-  useMemo(() => {
+  useEffect(() => {
     if (alerts.length > 0) setOpen(true)
   }, [alerts.length])
 

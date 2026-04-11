@@ -267,7 +267,6 @@ export default function DietTab() {
   const [voiceListening, setVoiceListening] = useState(false)
   const [voiceTranscript, setVoiceTranscript] = useState("")
   const [voiceLogging, setVoiceLogging] = useState(false)
-  const [voiceResult, setVoiceResult] = useState<{ calories: number; description: string } | null>(null)
   const recognitionRef = useRef<any>(null)
 
   useEffect(() => {
@@ -690,7 +689,6 @@ export default function DietTab() {
   async function submitVoiceLog(transcript: string) {
     if (!transcript || !userId) return
     setVoiceLogging(true)
-    setVoiceResult(null)
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const res = await fetch("/api/voice-food-log", {
@@ -703,7 +701,6 @@ export default function DietTab() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Failed")
-      setVoiceResult({ calories: data.calories, description: data.description })
       setMessage(`✓ Logged via voice: ${data.description} (${data.calories} kcal)`)
       // Refresh history
       const today = selectedDate

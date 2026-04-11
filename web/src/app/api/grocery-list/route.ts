@@ -27,6 +27,17 @@ export async function POST(req: Request) {
     const supabase = getSupabase()
     const groq = getGroqClient()
 
+    // Verify the caller is the user they claim to be
+    const authHeader = req.headers.get("Authorization")
+    if (!authHeader?.startsWith("Bearer ")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+    const token = authHeader.slice(7)
+    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token)
+    if (authError || !authUser || authUser.id !== userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
     const { data: planRow } = await supabase
       .from("workout_plans")
       .select("plan")

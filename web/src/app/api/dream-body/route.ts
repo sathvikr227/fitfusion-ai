@@ -81,8 +81,16 @@ Respond ONLY with valid JSON matching this exact schema:
     })
 
     const raw = completion.choices[0]?.message?.content || ""
+    if (!raw.trim()) {
+      throw new Error("Groq returned an empty response")
+    }
     const jsonStr = extractJson(raw)
-    const roadmap = JSON.parse(jsonStr)
+    let roadmap: any
+    try {
+      roadmap = JSON.parse(jsonStr)
+    } catch {
+      throw new Error("Could not parse AI-generated roadmap as valid JSON")
+    }
 
     return NextResponse.json({ roadmap })
   } catch (error: any) {

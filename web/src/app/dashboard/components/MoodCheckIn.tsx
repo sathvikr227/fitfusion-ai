@@ -79,7 +79,7 @@ export function MoodCheckIn({ userId }: { userId: string }) {
           </button>
         ))}
       </div>
-      {saved && !alreadyLogged && (
+      {saved && (
         <p className="mt-3 text-center text-xs text-emerald-600 dark:text-emerald-400 font-medium">
           ✓ Mood saved!
         </p>

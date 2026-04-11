@@ -93,6 +93,8 @@ export default function ProfilePage() {
   }, [
     fullName,
     age,
+    height,
+    weight,
     goal,
     activityLevel,
     dietPreference,

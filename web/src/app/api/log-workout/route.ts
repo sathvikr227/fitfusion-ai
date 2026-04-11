@@ -5,6 +5,8 @@ import {
   estimateCaloriesFromSets,
 } from "../../../lib/calories" // ✅ FIXED PATH
 
+export const runtime = "nodejs"
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -30,7 +32,11 @@ export async function POST(req: Request) {
     }
 
     // Verify the caller is the user they claim to be
-    const token = req.headers.get("Authorization")?.replace("Bearer ", "") ?? ""
+    const authHeader = req.headers.get("Authorization")
+    if (!authHeader?.startsWith("Bearer ")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+    const token = authHeader.slice(7)
     const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token)
     if (authError || !authUser || authUser.id !== userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })

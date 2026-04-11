@@ -45,11 +45,16 @@ type PlanHistoryItem = {
 
 type ExecutionRecord = {
   exercise_name: string
-  completed: boolean
+  done: boolean
   sets_done?: number | null
   reps_done?: number | null
   weight_used?: number | null
   notes?: string | null
+}
+
+type MealExecutionRecord = {
+  meal_name: string
+  eaten: boolean
 }
 
 function safeJsonParse(value: string) {
@@ -180,6 +185,10 @@ export default function PlanPage() {
   const [savingExercise, setSavingExercise] = useState<string | null>(null)
   const [expandedExercise, setExpandedExercise] = useState<string | null>(null)
 
+  // Meal execution tracking
+  const [mealExecutions, setMealExecutions] = useState<Record<string, MealExecutionRecord>>({})
+  const [savingMeal, setSavingMeal] = useState<string | null>(null)
+
   // Grocery list
   type GroceryItem = { name: string; qty: string }
   type GroceryCategory = { category: string; items: GroceryItem[] }
@@ -252,7 +261,7 @@ export default function PlanPage() {
   }, [todayWorkoutDay])
 
   const doneCount = useMemo(() => {
-    return todayExercises.filter((ex) => executionMap[ex.name]?.completed).length
+    return todayExercises.filter((ex) => executionMap[ex.name]?.done).length
   }, [todayExercises, executionMap])
 
   const allDone = todayExercises.length > 0 && doneCount === todayExercises.length
@@ -264,9 +273,9 @@ export default function PlanPage() {
       const today = todayDateStr()
       const { data } = await supabase
         .from("workout_execution")
-        .select("exercise_name, completed, sets_done, reps_done, weight_used, notes")
+        .select("exercise_name, done, sets_done, reps_done, weight_used, notes")
         .eq("user_id", userId)
-        .eq("plan_date", today)
+        .eq("date", today)
 
       if (data && data.length > 0) {
         const map: Record<string, ExecutionRecord> = {}
@@ -274,6 +283,20 @@ export default function PlanPage() {
           map[row.exercise_name] = row as ExecutionRecord
         }
         setExecutionMap(map)
+      }
+
+      const { data: mealData } = await supabase
+        .from("meal_execution")
+        .select("meal_name, eaten")
+        .eq("user_id", userId)
+        .eq("date", today)
+
+      if (mealData && mealData.length > 0) {
+        const mealMap: Record<string, MealExecutionRecord> = {}
+        for (const row of mealData) {
+          mealMap[row.meal_name] = row as MealExecutionRecord
+        }
+        setMealExecutions(mealMap)
       }
     }
     loadExecution()
@@ -283,23 +306,22 @@ export default function PlanPage() {
     if (!userId) return
     const name = exercise.name
     const current = executionMap[name]
-    const nextCompleted = !current?.completed
+    const nextCompleted = !current?.done
     setSavingExercise(name)
 
     const today = todayDateStr()
     const { error } = await supabase.from("workout_execution").upsert(
       {
         user_id: userId,
-        plan_date: today,
+        date: today,
         exercise_name: name,
-        completed: nextCompleted,
+        done: nextCompleted,
         sets_done: exercise.sets ?? null,
         reps_done: exercise.reps ?? null,
         weight_used: current?.weight_used ?? null,
         notes: current?.notes ?? null,
-        updated_at: new Date().toISOString(),
       },
-      { onConflict: "user_id,plan_date,exercise_name" }
+      { onConflict: "user_id,date,exercise_name" }
     )
 
     if (!error) {
@@ -308,12 +330,39 @@ export default function PlanPage() {
         [name]: {
           ...prev[name],
           exercise_name: name,
-          completed: nextCompleted,
+          done: nextCompleted,
         },
       }))
     }
 
     setSavingExercise(null)
+  }
+
+  const toggleMealEaten = async (mealName: string) => {
+    if (!userId) return
+    const current = mealExecutions[mealName]
+    const nextEaten = !current?.eaten
+    setSavingMeal(mealName)
+
+    const today = todayDateStr()
+    const { error } = await supabase.from("meal_execution").upsert(
+      {
+        user_id: userId,
+        date: today,
+        meal_name: mealName,
+        eaten: nextEaten,
+      },
+      { onConflict: "user_id,date,meal_name" }
+    )
+
+    if (!error) {
+      setMealExecutions((prev) => ({
+        ...prev,
+        [mealName]: { meal_name: mealName, eaten: nextEaten },
+      }))
+    }
+
+    setSavingMeal(null)
   }
 
   useEffect(() => {
@@ -658,7 +707,7 @@ export default function PlanPage() {
             {todayExercises.length > 0 ? (
               <div className="space-y-2">
                 {todayExercises.map((exercise) => {
-                  const done = !!executionMap[exercise.name]?.completed
+                  const done = !!executionMap[exercise.name]?.done
                   const saving = savingExercise === exercise.name
                   return (
                     <div
@@ -740,6 +789,46 @@ export default function PlanPage() {
                 No exercises listed for today.
               </p>
             ) : null}
+          </div>
+        )}
+
+        {/* ── Today's Meals ── */}
+        {dietMeals.length > 0 && (
+          <div className="rounded-3xl border border-purple-200 dark:border-purple-900 bg-gradient-to-br from-purple-50 to-cyan-50 dark:from-purple-900/20 dark:to-cyan-900/20 p-6 shadow-sm">
+            <h2 className="mb-4 text-xl font-bold text-slate-900 dark:text-white">
+              Today&apos;s Meals
+            </h2>
+            <div className="space-y-2">
+              {dietMeals.map((meal) => {
+                const eaten = !!mealExecutions[meal.name]?.eaten
+                const saving = savingMeal === meal.name
+                return (
+                  <div
+                    key={meal.name}
+                    className={`flex items-center justify-between gap-4 rounded-2xl px-4 py-3 transition-all ${
+                      eaten
+                        ? "border border-emerald-200 dark:border-emerald-800 bg-emerald-100/80 dark:bg-emerald-900/30"
+                        : "border border-slate-200/60 dark:border-slate-700 bg-white/70 dark:bg-slate-700/60"
+                    }`}
+                  >
+                    <span className={`text-sm font-semibold ${eaten ? "line-through text-slate-400 dark:text-slate-500" : "text-slate-900 dark:text-white"}`}>
+                      {meal.name}
+                    </span>
+                    <button
+                      onClick={() => toggleMealEaten(meal.name)}
+                      disabled={saving}
+                      className={`shrink-0 rounded-xl px-4 py-1.5 text-xs font-semibold transition disabled:opacity-50 ${
+                        eaten
+                          ? "bg-slate-100 dark:bg-slate-700 text-slate-500 hover:bg-rose-50 hover:text-rose-600"
+                          : "bg-gradient-to-r from-purple-600 to-cyan-500 text-white hover:opacity-90"
+                      }`}
+                    >
+                      {saving ? "..." : eaten ? "Undo" : "Mark Eaten"}
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
           </div>
         )}
 
