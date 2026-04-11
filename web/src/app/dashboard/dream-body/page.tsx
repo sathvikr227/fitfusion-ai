@@ -151,9 +151,15 @@ export default function DreamBodyPage() {
     setPhotoError("")
     setPhotoAnalysis(null)
     try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { router.replace("/login"); return }
       const fd = new FormData()
       fd.append("image", photoFile)
-      const res = await fetch("/api/analyze-inspiration", { method: "POST", body: fd })
+      const res = await fetch("/api/analyze-inspiration", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session.access_token}` },
+        body: fd,
+      })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Failed to analyze")
       setPhotoAnalysis(data.analysis)
@@ -180,9 +186,11 @@ export default function DreamBodyPage() {
     setRoadmap(null)
 
     try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { router.replace("/login"); return }
       const res = await fetch("/api/dream-body", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({
           currentWeight: parseFloat(currentWeight),
           targetWeight: parseFloat(targetWeight),
