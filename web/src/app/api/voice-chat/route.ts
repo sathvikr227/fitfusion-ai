@@ -11,6 +11,11 @@ function getGroqClient() {
 
 export async function POST(req: Request) {
   try {
+    const authHeader = req.headers.get("Authorization")
+    if (!authHeader?.startsWith("Bearer ")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
     const groq = getGroqClient()
     const { message, planSummary, history } = await req.json()
 

@@ -91,9 +91,9 @@ export async function GET(req: Request) {
 
     const { data: workoutLogs, error: workoutError } = await supabase
       .from("workout_logs")
-      .select("logged_at")
+      .select("date")
       .eq("user_id", userId)
-      .gte("logged_at", thirtyDaysAgoStr)
+      .gte("date", thirtyDaysAgoStr)
 
     if (workoutError) {
       console.error("Workout logs error:", workoutError)
@@ -108,9 +108,9 @@ export async function GET(req: Request) {
 
     const { data: mealLogs, error: mealError } = await supabase
       .from("meal_logs")
-      .select("calories, logged_at")
+      .select("total_calories, date")
       .eq("user_id", userId)
-      .gte("logged_at", sevenDaysAgoStr)
+      .gte("date", sevenDaysAgoStr)
 
     if (mealError) {
       console.error("Meal logs error:", mealError)
@@ -119,16 +119,16 @@ export async function GET(req: Request) {
     let avgDailyCalories = 0
     if (mealLogs && mealLogs.length > 0) {
       const totalCalories = mealLogs.reduce(
-        (sum, log) => sum + (Number(log.calories) || 0),
+        (sum, log) => sum + (Number(log.total_calories) || 0),
         0
       )
       // Group by day to get accurate daily average
       const dayMap: Record<string, number> = {}
       for (const log of mealLogs) {
-        const day = log.logged_at
-          ? log.logged_at.toString().split("T")[0]
+        const day = log.date
+          ? log.date.toString().split("T")[0]
           : sevenDaysAgoStr
-        dayMap[day] = (dayMap[day] ?? 0) + (Number(log.calories) || 0)
+        dayMap[day] = (dayMap[day] ?? 0) + (Number(log.total_calories) || 0)
       }
       const days = Object.keys(dayMap).length
       avgDailyCalories = days > 0 ? Math.round(totalCalories / days) : 0
@@ -140,8 +140,8 @@ export async function GET(req: Request) {
       // Collect unique workout dates (YYYY-MM-DD)
       const dateSet = new Set<string>()
       for (const log of workoutLogs) {
-        const day = log.logged_at
-          ? log.logged_at.toString().split("T")[0]
+        const day = log.date
+          ? log.date.toString().split("T")[0]
           : null
         if (day) dateSet.add(day)
       }
@@ -149,15 +149,15 @@ export async function GET(req: Request) {
       // Also fetch all workout logs to get complete history for streak
       const { data: allLogs } = await supabase
         .from("workout_logs")
-        .select("logged_at")
+        .select("date")
         .eq("user_id", userId)
-        .order("logged_at", { ascending: false })
+        .order("date", { ascending: false })
 
       const allDateSet = new Set<string>()
       if (allLogs) {
         for (const log of allLogs) {
-          const day = log.logged_at
-            ? log.logged_at.toString().split("T")[0]
+          const day = log.date
+            ? log.date.toString().split("T")[0]
             : null
           if (day) allDateSet.add(day)
         }

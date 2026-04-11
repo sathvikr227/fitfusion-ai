@@ -7,6 +7,7 @@ const PUBLIC_API_PATHS = [
   '/api/food-db',
   '/api/help/workout',
   '/api/help/recipe',
+  '/api/share',  // public share stats — no auth needed for GET
 ]
 
 // In-memory rate limit store (resets on cold start)
