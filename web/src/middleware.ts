@@ -70,20 +70,9 @@ export function middleware(request: NextRequest) {
     return res
   }
 
-  // Dashboard route protection — check for Supabase auth cookie
-  if (pathname.startsWith('/dashboard')) {
-    const cookieNames = request.cookies.getAll().map(c => c.name)
-    const hasAuthCookie = cookieNames.some(
-      name => name.includes('auth-token') || (name.includes('sb-') && name.includes('-auth'))
-    )
-    if (!hasAuthCookie) {
-      return NextResponse.redirect(new URL('/login', request.url))
-    }
-  }
-
   return NextResponse.next()
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/api/:path*'],
+  matcher: ['/api/:path*'],
 }
