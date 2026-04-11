@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "../../../lib/supabase/client"
+import { Share2, Copy } from "lucide-react"
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -10,6 +11,10 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [status, setStatus] = useState<string | null>(null)
+
+  const [shareToken, setShareToken] = useState<string | null>(null)
+  const [generating, setGenerating] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   const [email, setEmail] = useState("")
   const [fullName, setFullName] = useState("")
@@ -153,6 +158,53 @@ export default function ProfilePage() {
       setStatus("Something went wrong while saving.")
     } finally {
       setSaving(false)
+    }
+  }
+
+  const generateShareLink = async () => {
+    setGenerating(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) {
+        setStatus("You must be logged in to generate a share link.")
+        return
+      }
+
+      const res = await fetch("/api/share", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      })
+
+      if (!res.ok) {
+        const err = await res.json()
+        setStatus(err.error || "Failed to generate share link.")
+        return
+      }
+
+      const { token } = await res.json()
+      setShareToken(token)
+    } catch (err) {
+      console.error(err)
+      setStatus("Something went wrong while generating the share link.")
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  const shareUrl = shareToken
+    ? (typeof window !== "undefined" ? window.location.origin : "") + "/shared/" + shareToken
+    : ""
+
+  const copyLink = async () => {
+    if (!shareUrl) return
+    try {
+      await navigator.clipboard.writeText(shareUrl)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      setStatus("Failed to copy link. Please copy it manually.")
     }
   }
 
@@ -422,8 +474,52 @@ export default function ProfilePage() {
               </div>
             </SectionCard>
 
-            
-              
+            {/* Accountability Partner / Share Profile */}
+            <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm space-y-4">
+              <div className="mb-1">
+                <h2 className="text-xl font-semibold">Accountability Partner</h2>
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                  Share your progress with a friend to stay motivated.
+                </p>
+              </div>
+
+              <button
+                onClick={generateShareLink}
+                disabled={generating}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-cyan-500 px-4 py-3 font-semibold text-white shadow-md transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Share2 className="h-4 w-4" />
+                {generating ? "Generating..." : "Generate Link"}
+              </button>
+
+              {shareToken && shareUrl && (
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                    Your share link
+                  </p>
+                  <div className="flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-3 py-2">
+                    <code className="flex-1 truncate text-xs text-slate-700 dark:text-slate-300">
+                      {shareUrl}
+                    </code>
+                    <button
+                      onClick={copyLink}
+                      title="Copy link"
+                      className="flex-shrink-0 rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-purple-600"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </button>
+                  </div>
+                  {copied && (
+                    <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                      Link copied to clipboard ✅
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
+
+
           </div>
         </div>
       </div>
