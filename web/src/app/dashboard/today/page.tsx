@@ -87,6 +87,9 @@ export default function TodayPage() {
   const [mood, setMood] = useState<number | null>(null)
   const [moodSaved, setMoodSaved] = useState(false)
 
+  // Streak
+  const [streak, setStreak] = useState(0)
+
   useEffect(() => {
     const load = async () => {
       const { data: { user } } = await supabase.auth.getUser()
@@ -96,12 +99,14 @@ export default function TodayPage() {
       setUsername(user.email?.split("@")[0] ?? "User")
 
       // Fetch everything in parallel
-      const [planRes, executionRes, mealExecRes, waterRes, moodRes] = await Promise.all([
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().split("T")[0]
+      const [planRes, executionRes, mealExecRes, waterRes, moodRes, workoutLogsRes] = await Promise.all([
         supabase.from("workout_plans").select("plan").eq("user_id", user.id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
         supabase.from("workout_execution").select("exercise_name, done").eq("user_id", user.id).eq("date", today),
         supabase.from("meal_execution").select("meal_name, eaten").eq("user_id", user.id).eq("date", today),
         supabase.from("water_logs").select("amount_ml").eq("user_id", user.id).eq("date", today).maybeSingle(),
         supabase.from("mood_logs").select("mood").eq("user_id", user.id).eq("date", today).maybeSingle(),
+        supabase.from("workout_logs").select("date").eq("user_id", user.id).gte("date", thirtyDaysAgo).order("date", { ascending: false }),
       ])
 
       // Parse plan
@@ -139,6 +144,24 @@ export default function TodayPage() {
 
       // Mood
       if (moodRes.data?.mood) setMood(moodRes.data.mood)
+
+      // Streak calculation
+      if (workoutLogsRes.data && workoutLogsRes.data.length > 0) {
+        const dates = [...new Set(workoutLogsRes.data.map((r: any) => r.date?.split("T")[0]))].sort().reverse() as string[]
+        let s = 0
+        let cursor = today
+        for (const d of dates) {
+          if (d === cursor) {
+            s++
+            const prev = new Date(cursor)
+            prev.setDate(prev.getDate() - 1)
+            cursor = prev.toISOString().split("T")[0]
+          } else if (d < cursor) {
+            break
+          }
+        }
+        setStreak(s)
+      }
 
       setLoading(false)
     }
@@ -238,7 +261,7 @@ export default function TodayPage() {
           <div>
             <div className="flex items-center gap-2 mb-1">
               <GreetingIcon className="h-5 w-5 text-amber-500" />
-              <span className="text-sm font-medium text-slate-500 dark:text-slate-400">{greeting.text}</span>
+              <span className="text-sm font-medium text-slate-500 dark:text-slate-400">{greeting.text}, {username}</span>
             </div>
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
               Today's Focus
@@ -246,6 +269,12 @@ export default function TodayPage() {
             <p className="text-sm text-slate-400 mt-0.5">
               {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
             </p>
+            {streak > 0 && (
+              <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-orange-100 dark:bg-orange-900/30 px-3 py-1">
+                <Flame className="h-3.5 w-3.5 text-orange-500" />
+                <span className="text-xs font-bold text-orange-700 dark:text-orange-400">{streak}-day streak</span>
+              </div>
+            )}
           </div>
           {/* Overall ring */}
           <div className="relative h-16 w-16">

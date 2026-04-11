@@ -111,7 +111,7 @@ export async function POST(req: NextRequest) {
       supabase
         .from("profiles")
         .select("goal, weight, activity_level, injuries")
-        .eq("user_id", userId)
+        .eq("id", userId)
         .maybeSingle(),
 
       supabase
