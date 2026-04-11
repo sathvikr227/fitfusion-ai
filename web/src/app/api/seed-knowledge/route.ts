@@ -323,6 +323,11 @@ const FITNESS_KNOWLEDGE: { content: string; category: string }[] = [
 ]
 
 export async function POST(_req: Request) {
+  const secret = _req.headers.get("x-seed-secret")
+  if (!secret || secret !== process.env.SEED_SECRET) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  }
+
   try {
     const supabase = getSupabase()
     const openai = getOpenAIClient()

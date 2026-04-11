@@ -12,6 +12,11 @@ const DEFAULTS = {
 }
 
 export async function POST(req: NextRequest) {
+  const authHeader = req.headers.get("Authorization")
+  if (!authHeader?.startsWith("Bearer ")) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
   try {
     const body = await req.json()
     const notes: string = body?.notes ?? ""

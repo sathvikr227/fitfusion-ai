@@ -103,10 +103,10 @@ export async function POST(req: NextRequest) {
         .maybeSingle(),
 
       supabase
-        .from("workout_execution")
-        .select("plan_date, exercise_name, completed")
+        .from("workout_logs")
+        .select("date, total_calories")
         .eq("user_id", userId)
-        .gte("plan_date", since),
+        .gte("date", since),
 
       supabase
         .from("profiles")
@@ -128,14 +128,22 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // ── Compute actual completion rate from execution data ────────────────────
-    const executionRows = executionRes.data ?? []
+    // ── Compute actual completion rate from workout_logs data ─────────────────
+    const workoutRows = executionRes.data ?? []
+    // Count days with at least one workout log in the period
+    const workoutDaysActual = new Set(workoutRows.map((r: any) => r.date)).size
+    // Assume the plan has workout days from the plan structure
+    let plannedWorkoutDays = 0
+    try {
+      const plan = typeof planRes.data!.plan === "string" ? JSON.parse(planRes.data!.plan) : planRes.data!.plan
+      plannedWorkoutDays = (plan?.workout_plan ?? []).filter((d: any) => d.type?.toLowerCase() !== "rest").length
+    } catch {}
+    if (plannedWorkoutDays === 0) plannedWorkoutDays = 4 // fallback
+    const weeksInPeriod = 1 // since is 7 days
+    const totalPlannedSessions = plannedWorkoutDays * weeksInPeriod
     let actualCompletionRate = clientCompletionRate ?? 0
-
-    if (executionRows.length > 0) {
-      const totalExercises = executionRows.length
-      const completedExercises = executionRows.filter((r) => r.completed).length
-      actualCompletionRate = Math.round((completedExercises / totalExercises) * 100)
+    if (totalPlannedSessions > 0) {
+      actualCompletionRate = Math.round((workoutDaysActual / totalPlannedSessions) * 100)
     }
 
     // ── Compute avg sleep ─────────────────────────────────────────────────────

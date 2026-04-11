@@ -18,6 +18,11 @@ function extractJson(text: string): string {
 }
 
 export async function POST(req: Request) {
+  const authHeader = req.headers.get("Authorization")
+  if (!authHeader?.startsWith("Bearer ")) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
   try {
     const groq = getGroqClient()
     const body = await req.json()

@@ -77,7 +77,7 @@ Be realistic with estimates. If unsure about a specific item, make a reasonable 
 
     // Log to meal_logs table
     const today = new Date().toISOString().split("T")[0]
-    const { data: logged, error: logErr } = await supabase
+    const { error: logErr } = await supabase
       .from("meal_logs")
       .insert({
         user_id: user.id,
@@ -90,12 +90,15 @@ Be realistic with estimates. If unsure about a specific item, make a reasonable 
         source: "voice",
         items: parsed.items ?? [],
       })
-      .select()
-      .single()
+
+    if (logErr) {
+      console.error("Voice food log DB error:", logErr)
+      return NextResponse.json({ error: "Parsed but failed to save to database" }, { status: 500 })
+    }
 
     return NextResponse.json({
       success: true,
-      logged: !logErr,
+      logged: true,
       description: parsed.description,
       calories: parsed.calories,
       protein: parsed.protein,

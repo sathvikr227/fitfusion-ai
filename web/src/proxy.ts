@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 const PUBLIC_API_PATHS = [
-  '/api/seed-knowledge',
   '/api/analyze-food',
   '/api/analyze-food-text',
   '/api/food-db',
