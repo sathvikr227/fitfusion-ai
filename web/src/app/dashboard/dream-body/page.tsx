@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "../../../lib/supabase/client"
 import {
@@ -102,6 +102,8 @@ export default function DreamBodyPage() {
   const [photoLoading, setPhotoLoading] = useState(false)
   const [photoError, setPhotoError] = useState("")
   const [showPhotoSection, setShowPhotoSection] = useState(false)
+  const [applied, setApplied] = useState(false)
+  const formRef = useRef<HTMLDivElement>(null)
 
   // Auth guard + pre-fill from profile
   useEffect(() => {
@@ -174,6 +176,12 @@ export default function DreamBodyPage() {
     if (!photoAnalysis) return
     if (photoAnalysis.primaryGoal) setGoal(photoAnalysis.primaryGoal)
     if (photoAnalysis.suggestedTargetBodyFat) setTargetBodyFat(String(photoAnalysis.suggestedTargetBodyFat))
+    setApplied(true)
+    setTimeout(() => setApplied(false), 3000)
+    // Scroll down to the form so user can see what changed
+    setTimeout(() => {
+      formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+    }, 100)
   }
 
   const generate = async () => {
@@ -421,9 +429,13 @@ export default function DreamBodyPage() {
 
                         <button
                           onClick={applyPhotoAnalysis}
-                          className="w-full py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-cyan-500 text-white text-xs font-semibold hover:opacity-90 transition"
+                          className={`w-full py-2.5 rounded-xl text-white text-xs font-semibold transition flex items-center justify-center gap-2 ${applied ? "bg-green-500" : "bg-gradient-to-r from-purple-600 to-cyan-500 hover:opacity-90"}`}
                         >
-                          Apply to My Plan Form
+                          {applied ? (
+                            <><svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg> Applied! Scroll down to see</>
+                          ) : (
+                            "Apply to My Plan Form"
+                          )}
                         </button>
                       </div>
                     )}
@@ -435,7 +447,13 @@ export default function DreamBodyPage() {
         </div>
 
         {/* Form */}
-        <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm space-y-6">
+        <div ref={formRef} className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm space-y-6">
+          {applied && (
+            <div className="flex items-center gap-2 rounded-2xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 px-4 py-3 text-green-700 dark:text-green-400 text-sm font-medium">
+              <svg className="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+              Analysis applied! Goal and target body fat have been updated below.
+            </div>
+          )}
 
           {/* Goal selector */}
           <div>
