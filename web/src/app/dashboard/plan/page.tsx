@@ -447,9 +447,13 @@ export default function PlanPage() {
     setStatus(null)
 
     try {
+      const { data: { session } } = await supabase.auth.getSession()
       const res = await fetch("/api/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session?.access_token ?? ""}`,
+        },
         body: JSON.stringify({
           message: input,
           currentPlan: planContent,
@@ -513,9 +517,13 @@ export default function PlanPage() {
     setGroceries(null)
 
     try {
+      const { data: { session } } = await supabase.auth.getSession()
       const res = await fetch("/api/grocery-list", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session?.access_token ?? ""}`,
+        },
         body: JSON.stringify({ userId }),
       })
 
