@@ -21,6 +21,10 @@ import {
   BellOff,
   Check,
 } from "lucide-react"
+import { InjuryRiskWidget } from "../components/InjuryRiskWidget"
+import { WeeklyCheckIn } from "../components/WeeklyCheckIn"
+import { MoodCheckIn } from "../components/MoodCheckIn"
+import { MacroRings } from "../components/MacroRings"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -190,6 +194,23 @@ function QuickLink({
   )
 }
 
+// ─── Smart Insight helper ──────────────────────────────────────────────────────
+
+function getSmartInsight(
+  streak: number,
+  weeklyBurn: number,
+  weeklyConsumed: number,
+  dailyCalorieTarget: number,
+  workoutSessions: number
+): { message: string; icon: string; color: string } {
+  if (streak >= 7) return { message: `${streak}-day streak! You're building an unstoppable habit. Keep showing up.`, icon: "🔥", color: "from-orange-500 to-amber-500" }
+  if (streak >= 3) return { message: `${streak} days strong! Consistency is your superpower. Don't break the chain.`, icon: "⚡", color: "from-yellow-500 to-orange-400" }
+  if (workoutSessions === 0) return { message: "Ready to start your week? Even one session changes everything.", icon: "💪", color: "from-purple-600 to-cyan-500" }
+  if (weeklyBurn > 1500) return { message: `You've burned ${weeklyBurn} kcal this week — phenomenal effort!`, icon: "🏆", color: "from-emerald-500 to-teal-500" }
+  if (dailyCalorieTarget > 0 && weeklyConsumed / 7 < dailyCalorieTarget * 0.8) return { message: "You're under your calorie target this week. Make sure you're fueling properly.", icon: "🍎", color: "from-rose-500 to-pink-500" }
+  return { message: "Every workout, every meal — you're building the best version of yourself.", icon: "✨", color: "from-indigo-500 to-purple-600" }
+}
+
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function HomeDashboard() {
@@ -202,6 +223,8 @@ export default function HomeDashboard() {
   const [mealLogs, setMealLogs] = useState<MealLogRow[]>([])
   const [latestPlan, setLatestPlan] = useState<LatestPlan | null>(null)
   const [loading, setLoading] = useState(true)
+  const [todayMacros, setTodayMacros] = useState({ caloriesConsumed: 0, proteinConsumed: 0, carbsConsumed: 0, fatConsumed: 0 })
+  const [macroTargets, setMacroTargets] = useState({ calories: 0, protein: 0, carbs: 0, fat: 0 })
 
   // ── Water intake (localStorage, resets daily) ─────────────────────────────
   // Goal: weight(kg) × 0.033 L, clamped between 2L and 4L. Default 2.5L if no weight.
@@ -306,6 +329,8 @@ export default function HomeDashboard() {
         workoutRes,
         mealRes,
         planRes,
+        profileMacrosRes,
+        todayMealRes,
       ] = await Promise.all([
         supabase
           .from("weight_logs")
@@ -338,6 +363,8 @@ export default function HomeDashboard() {
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle(),
+        supabase.from("profiles").select("calorie_target, protein_target, carbs_target, fat_target").eq("id", user.id).maybeSingle(),
+        supabase.from("meal_logs").select("total_calories, protein, carbs, fat").eq("user_id", user.id).eq("date", todayStr()),
       ])
 
       if (weightRes.data?.weight != null) setLatestWeight(weightRes.data.weight)
@@ -345,6 +372,23 @@ export default function HomeDashboard() {
       setWorkoutLogs(workoutRes.data ?? [])
       setMealLogs(mealRes.data ?? [])
       if (planRes.data?.plan) setLatestPlan(safePlan(planRes.data.plan))
+      if (profileMacrosRes.data) {
+        setMacroTargets({
+          calories: profileMacrosRes.data.calorie_target ?? 0,
+          protein: profileMacrosRes.data.protein_target ?? 0,
+          carbs: profileMacrosRes.data.carbs_target ?? 0,
+          fat: profileMacrosRes.data.fat_target ?? 0,
+        })
+      }
+      if (todayMealRes.data) {
+        const rows = todayMealRes.data
+        setTodayMacros({
+          caloriesConsumed: rows.reduce((s: number, r: any) => s + (r.total_calories ?? 0), 0),
+          proteinConsumed: rows.reduce((s: number, r: any) => s + (r.protein ?? 0), 0),
+          carbsConsumed: rows.reduce((s: number, r: any) => s + (r.carbs ?? 0), 0),
+          fatConsumed: rows.reduce((s: number, r: any) => s + (r.fat ?? 0), 0),
+        })
+      }
 
       setLoading(false)
     }
@@ -397,10 +441,57 @@ export default function HomeDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-white via-slate-50 to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex items-center justify-center">
-        <div className="text-center">
-          <div className="mx-auto mb-4 h-10 w-10 rounded-full border-2 border-purple-200 border-t-purple-600 animate-spin" />
-          <p className="text-sm text-slate-600 dark:text-slate-400">Loading dashboard...</p>
+      <div className="min-h-screen bg-gradient-to-br from-white via-slate-50 to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 px-4 py-6 md:px-8 md:py-10">
+        <div className="mx-auto max-w-7xl space-y-6 animate-pulse">
+          {/* Header skeleton */}
+          <div className="flex justify-between items-end">
+            <div className="space-y-2">
+              <div className="h-3 w-24 rounded-full bg-slate-200 dark:bg-slate-700" />
+              <div className="h-8 w-56 rounded-2xl bg-slate-200 dark:bg-slate-700" />
+              <div className="h-3 w-40 rounded-full bg-slate-200 dark:bg-slate-700" />
+            </div>
+            <div className="flex gap-3">
+              <div className="h-16 w-24 rounded-2xl bg-slate-200 dark:bg-slate-700" />
+              <div className="h-16 w-28 rounded-2xl bg-slate-200 dark:bg-slate-700" />
+            </div>
+          </div>
+          {/* Metric cards skeleton */}
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 space-y-3">
+                <div className="h-10 w-10 rounded-2xl bg-slate-200 dark:bg-slate-700" />
+                <div className="h-3 w-20 rounded-full bg-slate-200 dark:bg-slate-700" />
+                <div className="h-7 w-28 rounded-xl bg-slate-200 dark:bg-slate-700" />
+              </div>
+            ))}
+          </div>
+          {/* Second row skeleton */}
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 space-y-3">
+                <div className="h-10 w-10 rounded-2xl bg-slate-200 dark:bg-slate-700" />
+                <div className="h-3 w-20 rounded-full bg-slate-200 dark:bg-slate-700" />
+                <div className="h-7 w-28 rounded-xl bg-slate-200 dark:bg-slate-700" />
+              </div>
+            ))}
+          </div>
+          {/* Main content skeleton */}
+          <div className="grid gap-6 xl:grid-cols-12">
+            <div className="xl:col-span-8 space-y-6">
+              <div className="h-44 rounded-3xl bg-slate-200 dark:bg-slate-700" />
+              <div className="h-36 rounded-3xl bg-slate-200 dark:bg-slate-700" />
+              <div className="grid grid-cols-3 gap-3">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="h-24 rounded-3xl bg-slate-200 dark:bg-slate-700" />
+                ))}
+              </div>
+            </div>
+            <div className="xl:col-span-4 space-y-6">
+              <div className="h-48 rounded-3xl bg-slate-200 dark:bg-slate-700" />
+              <div className="h-36 rounded-3xl bg-slate-200 dark:bg-slate-700" />
+              <div className="h-28 rounded-3xl bg-slate-200 dark:bg-slate-700" />
+            </div>
+          </div>
         </div>
       </div>
     )
@@ -441,6 +532,12 @@ export default function HomeDashboard() {
             </div>
           </div>
         </div>
+
+        {/* ── Weekly Check-In ── */}
+        {userId && <WeeklyCheckIn userId={userId} />}
+
+        {/* Daily Mood Check-In */}
+        {userId && <MoodCheckIn userId={userId} />}
 
         {/* ── Body metrics ── */}
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -505,6 +602,22 @@ export default function HomeDashboard() {
             accent="bg-cyan-50"
           />
         </div>
+
+        {/* ── Smart Insight ── */}
+        {(() => {
+          const insight = getSmartInsight(streak, weeklyCaloriesBurned, weeklyCaloriesConsumed, planSummary?.dailyCalories ?? 0, workoutSessionsThisWeek)
+          return (
+            <div className={`rounded-3xl bg-gradient-to-r ${insight.color} p-5 shadow-md`}>
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">{insight.icon}</span>
+                <p className="text-white font-medium text-sm leading-relaxed">{insight.message}</p>
+              </div>
+            </div>
+          )
+        })()}
+
+        {/* ── Injury Risk Widget ── */}
+        {userId && <InjuryRiskWidget userId={userId} />}
 
         <div className="grid gap-6 xl:grid-cols-12">
           <div className="space-y-6 xl:col-span-8">
@@ -712,6 +825,16 @@ export default function HomeDashboard() {
                 </p>
               )}
             </div>
+
+            {/* Macro Rings */}
+            {(macroTargets.calories > 0 || macroTargets.protein > 0) && (
+              <MacroRings
+                calories={{ consumed: todayMacros.caloriesConsumed, target: macroTargets.calories || (planSummary?.dailyCalories ?? 0) }}
+                protein={{ consumed: todayMacros.proteinConsumed, target: macroTargets.protein }}
+                carbs={{ consumed: todayMacros.carbsConsumed, target: macroTargets.carbs }}
+                fat={{ consumed: todayMacros.fatConsumed, target: macroTargets.fat }}
+              />
+            )}
 
             {/* Workout Reminder */}
             <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm">

@@ -24,6 +24,9 @@ import {
   Heart,
   Pill,
   AlertTriangle,
+  MessageCircle,
+  Dumbbell,
+  CalendarCheck,
 } from "lucide-react"
 import VoiceAssistant from "../../components/VoiceAssistant"
 
@@ -42,6 +45,8 @@ export default function DashboardLayout({
 
   const navItems = [
     { name: "Home", href: "/dashboard/home", icon: LayoutDashboard },
+    { name: "Today", href: "/dashboard/today", icon: CalendarCheck },
+    { name: "AI Coach", href: "/dashboard/assistant", icon: MessageCircle },
     { name: "Plan & AI", href: "/dashboard/plan", icon: Bot },
     { name: "Progress", href: "/dashboard/progress", icon: ClipboardList },
     { name: "Analytics", href: "/dashboard/analytics", icon: LineChart },
@@ -188,10 +193,56 @@ export default function DashboardLayout({
         </aside>
 
         {/* CONTENT */}
-        <main className="flex-1 overflow-y-auto px-4 py-6 md:px-10 md:py-8">
+        <main className="flex-1 overflow-y-auto px-4 py-6 pb-20 md:pb-8 md:px-10 md:py-8">
           {children}
         </main>
       </div>
+
+      {/* MOBILE BOTTOM NAVIGATION BAR */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl md:hidden safe-area-pb">
+        <div className="grid grid-cols-5 h-16">
+          {[
+            { href: "/dashboard/home", icon: LayoutDashboard, label: "Home" },
+            { href: "/dashboard/plan", icon: Dumbbell, label: "Plan" },
+            { href: "/dashboard/today", icon: CalendarCheck, label: "Today", featured: true },
+            { href: "/dashboard/assistant", icon: MessageCircle, label: "Coach" },
+            { href: "/dashboard/profile", icon: UserCog, label: "Profile" },
+          ].map(({ href, icon: Icon, label, featured }) => {
+            const active = pathname === href || pathname.startsWith(`${href}/`)
+            if (featured) {
+              return (
+                <button
+                  key={href}
+                  onClick={() => router.push(href)}
+                  className="flex flex-col items-center justify-center gap-1 -mt-4"
+                >
+                  <div className={`flex h-12 w-12 items-center justify-center rounded-2xl shadow-lg transition-all ${active ? "bg-gradient-to-br from-purple-600 via-indigo-600 to-cyan-500 shadow-purple-500/30" : "bg-gradient-to-br from-purple-600 to-cyan-500 shadow-purple-500/20 hover:shadow-purple-500/30"}`}>
+                    <Icon className="h-5 w-5 text-white" />
+                  </div>
+                  <span className={`text-[10px] font-medium ${active ? "text-purple-600 dark:text-purple-400" : "text-slate-400 dark:text-slate-500"}`}>{label}</span>
+                </button>
+              )
+            }
+            return (
+              <button
+                key={href}
+                onClick={() => router.push(href)}
+                className={`flex flex-col items-center justify-center gap-1 transition-colors ${
+                  active
+                    ? "text-purple-600 dark:text-purple-400"
+                    : "text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                }`}
+              >
+                <Icon className="h-5 w-5" />
+                <span className="text-[10px] font-medium">{label}</span>
+                {active && (
+                  <span className="absolute bottom-0 mb-1 h-0.5 w-6 rounded-full bg-gradient-to-r from-purple-600 to-cyan-500" />
+                )}
+              </button>
+            )
+          })}
+        </div>
+      </nav>
 
       <VoiceAssistant />
     </div>

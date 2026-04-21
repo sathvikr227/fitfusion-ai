@@ -43,6 +43,20 @@ type PlanHistoryItem = {
   created_at: string
 }
 
+type ExecutionRecord = {
+  exercise_name: string
+  done: boolean
+  sets_done?: number | null
+  reps_done?: number | null
+  weight_used?: number | null
+  notes?: string | null
+}
+
+type MealExecutionRecord = {
+  meal_name: string
+  eaten: boolean
+}
+
 function safeJsonParse(value: string) {
   try {
     return JSON.parse(value)
@@ -91,6 +105,65 @@ function getActualWorkoutDays(workoutDays: WorkoutDay[]) {
   ).length
 }
 
+// Map plan day names to JS getDay() index (0=Sun)
+const WEEK_DAYS: Record<string, number> = {
+  sunday: 0,
+  monday: 1,
+  tuesday: 2,
+  wednesday: 3,
+  thursday: 4,
+  friday: 5,
+  saturday: 6,
+  sun: 0,
+  mon: 1,
+  tue: 2,
+  wed: 3,
+  thu: 4,
+  fri: 5,
+  sat: 6,
+  "day 1": 1,
+  "day 2": 2,
+  "day 3": 3,
+  "day 4": 4,
+  "day 5": 5,
+  "day 6": 6,
+  "day 7": 0,
+}
+
+function getTodayWorkoutDay(workoutDays: WorkoutDay[]): WorkoutDay | null {
+  const todayIndex = new Date().getDay() // 0=Sun
+  for (const day of workoutDays) {
+    const key = day.day.toLowerCase().trim()
+    if (WEEK_DAYS[key] === todayIndex) return day
+  }
+  // Fallback: positional match (Mon=plan[0], Tue=plan[1], ...)
+  const posMap = [6, 0, 1, 2, 3, 4, 5] // getDay() → plan index (Mon-first)
+  const planIdx = posMap[todayIndex]
+  if (workoutDays[planIdx]) return workoutDays[planIdx]
+  return workoutDays[0] ?? null
+}
+
+function todayDateStr() {
+  return new Date().toISOString().split("T")[0]
+}
+
+function getExerciseTip(name: string): string {
+  const lower = name.toLowerCase()
+  if (lower.includes("squat")) return "Keep your chest up, knees tracking over toes. Drive through your heels on the way up."
+  if (lower.includes("deadlift")) return "Hinge at the hips, keep your back flat. Bar stays close to your body throughout the lift."
+  if (lower.includes("bench")) return "Grip slightly wider than shoulder-width. Lower the bar to your lower chest, drive up explosively."
+  if (lower.includes("row")) return "Squeeze your shoulder blades together at the top. Control the eccentric on the way down."
+  if (lower.includes("pull") || lower.includes("chin")) return "Full hang at the bottom, chin over bar at the top. Engage your lats by thinking 'elbows to hips'."
+  if (lower.includes("press") || lower.includes("overhead")) return "Brace your core to protect your lower back. Press in a straight line overhead."
+  if (lower.includes("lunge")) return "Step far enough that your front knee stays above your ankle, not past your toes."
+  if (lower.includes("plank")) return "Neutral spine, squeeze your glutes and abs. Don't let your hips sag or pike up."
+  if (lower.includes("curl")) return "Keep your elbows pinned to your sides. Full range of motion — don't cheat with momentum."
+  if (lower.includes("tricep") || lower.includes("dip") || lower.includes("extension")) return "Lock your elbows in place and isolate the triceps. Controlled movement throughout."
+  if (lower.includes("calf")) return "Full stretch at the bottom, full contraction at the top. Slow and controlled is better than heavy."
+  if (lower.includes("run") || lower.includes("cardio") || lower.includes("jog")) return "Maintain a conversational pace. Land midfoot, not on your heels."
+  return "Focus on form over weight. Full range of motion and controlled movement build more muscle safely."
+}
+
 export default function PlanPage() {
   const router = useRouter()
 
@@ -106,6 +179,15 @@ export default function PlanPage() {
   const [userId, setUserId] = useState<string | null>(null)
   const [completionRate, setCompletionRate] = useState<number | null>(null)
   const [upgradingDifficulty, setUpgradingDifficulty] = useState(false)
+
+  // Workout execution tracking
+  const [executionMap, setExecutionMap] = useState<Record<string, ExecutionRecord>>({})
+  const [savingExercise, setSavingExercise] = useState<string | null>(null)
+  const [expandedExercise, setExpandedExercise] = useState<string | null>(null)
+
+  // Meal execution tracking
+  const [mealExecutions, setMealExecutions] = useState<Record<string, MealExecutionRecord>>({})
+  const [savingMeal, setSavingMeal] = useState<string | null>(null)
 
   // Grocery list
   type GroceryItem = { name: string; qty: string }
@@ -165,6 +247,123 @@ export default function PlanPage() {
       return ""
     }
   }, [planContent])
+
+  // Today's workout day derived values
+  const todayWorkoutDay = useMemo(() => {
+    if (workoutDays.length === 0) return null
+    return getTodayWorkoutDay(workoutDays)
+  }, [workoutDays])
+
+  const todayExercises = useMemo(() => {
+    if (!todayWorkoutDay) return []
+    if (todayWorkoutDay.type?.toLowerCase() === "rest") return []
+    return todayWorkoutDay.exercises ?? []
+  }, [todayWorkoutDay])
+
+  const doneCount = useMemo(() => {
+    return todayExercises.filter((ex) => executionMap[ex.name]?.done).length
+  }, [todayExercises, executionMap])
+
+  const allDone = todayExercises.length > 0 && doneCount === todayExercises.length
+
+  // Load today's execution state from Supabase whenever userId is set
+  useEffect(() => {
+    if (!userId) return
+    const loadExecution = async () => {
+      const today = todayDateStr()
+      const { data } = await supabase
+        .from("workout_execution")
+        .select("exercise_name, done, sets_done, reps_done, weight_used, notes")
+        .eq("user_id", userId)
+        .eq("date", today)
+
+      if (data && data.length > 0) {
+        const map: Record<string, ExecutionRecord> = {}
+        for (const row of data) {
+          map[row.exercise_name] = row as ExecutionRecord
+        }
+        setExecutionMap(map)
+      }
+
+      const { data: mealData } = await supabase
+        .from("meal_execution")
+        .select("meal_name, eaten")
+        .eq("user_id", userId)
+        .eq("date", today)
+
+      if (mealData && mealData.length > 0) {
+        const mealMap: Record<string, MealExecutionRecord> = {}
+        for (const row of mealData) {
+          mealMap[row.meal_name] = row as MealExecutionRecord
+        }
+        setMealExecutions(mealMap)
+      }
+    }
+    loadExecution()
+  }, [userId])
+
+  const toggleExerciseDone = async (exercise: WorkoutExercise) => {
+    if (!userId) return
+    const name = exercise.name
+    const current = executionMap[name]
+    const nextCompleted = !current?.done
+    setSavingExercise(name)
+
+    const today = todayDateStr()
+    const { error } = await supabase.from("workout_execution").upsert(
+      {
+        user_id: userId,
+        date: today,
+        exercise_name: name,
+        done: nextCompleted,
+        sets_done: exercise.sets ?? null,
+        reps_done: exercise.reps ?? null,
+        weight_used: current?.weight_used ?? null,
+        notes: current?.notes ?? null,
+      },
+      { onConflict: "user_id,date,exercise_name" }
+    )
+
+    if (!error) {
+      setExecutionMap((prev) => ({
+        ...prev,
+        [name]: {
+          ...prev[name],
+          exercise_name: name,
+          done: nextCompleted,
+        },
+      }))
+    }
+
+    setSavingExercise(null)
+  }
+
+  const toggleMealEaten = async (mealName: string) => {
+    if (!userId) return
+    const current = mealExecutions[mealName]
+    const nextEaten = !current?.eaten
+    setSavingMeal(mealName)
+
+    const today = todayDateStr()
+    const { error } = await supabase.from("meal_execution").upsert(
+      {
+        user_id: userId,
+        date: today,
+        meal_name: mealName,
+        eaten: nextEaten,
+      },
+      { onConflict: "user_id,date,meal_name" }
+    )
+
+    if (!error) {
+      setMealExecutions((prev) => ({
+        ...prev,
+        [mealName]: { meal_name: mealName, eaten: nextEaten },
+      }))
+    }
+
+    setSavingMeal(null)
+  }
 
   useEffect(() => {
     const load = async () => {
@@ -229,7 +428,6 @@ export default function PlanPage() {
 
       if (recentLogs && recentLogs.length > 0) {
         const uniqueDays = new Set(recentLogs.map((r: any) => r.date)).size
-        // Rate relative to 14 days (conservative denominator)
         setCompletionRate(Math.round((uniqueDays / 14) * 100))
       } else {
         setCompletionRate(0)
@@ -249,9 +447,13 @@ export default function PlanPage() {
     setStatus(null)
 
     try {
+      const { data: { session } } = await supabase.auth.getSession()
       const res = await fetch("/api/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session?.access_token ?? ""}`,
+        },
         body: JSON.stringify({
           message: input,
           currentPlan: planContent,
@@ -270,8 +472,6 @@ export default function PlanPage() {
         data.plan ?? data.updatedPlan ?? data.content ?? data.result ?? null
 
       if (nextPlan) {
-        console.log("Saving plan:", nextPlan)
-
         setPlanContent(nextPlan)
         setInput("")
 
@@ -288,8 +488,6 @@ export default function PlanPage() {
           if (error) {
             console.error("Error saving plan:", error.message)
           } else {
-            console.log("Plan saved successfully ✅")
-
             const { data: allPlans } = await supabase
               .from("workout_plans")
               .select("*")
@@ -319,9 +517,13 @@ export default function PlanPage() {
     setGroceries(null)
 
     try {
+      const { data: { session } } = await supabase.auth.getSession()
       const res = await fetch("/api/grocery-list", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session?.access_token ?? ""}`,
+        },
         body: JSON.stringify({ userId }),
       })
 
@@ -343,7 +545,7 @@ export default function PlanPage() {
     setUpgradingDifficulty(true)
     setStatus(null)
     try {
-      const { data: { user }, } = await supabase.auth.getUser()
+      const { data: { user } } = await supabase.auth.getUser()
       const { data: { session } } = await supabase.auth.getSession()
       if (!user) { router.replace("/"); return }
 
@@ -421,6 +623,10 @@ export default function PlanPage() {
   const dietDailyTotal = hasStructuredPlan ? totalDietCalories : 0
   const workoutTotal = hasStructuredPlan ? totalWorkoutBurn : 0
   const netLabel = dailyNetCalories !== null ? `${dailyNetCalories} kcal` : "--"
+  const progressPct =
+    todayExercises.length > 0
+      ? Math.round((doneCount / todayExercises.length) * 100)
+      : 0
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 px-6 py-8 text-slate-900 dark:text-white md:px-10">
@@ -434,6 +640,207 @@ export default function PlanPage() {
           </p>
         </div>
 
+        {/* ── Today's Workout Execution Tracker ── */}
+        {todayWorkoutDay && (
+          <div
+            className={`rounded-3xl border p-6 shadow-sm ${
+              allDone
+                ? "border-emerald-300 dark:border-emerald-700 bg-gradient-to-br from-emerald-50 to-cyan-50 dark:from-emerald-900/20 dark:to-cyan-900/20"
+                : "border-purple-200 dark:border-purple-900 bg-gradient-to-br from-purple-50 to-cyan-50 dark:from-purple-900/20 dark:to-cyan-900/20"
+            }`}
+          >
+            {/* Header row */}
+            <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-widest text-purple-600 dark:text-purple-400">
+                  Today&apos;s Workout
+                </p>
+                <h2 className="mt-1 text-xl font-bold text-slate-900 dark:text-white">
+                  {todayWorkoutDay.day}
+                  {todayWorkoutDay.type &&
+                  todayWorkoutDay.type.toLowerCase() !== "rest"
+                    ? ` — ${todayWorkoutDay.type}`
+                    : ""}
+                </h2>
+                {todayWorkoutDay.type?.toLowerCase() === "rest" && (
+                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                    Rest day — recovery is part of the plan. Stretch, hydrate, and sleep well.
+                  </p>
+                )}
+              </div>
+              {todayExercises.length > 0 && (
+                <div className="text-right shrink-0">
+                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    {doneCount} / {todayExercises.length} done
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    {progressPct}% complete
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Progress bar */}
+            {todayExercises.length > 0 && (
+              <div className="mb-5">
+                <div className="h-3 w-full overflow-hidden rounded-full bg-white/60 dark:bg-slate-700/60">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      allDone
+                        ? "bg-gradient-to-r from-emerald-400 to-cyan-400"
+                        : "bg-gradient-to-r from-purple-500 to-cyan-400"
+                    }`}
+                    style={{ width: `${progressPct}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Congratulations banner */}
+            {allDone && (
+              <div className="mb-5 flex items-center gap-3 rounded-2xl border border-emerald-300 bg-emerald-100 dark:bg-emerald-900/30 px-5 py-4">
+                <span className="text-2xl">🎉</span>
+                <div>
+                  <p className="font-bold text-emerald-800 dark:text-emerald-300">
+                    Complete! 🎉
+                  </p>
+                  <p className="text-sm text-emerald-700 dark:text-emerald-400">
+                    You crushed every exercise today. Amazing work — see you tomorrow!
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Exercise checklist */}
+            {todayExercises.length > 0 ? (
+              <div className="space-y-2">
+                {todayExercises.map((exercise) => {
+                  const done = !!executionMap[exercise.name]?.done
+                  const saving = savingExercise === exercise.name
+                  return (
+                    <div
+                      key={exercise.name}
+                      className={`flex items-center justify-between gap-4 rounded-2xl px-4 py-3 transition-all ${
+                        done
+                          ? "border border-emerald-200 dark:border-emerald-800 bg-emerald-100/80 dark:bg-emerald-900/30"
+                          : "border border-slate-200/60 dark:border-slate-700 bg-white/70 dark:bg-slate-700/60"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div
+                          className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-all ${
+                            done
+                              ? "border-emerald-500 bg-emerald-500"
+                              : "border-slate-300 dark:border-slate-600"
+                          }`}
+                        >
+                          {done && (
+                            <svg
+                              className="h-3 w-3 text-white"
+                              viewBox="0 0 12 12"
+                              fill="none"
+                            >
+                              <path
+                                d="M2 6l3 3 5-5"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <button
+                            type="button"
+                            onClick={() => setExpandedExercise(expandedExercise === exercise.name ? null : exercise.name)}
+                            className={`text-sm font-semibold truncate text-left w-full ${
+                              done
+                                ? "line-through text-slate-400 dark:text-slate-500"
+                                : "text-slate-900 dark:text-white hover:text-purple-600 dark:hover:text-purple-400"
+                            } transition-colors`}
+                          >
+                            {exercise.name}
+                            <span className="ml-1 text-xs text-slate-400 dark:text-slate-500 font-normal">
+                              {expandedExercise === exercise.name ? "▲" : "▼"}
+                            </span>
+                          </button>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            {exercise.sets ? `${exercise.sets} sets` : ""}
+                            {exercise.sets && exercise.reps ? " × " : ""}
+                            {exercise.reps ? `${exercise.reps} reps` : ""}
+                          </p>
+                          {expandedExercise === exercise.name && (
+                            <p className="mt-1.5 text-xs text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/30 rounded-xl px-3 py-2 leading-relaxed">
+                              💡 {getExerciseTip(exercise.name)}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => toggleExerciseDone(exercise)}
+                        disabled={saving}
+                        className={`shrink-0 rounded-xl px-4 py-1.5 text-xs font-semibold transition disabled:opacity-50 ${
+                          done
+                            ? "bg-slate-100 dark:bg-slate-700 text-slate-500 hover:bg-rose-50 hover:text-rose-600"
+                            : "bg-gradient-to-r from-purple-600 to-cyan-500 text-white hover:opacity-90"
+                        }`}
+                      >
+                        {saving ? "..." : done ? "Undo" : "Mark Done"}
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : todayWorkoutDay.type?.toLowerCase() !== "rest" ? (
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                No exercises listed for today.
+              </p>
+            ) : null}
+          </div>
+        )}
+
+        {/* ── Today's Meals ── */}
+        {dietMeals.length > 0 && (
+          <div className="rounded-3xl border border-purple-200 dark:border-purple-900 bg-gradient-to-br from-purple-50 to-cyan-50 dark:from-purple-900/20 dark:to-cyan-900/20 p-6 shadow-sm">
+            <h2 className="mb-4 text-xl font-bold text-slate-900 dark:text-white">
+              Today&apos;s Meals
+            </h2>
+            <div className="space-y-2">
+              {dietMeals.map((meal) => {
+                const eaten = !!mealExecutions[meal.name]?.eaten
+                const saving = savingMeal === meal.name
+                return (
+                  <div
+                    key={meal.name}
+                    className={`flex items-center justify-between gap-4 rounded-2xl px-4 py-3 transition-all ${
+                      eaten
+                        ? "border border-emerald-200 dark:border-emerald-800 bg-emerald-100/80 dark:bg-emerald-900/30"
+                        : "border border-slate-200/60 dark:border-slate-700 bg-white/70 dark:bg-slate-700/60"
+                    }`}
+                  >
+                    <span className={`text-sm font-semibold ${eaten ? "line-through text-slate-400 dark:text-slate-500" : "text-slate-900 dark:text-white"}`}>
+                      {meal.name}
+                    </span>
+                    <button
+                      onClick={() => toggleMealEaten(meal.name)}
+                      disabled={saving}
+                      className={`shrink-0 rounded-xl px-4 py-1.5 text-xs font-semibold transition disabled:opacity-50 ${
+                        eaten
+                          ? "bg-slate-100 dark:bg-slate-700 text-slate-500 hover:bg-rose-50 hover:text-rose-600"
+                          : "bg-gradient-to-r from-purple-600 to-cyan-500 text-white hover:opacity-90"
+                      }`}
+                    >
+                      {saving ? "..." : eaten ? "Undo" : "Mark Eaten"}
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ── Stats cards ── */}
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm">
             <p className="text-sm text-slate-500 dark:text-slate-400">Diet Total</p>
@@ -470,6 +877,7 @@ export default function PlanPage() {
         <div className="grid gap-6 xl:grid-cols-12">
           <div className="space-y-6 xl:col-span-8">
             <div className="grid gap-6 md:grid-cols-2">
+              {/* Workout Plan */}
               <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm">
                 <div className="mb-5 flex items-center justify-between gap-3">
                   <h2 className="text-xl font-semibold">Workout Plan</h2>
@@ -506,15 +914,29 @@ export default function PlanPage() {
                             day.exercises.map((exercise, exIndex) => (
                               <div
                                 key={`${exercise.name}-${exIndex}`}
-                                className="flex items-center justify-between gap-4 rounded-xl bg-white dark:bg-slate-700 px-3 py-2 text-sm"
+                                className="rounded-xl bg-white dark:bg-slate-700 px-3 py-2 text-sm"
                               >
-                                <span className="font-medium text-slate-900 dark:text-white">
-                                  {exercise.name}
-                                </span>
-                                <span className="text-slate-500 dark:text-slate-400">
-                                  {exercise.sets ? `${exercise.sets} sets` : "--"}{" "}
-                                  {exercise.reps ? `× ${exercise.reps} reps` : ""}
-                                </span>
+                                <div className="flex items-center justify-between gap-4">
+                                  <button
+                                    type="button"
+                                    onClick={() => setExpandedExercise(expandedExercise === `${day.day}-${exercise.name}` ? null : `${day.day}-${exercise.name}`)}
+                                    className="font-medium text-slate-900 dark:text-white hover:text-purple-600 dark:hover:text-purple-400 transition-colors text-left"
+                                  >
+                                    {exercise.name}
+                                    <span className="ml-1 text-xs text-slate-400 dark:text-slate-500 font-normal">
+                                      {expandedExercise === `${day.day}-${exercise.name}` ? "▲" : "▼"}
+                                    </span>
+                                  </button>
+                                  <span className="text-slate-500 dark:text-slate-400 shrink-0">
+                                    {exercise.sets ? `${exercise.sets} sets` : "--"}{" "}
+                                    {exercise.reps ? `× ${exercise.reps} reps` : ""}
+                                  </span>
+                                </div>
+                                {expandedExercise === `${day.day}-${exercise.name}` && (
+                                  <p className="mt-1.5 text-xs text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/30 rounded-xl px-3 py-2 leading-relaxed">
+                                    💡 {getExerciseTip(exercise.name)}
+                                  </p>
+                                )}
                               </div>
                             ))
                           ) : (
@@ -537,6 +959,7 @@ export default function PlanPage() {
                 )}
               </div>
 
+              {/* Diet Plan */}
               <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm">
                 <div className="mb-5 flex items-center justify-between gap-3">
                   <h2 className="text-xl font-semibold">Diet Plan</h2>
@@ -611,6 +1034,7 @@ export default function PlanPage() {
               </div>
             </div>
 
+            {/* AI modifier */}
             <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm">
               <h2 className="mb-4 text-xl font-semibold">Modify your plan with AI</h2>
 
@@ -645,6 +1069,7 @@ export default function PlanPage() {
 
               {status ? <p className="mt-3 text-sm text-slate-600 dark:text-slate-400">{status}</p> : null}
             </div>
+
             {/* Adaptive Difficulty Upgrade Banner */}
             {completionRate !== null && completionRate >= 75 && (
               <div className="rounded-3xl border border-emerald-200 dark:border-emerald-700 bg-gradient-to-r from-emerald-50 to-cyan-50 dark:from-emerald-900/20 dark:to-cyan-900/20 p-5 shadow-sm flex flex-col sm:flex-row sm:items-center gap-4">
@@ -720,6 +1145,7 @@ export default function PlanPage() {
             </div>
           </div>
 
+          {/* Sidebar */}
           <div className="space-y-6 xl:col-span-4">
             <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm">
               <h2 className="mb-4 text-xl font-semibold">Plan History</h2>
@@ -794,6 +1220,15 @@ export default function PlanPage() {
                     {dailyNetCalories !== null ? `${dailyNetCalories} kcal` : "--"}
                   </span>
                 </div>
+
+                {todayExercises.length > 0 && (
+                  <div className="flex items-center justify-between rounded-2xl bg-purple-50 dark:bg-purple-900/20 px-4 py-3">
+                    <span className="text-slate-500 dark:text-slate-400">Today&apos;s progress</span>
+                    <span className="font-semibold text-purple-700 dark:text-purple-300">
+                      {doneCount}/{todayExercises.length} done
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>

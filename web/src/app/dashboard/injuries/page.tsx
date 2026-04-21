@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { supabase } from "../../../lib/supabase/client"
 import { AlertTriangle, Plus, X, Activity, Calendar, ChevronDown, ChevronUp } from "lucide-react"
+import { InjuryRiskWidget } from "../components/InjuryRiskWidget"
 
 type Injury = {
   id: string
@@ -41,6 +42,7 @@ export default function InjuriesPage() {
   const [showForm, setShowForm] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [filter, setFilter] = useState<"all" | "active" | "recovering" | "healed">("all")
+  const [userId, setUserId] = useState<string | null>(null)
   const [form, setForm] = useState({
     name: "",
     body_part: "Knee (Left)",
@@ -57,6 +59,7 @@ export default function InjuriesPage() {
     setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setLoading(false); return }
+    setUserId(user.id)
     const { data } = await supabase
       .from("injuries")
       .select("*")
@@ -125,6 +128,9 @@ export default function InjuriesPage() {
           <Plus className="h-4 w-4" /> Log Injury
         </button>
       </div>
+
+      {/* INJURY RISK WIDGET */}
+      {userId && <InjuryRiskWidget userId={userId} />}
 
       {/* STATS */}
       <div className="grid grid-cols-3 gap-4">

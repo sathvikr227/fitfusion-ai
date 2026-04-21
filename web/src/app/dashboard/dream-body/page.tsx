@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "../../../lib/supabase/client"
 import {
@@ -20,6 +20,8 @@ import {
   X,
   Camera,
   Zap,
+  Save,
+  ArrowRight,
 } from "lucide-react"
 
 type Feasibility = {
@@ -90,6 +92,8 @@ export default function DreamBodyPage() {
   const [loading, setLoading] = useState(false)
   const [roadmap, setRoadmap] = useState<Roadmap | null>(null)
   const [error, setError] = useState("")
+  const [saving, setSaving] = useState(false)
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saved" | "error">("idle")
 
   // Photo inspiration state
   const [photoFile, setPhotoFile] = useState<File | null>(null)
@@ -98,6 +102,8 @@ export default function DreamBodyPage() {
   const [photoLoading, setPhotoLoading] = useState(false)
   const [photoError, setPhotoError] = useState("")
   const [showPhotoSection, setShowPhotoSection] = useState(false)
+  const [applied, setApplied] = useState(false)
+  const formRef = useRef<HTMLDivElement>(null)
 
   // Auth guard + pre-fill from profile
   useEffect(() => {
@@ -107,13 +113,13 @@ export default function DreamBodyPage() {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("weight_kg, height_cm, age, gender")
+        .select("weight, height, age, gender")
         .eq("id", user.id)
         .maybeSingle()
 
       if (profile) {
-        if (profile.weight_kg) setCurrentWeight(String(profile.weight_kg))
-        if (profile.height_cm) setHeightCm(String(profile.height_cm))
+        if (profile.weight) setCurrentWeight(String(profile.weight))
+        if (profile.height) setHeightCm(String(profile.height))
         if (profile.age) setAge(String(profile.age))
         if (profile.gender) setGender(profile.gender)
       }
@@ -121,13 +127,13 @@ export default function DreamBodyPage() {
       // Also try latest weight log
       const { data: wLog } = await supabase
         .from("weight_logs")
-        .select("weight_kg")
+        .select("weight")
         .eq("user_id", user.id)
-        .order("logged_at", { ascending: false })
+        .order("date", { ascending: false })
         .limit(1)
         .maybeSingle()
 
-      if (wLog?.weight_kg) setCurrentWeight(String(wLog.weight_kg))
+      if (wLog?.weight) setCurrentWeight(String(wLog.weight))
     }
     load()
   }, [])
@@ -147,9 +153,15 @@ export default function DreamBodyPage() {
     setPhotoError("")
     setPhotoAnalysis(null)
     try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { router.replace("/login"); return }
       const fd = new FormData()
       fd.append("image", photoFile)
-      const res = await fetch("/api/analyze-inspiration", { method: "POST", body: fd })
+      const res = await fetch("/api/analyze-inspiration", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session.access_token}` },
+        body: fd,
+      })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Failed to analyze")
       setPhotoAnalysis(data.analysis)
@@ -164,6 +176,12 @@ export default function DreamBodyPage() {
     if (!photoAnalysis) return
     if (photoAnalysis.primaryGoal) setGoal(photoAnalysis.primaryGoal)
     if (photoAnalysis.suggestedTargetBodyFat) setTargetBodyFat(String(photoAnalysis.suggestedTargetBodyFat))
+    setApplied(true)
+    setTimeout(() => setApplied(false), 3000)
+    // Scroll down to the form so user can see what changed
+    setTimeout(() => {
+      formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+    }, 100)
   }
 
   const generate = async () => {
@@ -176,9 +194,11 @@ export default function DreamBodyPage() {
     setRoadmap(null)
 
     try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { router.replace("/login"); return }
       const res = await fetch("/api/dream-body", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({
           currentWeight: parseFloat(currentWeight),
           targetWeight: parseFloat(targetWeight),
@@ -200,6 +220,51 @@ export default function DreamBodyPage() {
       setError(err.message || "Something went wrong")
     } finally {
       setLoading(false)
+    }
+  }
+
+  const saveRoadmapAsPlan = async () => {
+    if (!roadmap) return
+    setSaving(true)
+    setSaveStatus("idle")
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { router.replace("/login"); return }
+
+      // 1. Save calorie + macro targets to profile
+      await supabase
+        .from("profiles")
+        .update({
+          calorie_target: roadmap.dailyCalories,
+          protein_target: roadmap.macros.protein,
+          carbs_target: roadmap.macros.carbs,
+          fat_target: roadmap.macros.fat,
+        })
+        .eq("id", session.user.id)
+
+      // 2. Generate and save a full workout plan via the existing API
+      const res = await fetch("/api/generate-plan", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ userId: session.user.id }),
+      })
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error || "Failed to generate workout plan")
+      }
+
+      setSaveStatus("saved")
+      // Navigate to the plan page after a short delay
+      setTimeout(() => router.push("/dashboard/plan"), 1200)
+    } catch (err: any) {
+      console.error("Save roadmap error:", err)
+      setSaveStatus("error")
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -364,9 +429,13 @@ export default function DreamBodyPage() {
 
                         <button
                           onClick={applyPhotoAnalysis}
-                          className="w-full py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-cyan-500 text-white text-xs font-semibold hover:opacity-90 transition"
+                          className={`w-full py-2.5 rounded-xl text-white text-xs font-semibold transition flex items-center justify-center gap-2 ${applied ? "bg-green-500" : "bg-gradient-to-r from-purple-600 to-cyan-500 hover:opacity-90"}`}
                         >
-                          Apply to My Plan Form
+                          {applied ? (
+                            <><svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg> Applied! Scroll down to see</>
+                          ) : (
+                            "Apply to My Plan Form"
+                          )}
                         </button>
                       </div>
                     )}
@@ -378,7 +447,13 @@ export default function DreamBodyPage() {
         </div>
 
         {/* Form */}
-        <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm space-y-6">
+        <div ref={formRef} className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm space-y-6">
+          {applied && (
+            <div className="flex items-center gap-2 rounded-2xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 px-4 py-3 text-green-700 dark:text-green-400 text-sm font-medium">
+              <svg className="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+              Analysis applied! Goal and target body fat have been updated below.
+            </div>
+          )}
 
           {/* Goal selector */}
           <div>
@@ -692,6 +767,66 @@ export default function DreamBodyPage() {
                   </li>
                 ))}
               </ul>
+            </div>
+
+            {/* Save & Apply CTA */}
+            <div className="rounded-3xl border-2 border-purple-200 dark:border-purple-700 bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 p-6 space-y-4">
+              <div>
+                <p className="font-bold text-slate-900 dark:text-white text-lg">Ready to make it official?</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                  Save your calorie & macro targets, then generate a full workout plan tailored to this roadmap.
+                </p>
+              </div>
+
+              {saveStatus === "saved" && (
+                <div className="flex items-center gap-2 rounded-2xl bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-700 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">
+                  <CheckCircle2 className="h-4 w-4 shrink-0" />
+                  Plan saved! Redirecting to your dashboard…
+                </div>
+              )}
+              {saveStatus === "error" && (
+                <div className="flex items-center gap-2 rounded-2xl bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 px-4 py-3 text-sm text-rose-600 dark:text-rose-400">
+                  <AlertTriangle className="h-4 w-4 shrink-0" />
+                  Something went wrong. Please try again.
+                </div>
+              )}
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={saveRoadmapAsPlan}
+                  disabled={saving || saveStatus === "saved"}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 py-4 text-sm font-semibold text-white shadow-lg shadow-purple-500/20 transition hover:opacity-90 disabled:opacity-60"
+                >
+                  {saving ? (
+                    <><Loader2 className="h-4 w-4 animate-spin" /> Saving & Generating Plan…</>
+                  ) : saveStatus === "saved" ? (
+                    <><CheckCircle2 className="h-4 w-4" /> Saved!</>
+                  ) : (
+                    <><Save className="h-4 w-4" /> Save & Generate My Workout Plan</>
+                  )}
+                </button>
+                <button
+                  onClick={() => router.push("/dashboard/plan")}
+                  className="flex items-center justify-center gap-2 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-5 py-4 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+                >
+                  View My Plan <ArrowRight className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3 pt-1">
+                <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-700 p-3 text-center">
+                  <p className="text-xl font-extrabold text-purple-600 dark:text-purple-400">{roadmap.dailyCalories.toLocaleString()}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">kcal / day</p>
+                </div>
+                <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-700 p-3 text-center">
+                  <p className="text-xl font-extrabold text-cyan-600 dark:text-cyan-400">{roadmap.workoutSplit.daysPerWeek}x</p>
+                  <p className="text-xs text-slate-400 mt-0.5">days/week</p>
+                </div>
+                <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-700 p-3 text-center">
+                  <p className="text-xl font-extrabold text-indigo-600 dark:text-indigo-400">{roadmap.milestones.length}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">milestones</p>
+                </div>
+              </div>
             </div>
 
             {/* Regenerate */}

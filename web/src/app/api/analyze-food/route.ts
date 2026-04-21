@@ -23,15 +23,24 @@ function cleanText(v: unknown) {
 }
 
 function fallbackAiResult(food: string): AiResult {
+  const f = (food || "").toLowerCase()
+  // Very rough category-based defaults to avoid wildly overreporting small foods
+  const isFruit = /apple|banana|orange|grape|berry|mango|pear|peach/.test(f)
+  const isDrink = /water|tea|coffee|juice/.test(f)
+  const isVeg = /salad|lettuce|cucumber|tomato|broccoli|spinach|carrot/.test(f)
+  const calories = isFruit ? 80 : isDrink ? 10 : isVeg ? 40 : 250
+  const protein = isFruit ? 1 : isDrink ? 0 : isVeg ? 2 : 15
+  const carbs = isFruit ? 20 : isDrink ? 2 : isVeg ? 8 : 30
+  const fat = isFruit ? 0 : isDrink ? 0 : isVeg ? 0 : 10
   return {
     food: food || "Unknown food",
     quantity: "1 serving",
-    calories: 300,
-    protein: 20,
-    carbs: 25,
-    fat: 12,
-    confidence: 40,
-    notes: "Estimated fallback used",
+    calories,
+    protein,
+    carbs,
+    fat,
+    confidence: 30,
+    notes: "Rough estimate — AI analysis unavailable",
   }
 }
 

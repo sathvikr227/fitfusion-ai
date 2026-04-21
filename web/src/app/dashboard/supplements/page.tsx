@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
+import { useRouter } from "next/navigation"
 import { supabase } from "../../../lib/supabase/client"
 import {
   Pill,
@@ -111,6 +112,7 @@ function weeklyCompliance(logs: SupplementLog[], supplements: Supplement[]): num
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function SupplementsPage() {
+  const router = useRouter()
   const [userId, setUserId] = useState<string | null>(null)
   const [supplements, setSupplements] = useState<Supplement[]>([])
   const [logs, setLogs] = useState<SupplementLog[]>([])
@@ -133,6 +135,7 @@ export default function SupplementsPage() {
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) setUserId(data.user.id)
+      else router.replace("/login")
     })
   }, [])
 

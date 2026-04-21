@@ -156,9 +156,10 @@ function parseWeightKg(raw: unknown) {
 
 function normalizeGender(raw: unknown) {
   const text = String(raw ?? "").trim().toLowerCase()
-  if (text.includes("male") || text === "m") return "male"
-  if (text.includes("female") || text === "f") return "female"
-  return "unknown"
+  if (text === "female" || text === "f") return "female"
+  if (text === "male" || text === "m") return "male"
+  // "other", "non-binary", "unknown" — use average of male/female formulas
+  return "other"
 }
 
 function getBMI(weightKg: number, heightCm: number) {
@@ -172,7 +173,10 @@ function estimateBodyFatPercent(bmi: number, age: number, gender: string) {
   if (!Number.isFinite(bmi) || !Number.isFinite(age)) return null
 
   const base = 1.2 * bmi + 0.23 * age - 16.2
-  const adjusted = gender === "female" ? base + 10.8 : base
+  let adjusted: number
+  if (gender === "female") adjusted = base + 10.8
+  else if (gender === "other") adjusted = base + 5.4 // average of male and female offsets
+  else adjusted = base // male
   return clamp(Number(adjusted.toFixed(1)), 3, 50)
 }
 
@@ -352,8 +356,12 @@ function calculateFitnessMetrics(profile: JsonValue) {
 
   const goal = String(profile?.goal ?? "").trim()
 
-  const targetBMI =
-    bmi !== null ? Number(getTargetBMI(status, goal).toFixed(1)) : null
+  const rawTargetBMI = bmi !== null ? getTargetBMI(status, goal) : null
+  // If goal is fat loss, target BMI must not exceed current BMI
+  const isLossFatGoal = goal.toLowerCase().includes("fat") || goal.toLowerCase().includes("lose") || goal.toLowerCase().includes("weight")
+  const targetBMI = rawTargetBMI !== null
+    ? Number((isLossFatGoal ? Math.min(rawTargetBMI, bmi!) : rawTargetBMI).toFixed(1))
+    : null
 
   const targetBodyFatPercent = Number(
     getTargetBodyFatPercent(status, goal, gender).toFixed(1)
@@ -607,6 +615,9 @@ function buildPrompt(profile: JsonValue, restDays: number, metrics: JsonValue, d
     pickFirstDefined(profile, ["activity_level", "activityLevel", "activity", "daily_activity"])
   ) || "N/A"
   const dietType = asText(pickFirstDefined(profile, ["diet_preference", "diet_type", "dietType", "diet", "food_preference"])) || "N/A"
+  const dietaryRestrictions = Array.isArray(profile?.dietary_restrictions) && profile.dietary_restrictions.length > 0
+    ? (profile.dietary_restrictions as string[]).join(", ")
+    : null
   const trainingStyle = asText(pickFirstDefined(profile, ["training_style", "trainingStyle", "workout_style"])) || "N/A"
   const sleepHours = asText(
     pickFirstDefined(profile, ["sleep_hours", "sleepHours", "sleep", "sleep_time"])
@@ -722,6 +733,7 @@ Height: ${height}
 Weight: ${weight}
 Activity level: ${activityLevel}
 Diet type / preference: ${dietType}
+${dietaryRestrictions ? `Dietary restrictions: ${dietaryRestrictions}` : "Dietary restrictions: None"}
 Training style: ${trainingStyle}
 Sleep hours: ${sleepHours}
 Workout time available: ${workoutTime}
@@ -734,6 +746,7 @@ Derived coaching rules:
 - Workout duration guidance: ${training.workoutMinutes ?? "N/A"} minutes
 - Avoid aggravating injuries: ${injuries !== "No" ? "Yes" : "No"}
 - Respect rest days and recovery completely
+${dietaryRestrictions ? `- DIETARY RESTRICTIONS: ${dietaryRestrictions}. ALL meal suggestions MUST comply with these restrictions. Do not include any foods that violate them.` : ""}
 
 Current metrics:
 BMI: ${metrics.bmi ?? "N/A"}
@@ -759,7 +772,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "User ID is required" }, { status: 400 })
     }
 
-    const token = req.headers.get("Authorization")?.replace("Bearer ", "") ?? ""
+    const authHeader = req.headers.get("Authorization")
+    if (!authHeader?.startsWith("Bearer ")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+    const token = authHeader.replace("Bearer ", "")
     const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token)
     if (authError || !authUser || authUser.id !== userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })

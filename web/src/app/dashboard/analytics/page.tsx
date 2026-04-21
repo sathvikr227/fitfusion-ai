@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "../../../lib/supabase/client"
-import { Loader2, Download } from "lucide-react"
+import { Loader2, Download, Brain, ChevronDown, ChevronUp } from "lucide-react"
 import {
   LineChart,
   Line,
@@ -32,6 +32,204 @@ type WorkoutLog = {
   total_calories: number | null
   date: string | null
   created_at: string
+}
+
+type MealLog = {
+  total_calories: number | null
+  date: string | null
+}
+
+// ─── AnomalyAlerts ────────────────────────────────────────────────────────────
+
+type AnomalyAlert = {
+  type: "anomaly" | "plateau" | "spike"
+  severity: "warning" | "info"
+  message: string
+}
+
+function computeAnomalyAlerts(
+  weightLogs: WeightLog[],
+  mealLogs: MealLog[]
+): AnomalyAlert[] {
+  const alerts: AnomalyAlert[] = []
+
+  // ── Weight change z-scores ─────────────────────────────────────────────────
+  const validWeight = weightLogs
+    .filter((l) => l.weight != null && (l.date ?? l.created_at))
+    .map((l) => ({
+      date: l.date ?? l.created_at.split("T")[0],
+      weight: l.weight as number,
+    }))
+    .sort((a, b) => a.date.localeCompare(b.date))
+
+  if (validWeight.length >= 3) {
+    const changes: { date: string; change: number }[] = []
+    for (let i = 1; i < validWeight.length; i++) {
+      changes.push({
+        date: validWeight[i].date,
+        change: validWeight[i].weight - validWeight[i - 1].weight,
+      })
+    }
+
+    const vals = changes.map((c) => c.change)
+    const mean = vals.reduce((s, v) => s + v, 0) / vals.length
+    const stddev = Math.sqrt(vals.reduce((s, v) => s + (v - mean) ** 2, 0) / vals.length)
+
+    if (stddev > 0) {
+      changes.forEach(({ date, change }) => {
+        const z = (change - mean) / stddev
+        if (Math.abs(z) >= 2) {
+          const direction = change > 0 ? "+" : ""
+          alerts.push({
+            type: "spike",
+            severity: "warning",
+            message: `Weight spike detected on ${date} (${direction}${change.toFixed(1)}kg, z-score: ${z.toFixed(1)})`,
+          })
+        }
+      })
+    }
+
+    // ── Plateau detection ────────────────────────────────────────────────────
+    const now = new Date()
+    const cutoff = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split("T")[0]
+    const last14 = validWeight.filter((l) => l.date >= cutoff)
+
+    if (last14.length > 5) {
+      const totalChange = Math.abs(last14[last14.length - 1].weight - last14[0].weight)
+      if (totalChange < 0.3) {
+        alerts.push({
+          type: "plateau",
+          severity: "info",
+          message: "Weight plateau detected — no significant change in the last 14 days",
+        })
+      }
+    }
+  }
+
+  // ── Calorie z-scores ───────────────────────────────────────────────────────
+  const calsByDate: Record<string, number> = {}
+  mealLogs.forEach((m) => {
+    if (!m.date || m.total_calories == null) return
+    calsByDate[m.date] = (calsByDate[m.date] ?? 0) + m.total_calories
+  })
+
+  const calEntries = Object.entries(calsByDate).sort(([a], [b]) => a.localeCompare(b))
+  if (calEntries.length >= 3) {
+    const cals = calEntries.map(([, v]) => v)
+    const mean = cals.reduce((s, v) => s + v, 0) / cals.length
+    const stddev = Math.sqrt(cals.reduce((s, v) => s + (v - mean) ** 2, 0) / cals.length)
+
+    if (stddev > 0) {
+      calEntries.forEach(([date, cal]) => {
+        const z = (cal - mean) / stddev
+        if (z >= 2) {
+          alerts.push({
+            type: "anomaly",
+            severity: "warning",
+            message: `Unusually high calorie intake on ${date} (${Math.round(cal)} kcal, z-score: ${z.toFixed(1)})`,
+          })
+        } else if (z <= -2) {
+          alerts.push({
+            type: "anomaly",
+            severity: "info",
+            message: `Very low calorie intake on ${date} (${Math.round(cal)} kcal, z-score: ${z.toFixed(1)})`,
+          })
+        }
+      })
+    }
+  }
+
+  return alerts
+}
+
+function AnomalyAlerts({
+  weightLogs,
+  mealLogs,
+}: {
+  weightLogs: WeightLog[]
+  mealLogs: MealLog[]
+}) {
+  const alerts = useMemo(
+    () => computeAnomalyAlerts(weightLogs, mealLogs),
+    [weightLogs, mealLogs]
+  )
+  const [open, setOpen] = useState(alerts.length > 0)
+
+  // Re-open if new alerts appear
+  useEffect(() => {
+    if (alerts.length > 0) setOpen(true)
+  }, [alerts.length])
+
+  return (
+    <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm overflow-hidden">
+      {/* Header */}
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between px-6 py-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition"
+      >
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-600 to-cyan-500">
+            <Brain className="h-4 w-4 text-white" />
+          </div>
+          <div className="text-left">
+            <p className="font-semibold text-slate-900 dark:text-white text-sm">AI Anomaly Detection</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              {alerts.length === 0
+                ? "All metrics look normal"
+                : `${alerts.length} alert${alerts.length > 1 ? "s" : ""} detected`}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {alerts.length > 0 && (
+            <span className="px-2.5 py-0.5 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 text-xs font-semibold">
+              {alerts.length}
+            </span>
+          )}
+          {open ? (
+            <ChevronUp className="h-4 w-4 text-slate-400" />
+          ) : (
+            <ChevronDown className="h-4 w-4 text-slate-400" />
+          )}
+        </div>
+      </button>
+
+      {/* Body */}
+      {open && (
+        <div className="px-6 pb-5 border-t border-slate-100 dark:border-slate-700">
+          {alerts.length === 0 ? (
+            <div className="flex items-center gap-3 pt-4">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-100 dark:bg-emerald-900/30">
+                <span className="text-emerald-600 text-sm font-bold">✓</span>
+              </div>
+              <p className="text-sm text-emerald-700 dark:text-emerald-400 font-medium">
+                All metrics look normal — no anomalies detected.
+              </p>
+            </div>
+          ) : (
+            <ul className="pt-4 space-y-2.5">
+              {alerts.map((alert, i) => (
+                <li key={i} className="flex items-start gap-3">
+                  <span
+                    className={`shrink-0 mt-0.5 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                      alert.severity === "warning"
+                        ? "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400"
+                        : "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
+                    }`}
+                  >
+                    {alert.severity === "warning" ? "Warning" : "Info"}
+                  </span>
+                  <p className="text-sm text-slate-700 dark:text-slate-300">{alert.message}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
+  )
 }
 
 // ─── K-Means clustering ────────────────────────────────────────────────────────
@@ -148,6 +346,7 @@ export default function AnalyticsPage() {
 
   const [weightLogs, setWeightLogs] = useState<WeightLog[]>([])
   const [workoutLogs, setWorkoutLogs] = useState<WorkoutLog[]>([])
+  const [mealLogs, setMealLogs] = useState<MealLog[]>([])
   const [sleepByDate, setSleepByDate] = useState<Map<string, number>>(new Map())
   const [loading, setLoading] = useState(true)
   const [userId, setUserId] = useState<string | null>(null)
@@ -171,7 +370,7 @@ export default function AnalyticsPage() {
 
       setUserId(user.id)
 
-      const [weightRes, workoutRes, sleepRes] = await Promise.all([
+      const [weightRes, workoutRes, sleepRes, mealRes] = await Promise.all([
         supabase
           .from("weight_logs")
           .select("weight, date, created_at")
@@ -186,10 +385,16 @@ export default function AnalyticsPage() {
           .from("sleep_logs")
           .select("date, sleep_hours")
           .eq("user_id", user.id),
+        supabase
+          .from("meal_logs")
+          .select("total_calories, date")
+          .eq("user_id", user.id)
+          .order("date", { ascending: true, nullsFirst: false }),
       ])
 
       if (weightRes.data) setWeightLogs(weightRes.data)
       if (workoutRes.data) setWorkoutLogs(workoutRes.data)
+      if (mealRes.data) setMealLogs(mealRes.data as MealLog[])
       if (sleepRes.data) {
         const m = new Map<string, number>()
         sleepRes.data.forEach((r: any) => { if (r.date && r.sleep_hours != null) m.set(r.date, Number(r.sleep_hours)) })
@@ -572,6 +777,9 @@ export default function AnalyticsPage() {
           <h1 className="text-4xl font-semibold">Analytics Dashboard</h1>
           <p className="text-slate-500 dark:text-slate-400 mt-2">Your fitness insights powered by data.</p>
         </div>
+
+        {/* AI Anomaly Alerts */}
+        <AnomalyAlerts weightLogs={weightLogs} mealLogs={mealLogs} />
 
         {/* Stats grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

@@ -18,6 +18,8 @@ import {
   UtensilsCrossed,
   Wand2,
   X,
+  Mic,
+  MicOff,
 } from "lucide-react"
 
 type MealType = "breakfast" | "lunch" | "dinner" | "snacks"
@@ -260,6 +262,12 @@ export default function DietTab() {
   const [message, setMessage] = useState("")
   const [error, setError] = useState("")
   const [analysisPreview, setAnalysisPreview] = useState<NutritionAnalysisResponse | null>(null)
+
+  // Voice food logging state
+  const [voiceListening, setVoiceListening] = useState(false)
+  const [voiceTranscript, setVoiceTranscript] = useState("")
+  const [voiceLogging, setVoiceLogging] = useState(false)
+  const recognitionRef = useRef<any>(null)
 
   useEffect(() => {
     const init = async () => {
@@ -652,6 +660,64 @@ export default function DietTab() {
     }
   }
 
+  function startVoiceLog() {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SpeechRecognition) {
+      setError("Voice recognition not supported in this browser.")
+      return
+    }
+    const recognition = new SpeechRecognition()
+    recognition.continuous = false
+    recognition.interimResults = false
+    recognition.lang = "en-US"
+    recognitionRef.current = recognition
+
+    recognition.onstart = () => setVoiceListening(true)
+    recognition.onend = () => setVoiceListening(false)
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript
+      setVoiceTranscript(transcript)
+      submitVoiceLog(transcript)
+    }
+    recognition.onerror = () => {
+      setVoiceListening(false)
+      setError("Voice recognition error. Try again.")
+    }
+    recognition.start()
+  }
+
+  async function submitVoiceLog(transcript: string) {
+    if (!transcript || !userId) return
+    setVoiceLogging(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch("/api/voice-food-log", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token ?? ""}`,
+        },
+        body: JSON.stringify({ transcript }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Failed")
+      setMessage(`✓ Logged via voice: ${data.description} (${data.calories} kcal)`)
+      // Refresh history
+      const today = selectedDate
+      const histRes = await supabase
+        .from("meal_logs")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("date", today)
+        .order("created_at", { ascending: false })
+      if (histRes.data) setHistoryRows(histRes.data as any)
+    } catch (err: any) {
+      setError(err.message || "Voice log failed")
+    } finally {
+      setVoiceLogging(false)
+    }
+  }
+
   function addManualItem() {
     if (!food.trim()) {
       setError("Food name is required.")
@@ -927,6 +993,18 @@ export default function DietTab() {
         </div>
       </div>
 
+      {voiceListening && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-800 px-4 py-3 flex items-center gap-3 text-sm text-red-700 dark:text-red-300">
+          <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+          Listening... Speak what you ate (e.g. "2 scrambled eggs and toast with butter")
+        </div>
+      )}
+      {voiceTranscript && !voiceLogging && (
+        <div className="rounded-2xl border border-purple-200 bg-purple-50 dark:bg-purple-900/20 dark:border-purple-800 px-4 py-3 text-sm text-purple-700 dark:text-purple-300">
+          <span className="font-medium">You said:</span> "{voiceTranscript}"
+        </div>
+      )}
+
       {error ? <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div> : null}
       {message ? (
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
@@ -1067,6 +1145,27 @@ export default function DietTab() {
               >
                 <Scan className="h-4 w-4" />
                 Scan barcode
+              </button>
+
+              <button
+                onClick={voiceListening ? () => recognitionRef.current?.stop() : startVoiceLog}
+                disabled={voiceLogging}
+                className={`inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-semibold transition ${
+                  voiceListening
+                    ? "bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 animate-pulse"
+                    : voiceLogging
+                      ? "bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 text-purple-600 dark:text-purple-400"
+                      : "border border-purple-200 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/40"
+                }`}
+                title="Voice food log"
+              >
+                {voiceLogging ? (
+                  <><Loader2 className="h-4 w-4 animate-spin" /> Processing...</>
+                ) : voiceListening ? (
+                  <><MicOff className="h-4 w-4" /> Stop</>
+                ) : (
+                  <><Mic className="h-4 w-4" /> Voice log</>
+                )}
               </button>
 
               <button

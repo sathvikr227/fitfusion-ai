@@ -36,7 +36,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "userId is required" }, { status: 400 })
     }
 
-    const token = req.headers.get("Authorization")?.replace("Bearer ", "") ?? ""
+    const authHeader = req.headers.get("Authorization")
+    if (!authHeader?.startsWith("Bearer ")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+    const token = authHeader.slice(7)
     const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token)
     if (authError || !authUser || authUser.id !== userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -63,10 +67,10 @@ export async function POST(req: Request) {
     // Fetch last 7 days of meal logs
     const { data: mealLogs } = await supabase
       .from("meal_logs")
-      .select("total_calories, logged_at")
+      .select("total_calories, date")
       .eq("user_id", userId)
-      .gte("logged_at", since)
-      .order("logged_at", { ascending: true })
+      .gte("date", since)
+      .order("date", { ascending: true })
 
     // profiles.id IS the auth user UUID — no user_id column on profiles
     const { data: profileData } = await supabase
@@ -85,7 +89,7 @@ export async function POST(req: Request) {
 
     const totalCaloriesIn = mealLogs?.reduce((s, m) => s + ((m as any).total_calories || 0), 0) ?? 0
     const mealDays = mealLogs?.length
-      ? new Set(mealLogs.map((m) => m.logged_at?.split("T")[0])).size
+      ? new Set(mealLogs.map((m) => (m as any).date?.split("T")[0])).size
       : 0
     const avgDailyCaloriesIn = mealDays > 0 ? Math.round(totalCaloriesIn / mealDays) : null
 

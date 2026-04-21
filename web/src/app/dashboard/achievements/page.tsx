@@ -117,7 +117,7 @@ export default function AchievementsPage() {
       supabase.from("meal_logs").select("date, created_at").eq("user_id", uid),
       supabase.from("water_logs").select("date, created_at").eq("user_id", uid),
       supabase.from("weight_logs").select("created_at").eq("user_id", uid),
-      supabase.from("fitness_plans").select("created_at").eq("user_id", uid).limit(1),
+      supabase.from("workout_plans").select("created_at").eq("user_id", uid).limit(1),
     ])
 
     const workouts = workoutLogs ?? []

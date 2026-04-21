@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server"
 
+export const runtime = "nodejs"
+
 // Always fetch a fresh token per invocation — module-level cache is unreliable
 // on Vercel serverless because cold starts don't share memory between invocations.
 async function getAccessToken() {

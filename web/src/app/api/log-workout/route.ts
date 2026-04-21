@@ -5,13 +5,18 @@ import {
   estimateCaloriesFromSets,
 } from "../../../lib/calories" // ✅ FIXED PATH
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+export const runtime = "nodejs"
+
+function getSupabase() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !key) throw new Error("Supabase env vars missing")
+  return createClient(url, key)
+}
 
 export async function POST(req: Request) {
   try {
+    const supabase = getSupabase()
     const body = await req.json()
 
     const {
@@ -30,7 +35,11 @@ export async function POST(req: Request) {
     }
 
     // Verify the caller is the user they claim to be
-    const token = req.headers.get("Authorization")?.replace("Bearer ", "") ?? ""
+    const authHeader = req.headers.get("Authorization")
+    if (!authHeader?.startsWith("Bearer ")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+    const token = authHeader.slice(7)
     const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token)
     if (authError || !authUser || authUser.id !== userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })

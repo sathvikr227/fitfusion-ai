@@ -18,16 +18,25 @@ function getSupabase() {
 }
 
 function extractJson(text: string) {
-  const trimmed = text.trim()
-  const firstBrace = trimmed.indexOf("{")
-  const lastBrace = trimmed.lastIndexOf("}")
+  const cleaned = text
+    .trim()
+    .replace(/^```json\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/\s*```$/i, "")
+
+  const firstBrace = cleaned.indexOf("{")
+  const lastBrace = cleaned.lastIndexOf("}")
 
   if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
     throw new Error("AI response does not contain valid JSON")
   }
 
-  const jsonText = trimmed.slice(firstBrace, lastBrace + 1)
-  return JSON.parse(jsonText)
+  const jsonText = cleaned.slice(firstBrace, lastBrace + 1)
+  try {
+    return JSON.parse(jsonText)
+  } catch {
+    throw new Error("AI response JSON could not be parsed")
+  }
 }
 
 export async function POST(req: Request) {
@@ -42,7 +51,11 @@ export async function POST(req: Request) {
     }
 
     // Verify caller is authenticated
-    const token = req.headers.get("Authorization")?.replace("Bearer ", "") ?? ""
+    const authHeader = req.headers.get("Authorization")
+    if (!authHeader?.startsWith("Bearer ")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+    const token = authHeader.replace("Bearer ", "")
     const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token)
     if (authError || !authUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })

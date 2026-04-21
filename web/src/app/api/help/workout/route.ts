@@ -597,9 +597,14 @@ async function fetchAllExercises(): Promise<ExerciseDbItem[] | null> {
       return [];
     })
     .then((items) => {
-      exerciseCache = items;
+      exerciseCache = items.length > 0 ? items : null; // don't cache empty results
       exerciseCachePromise = null;
       return items;
+    })
+    .catch(() => {
+      // Reset promise on any unhandled error so next call retries
+      exerciseCachePromise = null;
+      return [] as ExerciseDbItem[];
     });
 
   return exerciseCachePromise;
