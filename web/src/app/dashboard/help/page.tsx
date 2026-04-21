@@ -453,7 +453,13 @@ export default function HelpPage() {
                   {(result.exercises || []).map((exercise, index) => (
                     <button
                       key={`${exercise.title}-${index}`}
-                      onClick={() => openWorkout(exercise.title)}
+                      onClick={() => {
+                        if (exercise.videoUrl) {
+                          window.open(exercise.videoUrl, "_blank", "noopener,noreferrer");
+                        } else {
+                          openWorkout(exercise.title);
+                        }
+                      }}
                       className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                     >
                       {exercise.gifUrl ? (

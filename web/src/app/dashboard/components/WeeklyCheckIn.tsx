@@ -48,12 +48,6 @@ function sevenDaysAgo() {
   return d.toISOString().split("T")[0]
 }
 
-function getDayLabel() {
-  const day = new Date().getDay() // 0=Sun, 1=Mon
-  if (day === 0) return { show: true, demo: false }
-  if (day === 1) return { show: true, demo: false }
-  return { show: true, demo: true } // always show for demo with label
-}
 
 export function WeeklyCheckIn({ userId }: Props) {
   const router = useRouter()
@@ -69,8 +63,6 @@ export function WeeklyCheckIn({ userId }: Props) {
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState("")
 
-  const { demo } = getDayLabel()
-
   // Fetch last 7 days completion rate from workout_execution
   useEffect(() => {
     if (!isOpen || !userId) return
@@ -81,13 +73,13 @@ export function WeeklyCheckIn({ userId }: Props) {
 
       const { data } = await supabase
         .from("workout_execution")
-        .select("exercise_name, completed")
+        .select("exercise_name, done")
         .eq("user_id", userId)
-        .gte("plan_date", since)
+        .gte("date", since)
 
       if (data && data.length > 0) {
-        const done = data.filter((r) => r.completed).length
-        setCompletionRate(Math.round((done / data.length) * 100))
+        const doneCount = data.filter((r) => r.done).length
+        setCompletionRate(Math.round((doneCount / data.length) * 100))
       } else {
         setCompletionRate(0)
       }
@@ -175,11 +167,6 @@ export function WeeklyCheckIn({ userId }: Props) {
         <div className="flex-1">
           <div className="flex items-center gap-2">
             <p className="font-semibold text-slate-900 dark:text-white">Weekly Check-In</p>
-            {demo && (
-              <span className="rounded-full border border-slate-300 dark:border-slate-600 px-2 py-0.5 text-xs text-slate-500 dark:text-slate-400">
-                Demo
-              </span>
-            )}
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400">
             Rate your week and let AI adapt your next plan
@@ -203,11 +190,6 @@ export function WeeklyCheckIn({ userId }: Props) {
               <div>
                 <h2 className="text-xl font-bold text-slate-900 dark:text-white">
                   Weekly Check-In
-                  {demo && (
-                    <span className="ml-2 rounded-full border border-slate-300 dark:border-slate-600 px-2 py-0.5 text-xs font-normal text-slate-500 dark:text-slate-400">
-                      Demo
-                    </span>
-                  )}
                 </h2>
                 <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
                   How was this week? Help AI adapt your next week&apos;s plan.
