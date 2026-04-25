@@ -7,6 +7,7 @@ const PUBLIC_API_PATHS = [
   '/api/food-db',
   '/api/help/workout',
   '/api/help/recipe',
+  '/api/seed-knowledge',
   '/api/share',  // public share stats — no auth needed for GET
 ]
 
@@ -39,7 +40,7 @@ function rateLimit(ip: string, path: string): { allowed: boolean; remaining: num
   return { allowed: true, remaining: limit - entry.count }
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // API route protection

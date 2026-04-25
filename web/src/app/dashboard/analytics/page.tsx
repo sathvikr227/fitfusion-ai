@@ -673,6 +673,7 @@ export default function AnalyticsPage() {
   const downloadPdf = async () => {
     if (!report) return
     const { jsPDF } = await import("jspdf")
+    const html2canvas = (await import("html2canvas")).default
     const doc = new jsPDF({ unit: "pt", format: "a4" })
 
     const W = doc.internal.pageSize.getWidth()
@@ -745,7 +746,40 @@ export default function AnalyticsPage() {
       y += 15
     })
 
-    // Footer
+    // Charts — each tagged element gets captured and added on its own page
+    const chartElements = Array.from(document.querySelectorAll<HTMLElement>("[data-pdf-chart]"))
+    for (const el of chartElements) {
+      const title = el.getAttribute("data-pdf-chart") ?? "Chart"
+      try {
+        const canvas = await html2canvas(el, {
+          backgroundColor: "#ffffff",
+          scale: 2,
+          logging: false,
+          useCORS: true,
+        })
+        const imgData = canvas.toDataURL("image/png")
+        doc.addPage()
+        let cy = margin
+        doc.setTextColor(124, 58, 237)
+        doc.setFontSize(13)
+        doc.setFont("helvetica", "bold")
+        doc.text(title, margin, cy)
+        cy += 14
+
+        const imgRatio = canvas.height / canvas.width
+        const imgW = contentW
+        const imgH = imgW * imgRatio
+        const pageH = doc.internal.pageSize.getHeight()
+        const maxImgH = pageH - cy - margin
+        const finalH = Math.min(imgH, maxImgH)
+        const finalW = finalH < imgH ? finalH / imgRatio : imgW
+        doc.addImage(imgData, "PNG", margin, cy, finalW, finalH)
+      } catch (err) {
+        console.warn("Failed to capture chart:", title, err)
+      }
+    }
+
+    // Footer on the last page
     const pageH = doc.internal.pageSize.getHeight()
     doc.setFillColor(248, 250, 252)
     doc.rect(0, pageH - 30, W, 30, "F")
@@ -873,7 +907,7 @@ export default function AnalyticsPage() {
 
             <div className="grid gap-6 md:grid-cols-2">
               {/* Radar chart */}
-              <div>
+              <div data-pdf-chart="Workouts by Day of Week">
                 <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-3 uppercase tracking-wide">Workouts by Day of Week</p>
                 <div className="h-[220px]">
                   <ResponsiveContainer>
@@ -992,7 +1026,7 @@ export default function AnalyticsPage() {
           {weightChartData.length === 0 ? (
             <p className="text-center text-slate-500 dark:text-slate-400 py-10">No weight data yet. Log your weight in the Progress tab.</p>
           ) : (
-            <div className="w-full h-[300px]">
+            <div className="w-full h-[300px]" data-pdf-chart="Weight Trend">
               <ResponsiveContainer>
                 <LineChart data={weightChartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
@@ -1032,7 +1066,7 @@ export default function AnalyticsPage() {
           {workoutActivityData.length === 0 ? (
             <p className="text-center text-slate-500 dark:text-slate-400 py-10">No workout data yet. Log a workout in the Progress tab.</p>
           ) : (
-            <div className="w-full h-[300px]">
+            <div className="w-full h-[300px]" data-pdf-chart="Workout Activity">
               <ResponsiveContainer>
                 <BarChart data={workoutActivityData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
@@ -1051,7 +1085,7 @@ export default function AnalyticsPage() {
           <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow border border-slate-200 dark:border-slate-700">
             <h2 className="text-lg font-semibold mb-1">Calories Burned</h2>
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Total kcal burned per day</p>
-            <div className="w-full h-[250px]">
+            <div className="w-full h-[250px]" data-pdf-chart="Calories Burned">
               <ResponsiveContainer>
                 <BarChart data={workoutActivityData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />

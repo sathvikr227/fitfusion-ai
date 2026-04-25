@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import { Mic, MicOff, X, Volume2, Send } from "lucide-react"
 import { supabase } from "../lib/supabase/client"
+import { toast } from "./Toast"
 
 type Msg = { role: "user" | "assistant"; text: string }
 
@@ -131,13 +132,24 @@ export default function VoiceAssistant() {
         content: m.text,
       }))
 
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        throw new Error("Please sign in again to use voice chat.")
+      }
+
       const res = await fetch("/api/voice-chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({ message: text, planSummary, history }),
       })
 
-      if (!res.ok) throw new Error("AI request failed")
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || "AI request failed")
+      }
 
       const data = await res.json()
       const reply = data.reply || "Sorry, I couldn't understand that."
@@ -147,6 +159,7 @@ export default function VoiceAssistant() {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to get response"
       setError(msg)
+      toast.error(msg)
     } finally {
       setLoading(false)
     }

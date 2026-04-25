@@ -23,7 +23,6 @@ import {
 } from "lucide-react"
 import { InjuryRiskWidget } from "../components/InjuryRiskWidget"
 import { WeeklyCheckIn } from "../components/WeeklyCheckIn"
-import { MoodCheckIn } from "../components/MoodCheckIn"
 import { MacroRings } from "../components/MacroRings"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -116,6 +115,56 @@ function calcStreak(dates: string[]): number {
     else break
   }
   return streak
+}
+
+function computeFallbackMetrics(profile: {
+  height?: number | string | null
+  weight?: number | string | null
+  age?: number | null
+  gender?: string | null
+  goal?: string | null
+} | null, latestWeightKg: number | null): BodyMetrics | null {
+  if (!profile) return null
+  const heightNum = Number(profile.height)
+  if (!Number.isFinite(heightNum) || heightNum <= 0) return null
+  const heightCm = heightNum > 3 ? heightNum : heightNum * 100
+  const heightM = heightCm / 100
+  const weightKg = latestWeightKg ?? Number(profile.weight)
+  if (!Number.isFinite(weightKg) || weightKg <= 0) return null
+
+  const bmi = Number((weightKg / (heightM * heightM)).toFixed(1))
+  if (!Number.isFinite(bmi)) return null
+
+  const age = Number(profile.age) || 25
+  const gender = String(profile.gender ?? "").toLowerCase()
+  const base = 1.2 * bmi + 0.23 * age - 16.2
+  const offset = gender === "female" ? 10.8 : gender === "male" ? 0 : 5.4
+  const bodyFat = Math.max(3, Math.min(50, Number((base + offset).toFixed(1))))
+
+  const status = bmi < 18.5 ? "Underweight" : bmi < 25 ? "Fit" : bmi < 30 ? "Overweight" : "Obese"
+
+  const goal = String(profile.goal ?? "").toLowerCase()
+  const wantsLoss = goal.includes("fat") || goal.includes("lose") || goal.includes("weight")
+  const wantsMuscle = goal.includes("muscle") || goal.includes("gain")
+  let targetBmi = 22.0
+  if (status === "Underweight") targetBmi = wantsMuscle ? 22.0 : 21.0
+  else if (status === "Fit") targetBmi = wantsMuscle ? 23.5 : 22.0
+  else if (status === "Overweight") targetBmi = 23.0
+  else targetBmi = 24.0
+  if (wantsLoss) targetBmi = Math.min(targetBmi, bmi)
+  targetBmi = Number(targetBmi.toFixed(1))
+
+  const targetBf = gender === "female"
+    ? wantsMuscle ? 22 : 24
+    : wantsMuscle ? 14 : 17
+
+  return {
+    bmi,
+    estimated_body_fat_percent: bodyFat,
+    target_bmi: targetBmi,
+    target_body_fat_percent: targetBf,
+    status,
+  }
 }
 
 function statusColor(status: string | null) {
@@ -363,22 +412,32 @@ export default function HomeDashboard() {
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle(),
-        supabase.from("profiles").select("calorie_target, protein_target, carbs_target, fat_target").eq("id", user.id).maybeSingle(),
+        supabase.from("profiles").select("calorie_target, protein_target, carbs_target, fat_target, height, weight, age, gender, goal").eq("id", user.id).maybeSingle(),
         supabase.from("meal_logs").select("total_calories, protein, carbs, fat").eq("user_id", user.id).eq("date", todayStr()),
       ])
 
-      if (weightRes.data?.weight != null) setLatestWeight(weightRes.data.weight)
-      if (metricsRes.data) setMetrics(metricsRes.data as BodyMetrics)
+      const latestWeightKg = weightRes.data?.weight ?? null
+      if (latestWeightKg != null) setLatestWeight(latestWeightKg)
       setWorkoutLogs(workoutRes.data ?? [])
       setMealLogs(mealRes.data ?? [])
       if (planRes.data?.plan) setLatestPlan(safePlan(planRes.data.plan))
-      if (profileMacrosRes.data) {
+
+      const profileData = profileMacrosRes.data
+      if (profileData) {
         setMacroTargets({
-          calories: profileMacrosRes.data.calorie_target ?? 0,
-          protein: profileMacrosRes.data.protein_target ?? 0,
-          carbs: profileMacrosRes.data.carbs_target ?? 0,
-          fat: profileMacrosRes.data.fat_target ?? 0,
+          calories: profileData.calorie_target ?? 0,
+          protein: profileData.protein_target ?? 0,
+          carbs: profileData.carbs_target ?? 0,
+          fat: profileData.fat_target ?? 0,
         })
+      }
+
+      // Use saved metrics if present; otherwise compute from profile + latest weight.
+      if (metricsRes.data && metricsRes.data.bmi != null) {
+        setMetrics(metricsRes.data as BodyMetrics)
+      } else {
+        const fallback = computeFallbackMetrics(profileData, latestWeightKg)
+        if (fallback) setMetrics(fallback)
       }
       if (todayMealRes.data) {
         const rows = todayMealRes.data
@@ -535,9 +594,6 @@ export default function HomeDashboard() {
 
         {/* ── Weekly Check-In ── */}
         {userId && <WeeklyCheckIn userId={userId} />}
-
-        {/* Daily Mood Check-In */}
-        {userId && <MoodCheckIn userId={userId} />}
 
         {/* ── Body metrics ── */}
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

@@ -30,6 +30,28 @@ import {
 } from "lucide-react"
 import VoiceAssistant from "../../components/VoiceAssistant"
 
+function ThemeToggle({
+  mounted,
+  isDark,
+  onToggle,
+}: {
+  mounted: boolean
+  isDark: boolean
+  onToggle: () => void
+}) {
+  return (
+    <button
+      onClick={onToggle}
+      className="flex h-9 w-9 items-center justify-center rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all"
+      title="Toggle theme"
+    >
+      {mounted && isDark
+        ? <Sun className="h-4 w-4" />
+        : <Moon className="h-4 w-4" />}
+    </button>
+  )
+}
+
 export default function DashboardLayout({
   children,
 }: {
@@ -51,7 +73,6 @@ export default function DashboardLayout({
     { name: "Progress", href: "/dashboard/progress", icon: ClipboardList },
     { name: "Analytics", href: "/dashboard/analytics", icon: LineChart },
     { name: "Pose Tracker", href: "/dashboard/pose", icon: ScanLine },
-    { name: "Dream Body", href: "/dashboard/dream-body", icon: Star },
     { name: "Timer", href: "/dashboard/timer", icon: Timer },
     { name: "Tools", href: "/dashboard/tools", icon: Calculator },
     { name: "Habits", href: "/dashboard/habits", icon: CheckSquare },
@@ -95,18 +116,6 @@ export default function DashboardLayout({
     )
   }
 
-  const ThemeToggle = () => (
-    <button
-      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-      className="flex h-9 w-9 items-center justify-center rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all"
-      title="Toggle theme"
-    >
-      {mounted && theme === "dark"
-        ? <Sun className="h-4 w-4" />
-        : <Moon className="h-4 w-4" />}
-    </button>
-  )
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-slate-50 to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 text-slate-900 dark:text-slate-100">
 
@@ -127,7 +136,11 @@ export default function DashboardLayout({
           </button>
 
           <div className="flex items-center gap-2">
-            <ThemeToggle />
+            <ThemeToggle
+              mounted={mounted}
+              isDark={theme === "dark"}
+              onToggle={() => setTheme(theme === "dark" ? "light" : "dark")}
+            />
             <button
               onClick={() => setMobileOpen((v) => !v)}
               className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800"
@@ -168,7 +181,11 @@ export default function DashboardLayout({
                   <p className="text-sm text-slate-500 dark:text-slate-400">AI fitness companion</p>
                 </div>
               </button>
-              <ThemeToggle />
+              <ThemeToggle
+                mounted={mounted}
+                isDark={theme === "dark"}
+                onToggle={() => setTheme(theme === "dark" ? "light" : "dark")}
+              />
             </div>
 
             <nav className="space-y-3">

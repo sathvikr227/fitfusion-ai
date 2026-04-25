@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { createClient } from "@supabase/supabase-js"
 
 export const runtime = "nodejs"
 
@@ -11,6 +12,15 @@ const DEFAULTS = {
   keyInsight: "No notes provided — tracking started.",
 }
 
+function getSupabase() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error("Supabase environment variables are missing")
+  }
+  return createClient(supabaseUrl, supabaseAnonKey)
+}
+
 export async function POST(req: NextRequest) {
   const authHeader = req.headers.get("Authorization")
   if (!authHeader?.startsWith("Bearer ")) {
@@ -18,6 +28,16 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    const token = authHeader.slice("Bearer ".length)
+    const {
+      data: { user },
+      error: authError,
+    } = await getSupabase().auth.getUser(token)
+
+    if (authError || !user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
     const body = await req.json()
     const notes: string = body?.notes ?? ""
 

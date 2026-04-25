@@ -14,6 +14,7 @@ import {
   Star,
   Clock,
 } from "lucide-react"
+import { toast as appToast } from "../../../components/Toast"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -185,6 +186,13 @@ export default function SupplementsPage() {
       return
     }
 
+    if (!Number.isFinite(dosage) || dosage <= 0) {
+      setToast("Dosage must be a positive number.")
+      appToast.error("Dosage must be a positive number.")
+      setTimeout(() => setToast(""), 3000)
+      return
+    }
+
     setSaving(true)
     const { error } = await supabase.from("supplements").insert({
       user_id: userId,
@@ -200,11 +208,15 @@ export default function SupplementsPage() {
       setForm({ name: "", dosage: "", unit: "mg", timing: "Morning", notes: "" })
       setShowForm(false)
       setToast(`${name} added!`)
+      appToast.success(`${name} added.`)
       fetchData()
       setTimeout(() => setToast(""), 3000)
     } else {
-      setToast("Error adding supplement.")
-      setTimeout(() => setToast(""), 3000)
+      const msg = error.message || "Error adding supplement."
+      console.error("Add supplement error:", error)
+      setToast(msg)
+      appToast.error(msg)
+      setTimeout(() => setToast(""), 4000)
     }
   }
 

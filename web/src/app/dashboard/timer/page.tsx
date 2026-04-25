@@ -9,7 +9,6 @@ import {
   Flag,
   Zap,
   Clock,
-  ChevronDown,
 } from "lucide-react"
 
 // ─── Audio helpers ─────────────────────────────────────────────────────────────
@@ -132,7 +131,7 @@ function RestTimer() {
   const [remaining, setRemaining] = useState(60 * 1000)
   const [running, setRunning] = useState(false)
   const [customInput, setCustomInput] = useState("")
-  const intervalRef = useRef<NodeJS.Timeout | null>(null)
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const audioCtxRef = useRef<AudioContext | null>(null)
   const beeped = useRef<Set<number>>(new Set())
 
@@ -275,7 +274,7 @@ function HiitTimer() {
   const [remaining, setRemaining] = useState(40 * 1000)
   const [running, setRunning] = useState(false)
   const [done, setDone] = useState(false)
-  const intervalRef = useRef<NodeJS.Timeout | null>(null)
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const audioCtxRef = useRef<AudioContext | null>(null)
 
   const phaseDuration = phase === "work" ? workSec * 1000 : restSec * 1000

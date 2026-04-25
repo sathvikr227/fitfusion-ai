@@ -6,6 +6,7 @@ import { supabase } from "../../lib/supabase/client"
 import Link from "next/link"
 import FitFusionLogo from "../../components/FitFusionLogo"
 import { Eye, EyeOff, Mail, Lock, ArrowRight } from "lucide-react"
+import { toast } from "../../components/Toast"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -21,13 +22,13 @@ export default function LoginPage() {
     setError(null)
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) { setError(error.message); return }
+      if (error) { setError(error.message); toast.error(error.message); return }
       const user = data.user
-      if (!user) { setError("Unable to sign in."); return }
+      if (!user) { setError("Unable to sign in."); toast.error("Unable to sign in."); return }
 
       const { data: profile, error: profileError } = await supabase
         .from("profiles").select("id, onboarding_completed").eq("id", user.id).maybeSingle()
-      if (profileError) { setError(profileError.message); return }
+      if (profileError) { setError(profileError.message); toast.error(profileError.message); return }
       if (!profile || !profile.onboarding_completed) { router.push("/onboarding"); return }
 
       const { data: latestPlan } = await supabase
@@ -124,6 +125,7 @@ export default function LoginPage() {
                 </>
               )}
             </button>
+
           </div>
 
           <p className="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">

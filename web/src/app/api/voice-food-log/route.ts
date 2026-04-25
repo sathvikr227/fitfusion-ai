@@ -40,6 +40,8 @@ export async function POST(req: Request) {
 
     const body = await req.json()
     const transcript: string = (body?.transcript ?? "").trim()
+    const clientDate: string | null = typeof body?.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.date) ? body.date : null
+    const requestedMealType: string | null = typeof body?.mealType === "string" ? body.mealType.trim().toLowerCase() : null
 
     if (!transcript) {
       return NextResponse.json({ error: "No transcript provided" }, { status: 400 })
@@ -75,18 +77,32 @@ Be realistic with estimates. If unsure about a specific item, make a reasonable 
     const raw = completion.choices[0]?.message?.content ?? ""
     const parsed = JSON.parse(extractJson(raw))
 
-    // Log to meal_logs table
-    const today = new Date().toISOString().split("T")[0]
+    const validMealTypes = ["breakfast", "lunch", "dinner", "snacks"]
+    const transcriptLower = transcript.toLowerCase()
+    const detectedFromText =
+      validMealTypes.find((t) => transcriptLower.includes(t)) ??
+      (transcriptLower.includes("snack") ? "snacks" : null)
+    const mealType =
+      (requestedMealType && validMealTypes.includes(requestedMealType)) ? requestedMealType
+      : detectedFromText
+      ?? "snacks"
+
+    const today = clientDate ?? new Date().toISOString().split("T")[0]
     const { error: logErr } = await supabase
       .from("meal_logs")
       .insert({
         user_id: user.id,
         date: today,
+        meal_type: mealType,
         meal_name: parsed.description ?? "Voice log",
         total_calories: parsed.calories ?? 0,
+        total_protein: parsed.protein ?? 0,
+        total_carbs: parsed.carbs ?? 0,
+        total_fat: parsed.fat ?? 0,
         protein: parsed.protein ?? 0,
         carbs: parsed.carbs ?? 0,
         fat: parsed.fat ?? 0,
+        is_completed: true,
         source: "voice",
         items: parsed.items ?? [],
       })

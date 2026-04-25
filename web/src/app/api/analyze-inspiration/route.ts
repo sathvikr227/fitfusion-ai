@@ -1,14 +1,41 @@
 import { NextRequest, NextResponse } from "next/server"
 import OpenAI from "openai"
+import { createClient } from "@supabase/supabase-js"
 
 export const runtime = "nodejs"
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+function getOpenAIClient() {
+  const apiKey = process.env.OPENAI_API_KEY
+  if (!apiKey) throw new Error("OPENAI_API_KEY is missing")
+  return new OpenAI({ apiKey })
+}
+
+function getSupabase() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!supabaseUrl || !supabaseServiceRoleKey) {
+    throw new Error("Supabase environment variables are missing")
+  }
+  return createClient(supabaseUrl, supabaseServiceRoleKey)
+}
 
 export async function POST(req: NextRequest) {
   try {
+    const authHeader = req.headers.get("Authorization")
+    if (!authHeader?.startsWith("Bearer ")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+    const token = authHeader.replace("Bearer ", "")
+    const {
+      data: { user },
+      error: authError,
+    } = await getSupabase().auth.getUser(token)
+    if (authError || !user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
     const formData = await req.formData()
-    const file = formData.get("image") as File | null
+    const file = (formData as unknown as { get(name: string): FormDataEntryValue | null }).get("image") as File | null
 
     if (!file) {
       return NextResponse.json({ error: "No image provided" }, { status: 400 })
@@ -19,7 +46,7 @@ export async function POST(req: NextRequest) {
     const base64 = Buffer.from(bytes).toString("base64")
     const mimeType = file.type || "image/jpeg"
 
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAIClient().chat.completions.create({
       model: "gpt-4o",
       messages: [
         {

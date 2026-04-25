@@ -248,13 +248,24 @@ export default function PosePage() {
       }
 
       if (def.repAngle.up(angle) && stageRef.current === "down") {
-        // At the top — validate exercise pattern before counting
+        // At the top — validate exercise pattern + rep quality before counting
         const validation = validateExercise(def, landmarks)
-        if (validation) {
+        const repDurationSec = (performance.now() - repStartTsRef.current) / 1000
+        const repRomDeg = repMaxAngleRef.current - repMinAngleRef.current
+
+        let rejectionReason: string | null = validation
+        if (!rejectionReason && def.minRepDurationSec && repDurationSec < def.minRepDurationSec) {
+          rejectionReason = "Too fast — slow down and control the movement"
+        }
+        if (!rejectionReason && def.minRomDegrees && repRomDeg < def.minRomDegrees) {
+          rejectionReason = "Insufficient range of motion — go through the full range"
+        }
+
+        if (rejectionReason) {
           rejectedRef.current += 1
           setRejected(rejectedRef.current)
-          setFeedback(validation)
-          voiceRef.current?.sayWarning(validation)
+          setFeedback(rejectionReason)
+          voiceRef.current?.sayWarning(rejectionReason)
           newStage = "up"
         } else {
           newStage = "up"
@@ -423,8 +434,17 @@ export default function PosePage() {
     const video = videoRef.current!
     video.srcObject = null
     video.src = url
+    video.muted = true
     video.load()
-    video.onloadedmetadata = () => setDuration(video.duration)
+    video.onloadedmetadata = () => {
+      setDuration(video.duration)
+      video.play().then(() => {
+        setIsPlaying(true)
+      }).catch(() => {
+        // Autoplay blocked — user will need to press play manually
+        setIsPlaying(false)
+      })
+    }
 
     resetSession()
     sessionStartRef.current = new Date().toISOString()

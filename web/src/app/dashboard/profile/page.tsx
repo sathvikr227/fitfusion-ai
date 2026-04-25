@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "../../../lib/supabase/client"
 import { Share2, Copy } from "lucide-react"
+import { toast } from "../../../components/Toast"
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -142,6 +143,7 @@ export default function ProfilePage() {
 
       if (error) {
         setStatus(error.message)
+        toast.error(error.message)
       } else {
         // Sync weight to weight_logs so charts stay accurate
         const weightNum = weight ? Number(weight) : null
@@ -152,10 +154,12 @@ export default function ProfilePage() {
           )
         }
         setStatus("Profile updated successfully ✅")
+        toast.success("Profile updated.")
       }
     } catch (err) {
       console.error(err)
       setStatus("Something went wrong while saving.")
+      toast.error("Something went wrong while saving.")
     } finally {
       setSaving(false)
     }
@@ -179,15 +183,19 @@ export default function ProfilePage() {
 
       if (!res.ok) {
         const err = await res.json()
-        setStatus(err.error || "Failed to generate share link.")
+        const msg = err.error || "Failed to generate share link."
+        setStatus(msg)
+        toast.error(msg)
         return
       }
 
       const { token } = await res.json()
       setShareToken(token)
+      toast.success("Share link ready.")
     } catch (err) {
       console.error(err)
       setStatus("Something went wrong while generating the share link.")
+      toast.error("Something went wrong while generating the share link.")
     } finally {
       setGenerating(false)
     }

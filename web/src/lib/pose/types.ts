@@ -42,6 +42,8 @@ export type ExerciseDef = {
   idealMinAngle: number
   idealMaxAngle: number
   targetTempoSec?: number // ideal seconds per rep
+  minRepDurationSec?: number // reject reps faster than this (likely swinging)
+  minRomDegrees?: number // reject reps with insufficient range of motion
 }
 
 export type RepRecord = {

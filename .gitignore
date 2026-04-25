@@ -70,6 +70,13 @@ web_modules/
 .env.*
 !.env.example
 
+# Local/archive artifacts from app generators and agent worktrees
+web/fitfusion-ai-wb/
+web/src/.claude/
+web/.claude/
+web/.expo/
+web/*.zip
+
 # parcel-bundler cache (https://parceljs.org/)
 .cache
 .parcel-cache

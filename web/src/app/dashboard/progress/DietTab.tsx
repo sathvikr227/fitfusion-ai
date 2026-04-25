@@ -95,6 +95,16 @@ type NutritionAnalysisResponse = {
   notes?: string
 }
 
+type BarcodeDetectorResult = {
+  rawValue: string
+}
+
+type BarcodeDetectorConstructor = new (options?: {
+  formats?: string[]
+}) => {
+  detect(source: CanvasImageSource): Promise<BarcodeDetectorResult[]>
+}
+
 const MEAL_OPTIONS: MealType[] = ["breakfast", "lunch", "dinner", "snacks"]
 
 const mealLabel: Record<MealType, string> = {
@@ -493,7 +503,11 @@ export default function DietTab() {
   async function startCameraScanner() {
     setBarcodeError("")
     try {
-      if (!("BarcodeDetector" in window)) {
+      const BarcodeDetectorCtor = (window as Window & {
+        BarcodeDetector?: BarcodeDetectorConstructor
+      }).BarcodeDetector
+
+      if (!BarcodeDetectorCtor) {
         setBarcodeError("Camera scanning not supported in this browser. Enter the barcode number manually below.")
         return
       }
@@ -503,8 +517,7 @@ export default function DietTab() {
         videoRef.current.srcObject = stream
         videoRef.current.play()
       }
-      // @ts-ignore
-      const detector = new (window as any).BarcodeDetector({ formats: ["ean_13", "ean_8", "upc_a", "upc_e", "code_128", "code_39"] })
+      const detector = new BarcodeDetectorCtor({ formats: ["ean_13", "ean_8", "upc_a", "upc_e", "code_128", "code_39"] })
       barcodeIntervalRef.current = setInterval(async () => {
         if (!videoRef.current) return
         try {
@@ -697,7 +710,7 @@ export default function DietTab() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${session?.access_token ?? ""}`,
         },
-        body: JSON.stringify({ transcript }),
+        body: JSON.stringify({ transcript, date: selectedDate, mealType }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Failed")

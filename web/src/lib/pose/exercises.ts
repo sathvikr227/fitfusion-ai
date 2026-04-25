@@ -44,7 +44,7 @@ const wristsAboveShouldersAtTop: Validator = (lm) => {
 const elbowStaysPinned: Validator = (lm) => {
   const elbowToHip = dist(lm[LM.R_ELBOW], lm[LM.R_HIP])
   const shoulderToHip = dist(lm[LM.R_SHOULDER], lm[LM.R_HIP])
-  if (elbowToHip > shoulderToHip * 1.4) {
+  if (elbowToHip > shoulderToHip * 1.15) {
     return { ok: false, reason: "Keep your elbow pinned to your side — don't let it flare out" }
   }
   return { ok: true }
@@ -56,6 +56,18 @@ const wristsBelowShoulders: Validator = (lm) => {
   const shoulderY = (lm[LM.L_SHOULDER].y + lm[LM.R_SHOULDER].y) / 2
   if (wristY < shoulderY) {
     return { ok: false, reason: "Wrists are above shoulders — that looks like a press, not a curl" }
+  }
+  return { ok: true }
+}
+
+// Elbow stays roughly stationary across reps — prevents the whole arm from swinging
+// (which is what stretches/casual arm motion look like vs. a clean curl).
+const elbowAlignedUnderShoulder: Validator = (lm) => {
+  const elbowX = lm[LM.R_ELBOW].x
+  const shoulderX = lm[LM.R_SHOULDER].x
+  const dx = Math.abs(elbowX - shoulderX)
+  if (dx > 0.12) {
+    return { ok: false, reason: "Elbow should stay roughly under your shoulder — don't swing it" }
   }
   return { ok: true }
 }
@@ -210,14 +222,16 @@ export const EXERCISES: Record<string, ExerciseDef> = {
     formTip: "Keep elbow pinned to your side throughout the movement",
     repAngle: {
       landmarks: [LM.R_SHOULDER, LM.R_ELBOW, LM.R_WRIST],
-      down: (a) => a > 150,
-      up: (a) => a < 50,
+      down: (a) => a > 155,
+      up: (a) => a < 45,
     },
-    validators: [torsoUpright, elbowStaysPinned, wristsBelowShoulders],
+    validators: [torsoUpright, elbowStaysPinned, elbowAlignedUnderShoulder, wristsBelowShoulders],
     formChecks: bicepCurlFormChecks,
     idealMinAngle: 30,
     idealMaxAngle: 170,
     targetTempoSec: 2.5,
+    minRepDurationSec: 0.8,
+    minRomDegrees: 100,
   },
 
   shoulder_press: {

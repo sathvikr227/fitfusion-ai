@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import Groq from "groq-sdk"
+import { createClient } from "@supabase/supabase-js"
 
 export const runtime = "nodejs"
 
@@ -7,6 +8,15 @@ function getGroqClient() {
   const apiKey = process.env.GROQ_API_KEY
   if (!apiKey) throw new Error("GROQ_API_KEY is missing")
   return new Groq({ apiKey })
+}
+
+function getSupabase() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error("Supabase environment variables are missing")
+  }
+  return createClient(supabaseUrl, supabaseAnonKey)
 }
 
 function extractJson(text: string): string {
@@ -24,6 +34,16 @@ export async function POST(req: Request) {
   }
 
   try {
+    const token = authHeader.slice("Bearer ".length)
+    const {
+      data: { user },
+      error: authError,
+    } = await getSupabase().auth.getUser(token)
+
+    if (authError || !user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
     const groq = getGroqClient()
     const body = await req.json()
     const {

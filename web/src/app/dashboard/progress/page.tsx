@@ -7,7 +7,6 @@ import WorkoutTab from "./WorkoutTab"
 import DietTab from "./DietTab"
 import PhotosTab from "./PhotosTab"
 import SleepTab from "./SleepTab"
-import StrengthTab from "./StrengthTab"
 import MeasurementsTab from "./MeasurementsTab"
 import CardioTab from "./CardioTab"
 import MoodTab from "./MoodTab"
@@ -31,7 +30,7 @@ function calcStreak(dates: string[]): number {
 }
 
 export default function ProgressPage() {
-  const [tab, setTab] = useState<"weight" | "workout" | "diet" | "photos" | "sleep" | "strength" | "measurements" | "cardio" | "mood">("weight")
+  const [tab, setTab] = useState<"weight" | "workout" | "diet" | "photos" | "sleep" | "measurements" | "cardio" | "mood">("weight")
   const [streak, setStreak] = useState<number | null>(null)
   const [todayActive, setTodayActive] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -117,7 +116,6 @@ export default function ProgressPage() {
               <TabButton label="Diet" active={tab === "diet"} onClick={() => setTab("diet")} />
               <TabButton label="Photos" active={tab === "photos"} onClick={() => setTab("photos")} />
               <TabButton label="Sleep" active={tab === "sleep"} onClick={() => setTab("sleep")} />
-              <TabButton label="Strength" active={tab === "strength"} onClick={() => setTab("strength")} />
               <TabButton label="Measurements" active={tab === "measurements"} onClick={() => setTab("measurements")} />
               <TabButton label="Cardio" active={tab === "cardio"} onClick={() => setTab("cardio")} />
               <TabButton label="Mood" active={tab === "mood"} onClick={() => setTab("mood")} />
@@ -157,7 +155,6 @@ export default function ProgressPage() {
               {tab === "diet" && <DietTab />}
               {tab === "photos" && <PhotosTab />}
               {tab === "sleep" && <SleepTab />}
-              {tab === "strength" && <StrengthTab />}
               {tab === "measurements" && <MeasurementsTab />}
               {tab === "cardio" && <CardioTab />}
               {tab === "mood" && <MoodTab />}

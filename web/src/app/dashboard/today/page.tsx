@@ -171,30 +171,99 @@ export default function TodayPage() {
   const toggleExercise = useCallback(async (name: string) => {
     if (!userId) return
     const newDone = !completedExercises.has(name)
-    setCompletedExercises(prev => {
-      const next = new Set(prev)
-      newDone ? next.add(name) : next.delete(name)
-      return next
-    })
+    const nextSet = new Set(completedExercises)
+    newDone ? nextSet.add(name) : nextSet.delete(name)
+    setCompletedExercises(nextSet)
+
     await supabase.from("workout_execution").upsert(
       { user_id: userId, date: today, exercise_name: name, done: newDone },
       { onConflict: "user_id,date,exercise_name" }
     )
-  }, [userId, today, completedExercises])
+
+    // Sync to workout_logs so progress + home pick it up.
+    const totalDayCalories = todayWorkout?.estimated_calories_burned ?? 0
+    const totalExercises = (todayWorkout?.exercises ?? []).length || 1
+    const perExerciseCalories = Math.round(totalDayCalories / totalExercises)
+    const completedTotal = nextSet.size * perExerciseCalories
+
+    if (nextSet.size === 0) {
+      // All unchecked: remove today's log
+      await supabase.from("workout_logs").delete().eq("user_id", userId).eq("date", today).eq("is_assigned", true)
+    } else {
+      // Find existing log for today
+      const { data: existing } = await supabase
+        .from("workout_logs")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("date", today)
+        .eq("is_assigned", true)
+        .maybeSingle()
+
+      if (existing?.id) {
+        await supabase.from("workout_logs").update({ total_calories: completedTotal }).eq("id", existing.id)
+      } else {
+        await supabase.from("workout_logs").insert({
+          user_id: userId,
+          date: today,
+          is_assigned: true,
+          total_calories: completedTotal,
+        })
+      }
+    }
+  }, [userId, today, completedExercises, todayWorkout])
 
   const toggleMeal = useCallback(async (name: string) => {
     if (!userId) return
     const newEaten = !eatenMeals.has(name)
-    setEatenMeals(prev => {
-      const next = new Set(prev)
-      newEaten ? next.add(name) : next.delete(name)
-      return next
-    })
+    const nextSet = new Set(eatenMeals)
+    newEaten ? nextSet.add(name) : nextSet.delete(name)
+    setEatenMeals(nextSet)
+
     await supabase.from("meal_execution").upsert(
       { user_id: userId, date: today, meal_name: name, eaten: newEaten },
       { onConflict: "user_id,date,meal_name" }
     )
-  }, [userId, today, eatenMeals])
+
+    // Sync to meal_logs so progress + home see calories/macros.
+    const planMeal = meals.find((m) => m.name === name)
+    const mealCalories = planMeal?.total_calories ?? 0
+    const mealType = (name || "").toLowerCase().includes("breakfast") ? "breakfast"
+      : (name || "").toLowerCase().includes("lunch") ? "lunch"
+      : (name || "").toLowerCase().includes("dinner") ? "dinner"
+      : "snacks"
+
+    if (newEaten) {
+      // Idempotent: only insert if not already there
+      const { data: existing } = await supabase
+        .from("meal_logs")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("date", today)
+        .eq("meal_name", name)
+        .eq("source", "plan")
+        .maybeSingle()
+      if (!existing?.id) {
+        await supabase.from("meal_logs").insert({
+          user_id: userId,
+          date: today,
+          meal_type: mealType,
+          meal_name: name,
+          total_calories: mealCalories,
+          is_completed: true,
+          source: "plan",
+          items: planMeal?.items ?? [],
+        })
+      }
+    } else {
+      await supabase
+        .from("meal_logs")
+        .delete()
+        .eq("user_id", userId)
+        .eq("date", today)
+        .eq("meal_name", name)
+        .eq("source", "plan")
+    }
+  }, [userId, today, eatenMeals, meals])
 
   const addWater = useCallback((delta: number) => {
     setWaterMl(prev => {
