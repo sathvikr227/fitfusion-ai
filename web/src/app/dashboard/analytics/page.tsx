@@ -18,6 +18,10 @@ import {
   Radar,
   PolarGrid,
   PolarAngleAxis,
+  AreaChart,
+  Area,
+  Legend,
+  ComposedChart,
 } from "recharts"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -351,10 +355,12 @@ export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true)
   const [userId, setUserId] = useState<string | null>(null)
 
-  // Weekly report state
+  // Report state
+  type ReportPeriod = "weekly" | "monthly" | "lifetime"
   const [report, setReport] = useState<string | null>(null)
+  const [reportPeriod, setReportPeriod] = useState<ReportPeriod>("weekly")
   const [reportStats, setReportStats] = useState<Record<string, unknown> | null>(null)
-  const [loadingReport, setLoadingReport] = useState(false)
+  const [loadingReport, setLoadingReport] = useState<ReportPeriod | null>(null)
   const [reportError, setReportError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -468,6 +474,90 @@ export default function AnalyticsPage() {
       calories: caloriesMap[day],
     }))
   }, [workoutLogs])
+
+  // ── Chart window — depends on the current report period ───────────────────
+
+  const chartWindowDays = useMemo(() => {
+    if (reportPeriod === "monthly") return 30
+    if (reportPeriod === "lifetime") {
+      // Find the earliest data point across all sources; fall back to 14 if none.
+      const allDates: string[] = []
+      mealLogs.forEach((m) => { if (m.date) allDates.push(m.date) })
+      workoutLogs.forEach((w) => { if (w.date ?? w.created_at) allDates.push((w.date ?? w.created_at).split("T")[0]) })
+      weightLogs.forEach((w) => { if (w.date ?? w.created_at) allDates.push((w.date ?? w.created_at).split("T")[0]) })
+      sleepByDate.forEach((_, d) => allDates.push(d))
+      if (allDates.length === 0) return 14
+      const earliest = allDates.sort()[0]
+      const days = Math.ceil((Date.now() - new Date(earliest).getTime()) / 86400000) + 1
+      return Math.max(14, Math.min(days, 365))
+    }
+    return 14
+  }, [reportPeriod, mealLogs, workoutLogs, weightLogs, sleepByDate])
+
+  const calorieIntakeData = useMemo(() => {
+    const intakeMap: Record<string, number> = {}
+    mealLogs.forEach((m) => {
+      if (!m.date) return
+      intakeMap[m.date] = (intakeMap[m.date] ?? 0) + (m.total_calories ?? 0)
+    })
+
+    const days: { date: string; label: string; calories: number }[] = []
+    for (let i = chartWindowDays - 1; i >= 0; i--) {
+      const d = new Date()
+      d.setDate(d.getDate() - i)
+      const iso = d.toISOString().split("T")[0]
+      days.push({
+        date: iso,
+        label: d.toLocaleDateString("en-IN", { day: "numeric", month: "short" }),
+        calories: Math.round(intakeMap[iso] ?? 0),
+      })
+    }
+    return days
+  }, [mealLogs, chartWindowDays])
+
+  const sleepTrendData = useMemo(() => {
+    const days: { label: string; hours: number | null }[] = []
+    for (let i = chartWindowDays - 1; i >= 0; i--) {
+      const d = new Date()
+      d.setDate(d.getDate() - i)
+      const iso = d.toISOString().split("T")[0]
+      days.push({
+        label: d.toLocaleDateString("en-IN", { day: "numeric", month: "short" }),
+        hours: sleepByDate.get(iso) ?? null,
+      })
+    }
+    return days
+  }, [sleepByDate, chartWindowDays])
+
+  const energyBalanceData = useMemo(() => {
+    const burnMap: Record<string, number> = {}
+    const intakeMap: Record<string, number> = {}
+
+    workoutLogs.forEach((w) => {
+      const iso = (w.date ?? w.created_at).split("T")[0]
+      burnMap[iso] = (burnMap[iso] ?? 0) + (w.total_calories ?? 0)
+    })
+    mealLogs.forEach((m) => {
+      if (!m.date) return
+      intakeMap[m.date] = (intakeMap[m.date] ?? 0) + (m.total_calories ?? 0)
+    })
+
+    const days: { label: string; burned: number; consumed: number; net: number }[] = []
+    for (let i = chartWindowDays - 1; i >= 0; i--) {
+      const d = new Date()
+      d.setDate(d.getDate() - i)
+      const iso = d.toISOString().split("T")[0]
+      const burned = Math.round(burnMap[iso] ?? 0)
+      const consumed = Math.round(intakeMap[iso] ?? 0)
+      days.push({
+        label: d.toLocaleDateString("en-IN", { day: "numeric", month: "short" }),
+        burned,
+        consumed,
+        net: consumed - burned,
+      })
+    }
+    return days
+  }, [workoutLogs, mealLogs, chartWindowDays])
 
   // ── Streak ─────────────────────────────────────────────────────────────────
 
@@ -637,12 +727,13 @@ export default function AnalyticsPage() {
     ]
   }, [totalWorkouts, streak, weightLogs, weightChange])
 
-  const generateReport = async () => {
+  const generateReport = async (period: ReportPeriod) => {
     if (!userId) return
-    setLoadingReport(true)
+    setLoadingReport(period)
     setReportError(null)
     setReport(null)
     setReportStats(null)
+    setReportPeriod(period)
 
     try {
       const { data: { session } } = await supabase.auth.getSession()
@@ -652,7 +743,7 @@ export default function AnalyticsPage() {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${session?.access_token ?? ""}`,
         },
-        body: JSON.stringify({ userId }),
+        body: JSON.stringify({ userId, period }),
       })
 
       const data = await res.json()
@@ -666,20 +757,31 @@ export default function AnalyticsPage() {
     } catch (err: any) {
       setReportError(err.message || "Failed to generate report")
     } finally {
-      setLoadingReport(false)
+      setLoadingReport(null)
     }
   }
 
   const downloadPdf = async () => {
     if (!report) return
     const { jsPDF } = await import("jspdf")
-    const html2canvas = (await import("html2canvas")).default
+    const { toPng } = await import("html-to-image")
     const doc = new jsPDF({ unit: "pt", format: "a4" })
 
     const W = doc.internal.pageSize.getWidth()
     const margin = 48
     const contentW = W - margin * 2
     let y = margin
+
+    const titleByPeriod: Record<ReportPeriod, string> = {
+      weekly: "Weekly Fitness Report",
+      monthly: "Monthly Fitness Report",
+      lifetime: "Detailed Lifetime Report",
+    }
+    const fileNameByPeriod: Record<ReportPeriod, string> = {
+      weekly: "fitfusion-weekly",
+      monthly: "fitfusion-monthly",
+      lifetime: "fitfusion-detailed",
+    }
 
     // Header bar
     doc.setFillColor(124, 58, 237)
@@ -690,7 +792,7 @@ export default function AnalyticsPage() {
     doc.text("FitFusion AI", margin, 38)
     doc.setFontSize(10)
     doc.setFont("helvetica", "normal")
-    doc.text("Weekly Fitness Report", margin, 52)
+    doc.text(titleByPeriod[reportPeriod], margin, 52)
     doc.text(new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }), W - margin, 52, { align: "right" })
 
     y = 88
@@ -746,18 +848,24 @@ export default function AnalyticsPage() {
       y += 15
     })
 
-    // Charts — each tagged element gets captured and added on its own page
+    // Charts — each tagged element gets captured and added on its own page.
+    // Using html-to-image instead of html2canvas because Tailwind v4 uses oklch()
+    // colors which html2canvas can't parse (silently fails the capture).
     const chartElements = Array.from(document.querySelectorAll<HTMLElement>("[data-pdf-chart]"))
     for (const el of chartElements) {
       const title = el.getAttribute("data-pdf-chart") ?? "Chart"
       try {
-        const canvas = await html2canvas(el, {
+        const imgData = await toPng(el, {
           backgroundColor: "#ffffff",
-          scale: 2,
-          logging: false,
-          useCORS: true,
+          pixelRatio: 2,
+          cacheBust: true,
         })
-        const imgData = canvas.toDataURL("image/png")
+        const probe = await new Promise<{ w: number; h: number }>((resolve, reject) => {
+          const img = new Image()
+          img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight })
+          img.onerror = reject
+          img.src = imgData
+        })
         doc.addPage()
         let cy = margin
         doc.setTextColor(124, 58, 237)
@@ -766,7 +874,7 @@ export default function AnalyticsPage() {
         doc.text(title, margin, cy)
         cy += 14
 
-        const imgRatio = canvas.height / canvas.width
+        const imgRatio = probe.h / probe.w
         const imgW = contentW
         const imgH = imgW * imgRatio
         const pageH = doc.internal.pageSize.getHeight()
@@ -788,7 +896,7 @@ export default function AnalyticsPage() {
     doc.setFont("helvetica", "normal")
     doc.text("Generated by FitFusion AI · fitfusion.app", W / 2, pageH - 12, { align: "center" })
 
-    doc.save(`fitfusion-report-${new Date().toISOString().split("T")[0]}.pdf`)
+    doc.save(`${fileNameByPeriod[reportPeriod]}-${new Date().toISOString().split("T")[0]}.pdf`)
   }
 
   if (loading) {
@@ -1099,36 +1207,119 @@ export default function AnalyticsPage() {
           </div>
         )}
 
-        {/* Weekly AI Report */}
+        {/* Daily Calorie Intake (last {chartWindowDays} days) */}
         <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow border border-slate-200 dark:border-slate-700">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
-            <div>
-              <h2 className="text-lg font-semibold">Weekly AI Fitness Report</h2>
-              <p className="text-sm text-slate-500 dark:text-slate-400">Get a personalised AI summary of your last 7 days</p>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={generateReport}
-                disabled={loadingReport}
-                className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-purple-600 to-cyan-500 px-5 py-2.5 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed transition"
-              >
-                {loadingReport ? (
-                  <><Loader2 className="h-4 w-4 animate-spin" />Generating...</>
-                ) : (
-                  "Generate Report"
-                )}
-              </button>
-              {report && (
-                <button
-                  onClick={downloadPdf}
-                  className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 transition"
-                >
-                  <Download className="h-4 w-4" />
-                  Download PDF
-                </button>
-              )}
-            </div>
+          <h2 className="text-lg font-semibold mb-1">Daily Calorie Intake</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Total kcal consumed per day (last {chartWindowDays} days)</p>
+          <div className="w-full h-[280px]" data-pdf-chart="Daily Calorie Intake">
+            <ResponsiveContainer>
+              <AreaChart data={calorieIntakeData}>
+                <defs>
+                  <linearGradient id="intakeGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#10b981" stopOpacity={0.6} />
+                    <stop offset="100%" stopColor="#10b981" stopOpacity={0.05} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis dataKey="label" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 12 }} />
+                <Tooltip />
+                <Area type="monotone" dataKey="calories" stroke="#10b981" strokeWidth={2} fill="url(#intakeGrad)" name="kcal consumed" />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
+        </div>
+
+        {/* Sleep Hours Trend */}
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow border border-slate-200 dark:border-slate-700">
+          <h2 className="text-lg font-semibold mb-1">Sleep Hours</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Hours slept per night (last {chartWindowDays} days)</p>
+          {sleepTrendData.every((d) => d.hours == null) ? (
+            <p className="text-center text-slate-500 dark:text-slate-400 py-10">No sleep data yet. Log sleep in the Progress tab.</p>
+          ) : (
+            <div className="w-full h-[260px]" data-pdf-chart="Sleep Hours">
+              <ResponsiveContainer>
+                <LineChart data={sleepTrendData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="label" tick={{ fontSize: 11 }} />
+                  <YAxis domain={[0, 12]} tick={{ fontSize: 12 }} />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="hours" stroke="#6366f1" strokeWidth={3} dot={{ r: 3 }} connectNulls name="Hours" />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+
+        {/* Energy Balance: burned vs consumed */}
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow border border-slate-200 dark:border-slate-700">
+          <h2 className="text-lg font-semibold mb-1">Energy Balance</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Calories burned vs consumed per day (last {chartWindowDays} days)</p>
+          <div className="w-full h-[300px]" data-pdf-chart="Energy Balance">
+            <ResponsiveContainer>
+              <ComposedChart data={energyBalanceData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis dataKey="label" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 12 }} />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="consumed" fill="#10b981" radius={[4, 4, 0, 0]} name="Consumed" />
+                <Bar dataKey="burned" fill="#f97316" radius={[4, 4, 0, 0]} name="Burned" />
+                <Line type="monotone" dataKey="net" stroke="#7c3aed" strokeWidth={2} dot={{ r: 3 }} name="Net (consumed - burned)" />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* AI Fitness Report */}
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow border border-slate-200 dark:border-slate-700">
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold">AI Fitness Report</h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400">Pick a period to generate a personalised summary</p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+            {([
+              { id: "weekly" as const, label: "Weekly", sub: "Last 7 days" },
+              { id: "monthly" as const, label: "Monthly", sub: "Last 30 days" },
+              { id: "lifetime" as const, label: "Detailed", sub: "All-time + every chart" },
+            ]).map((opt) => {
+              const isActive = reportPeriod === opt.id && (report !== null || loadingReport === opt.id)
+              const isLoading = loadingReport === opt.id
+              return (
+                <button
+                  key={opt.id}
+                  onClick={() => generateReport(opt.id)}
+                  disabled={loadingReport !== null}
+                  className={`group flex flex-col items-start rounded-2xl px-5 py-4 text-left transition disabled:opacity-60 disabled:cursor-not-allowed ${
+                    isActive
+                      ? "bg-gradient-to-br from-purple-600 to-cyan-500 text-white shadow-md"
+                      : "border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-purple-300"
+                  }`}
+                >
+                  <div className="flex items-center gap-2 text-sm font-semibold">
+                    {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                    {opt.label}
+                  </div>
+                  <div className={`text-xs mt-0.5 ${isActive ? "text-white/80" : "text-slate-500 dark:text-slate-400"}`}>
+                    {opt.sub}
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+
+          {report && (
+            <div className="flex justify-end mb-4">
+              <button
+                onClick={downloadPdf}
+                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 transition"
+              >
+                <Download className="h-4 w-4" />
+                Download {reportPeriod === "lifetime" ? "Detailed" : reportPeriod === "monthly" ? "Monthly" : "Weekly"} PDF
+              </button>
+            </div>
+          )}
 
           {reportError && (
             <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
@@ -1154,14 +1345,16 @@ export default function AnalyticsPage() {
 
           {report && (
             <div className="rounded-2xl bg-gradient-to-br from-purple-50 to-cyan-50 border border-purple-100 p-5">
-              <p className="text-sm font-semibold text-purple-700 mb-2">Your Weekly Report</p>
+              <p className="text-sm font-semibold text-purple-700 mb-2">
+                Your {reportPeriod === "lifetime" ? "Detailed Lifetime" : reportPeriod === "monthly" ? "Monthly" : "Weekly"} Report
+              </p>
               <p className="text-sm leading-7 text-slate-700 dark:text-slate-300 whitespace-pre-line">{report}</p>
             </div>
           )}
 
           {!report && !reportError && !loadingReport && (
             <div className="rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 p-6 text-center text-sm text-slate-500 dark:text-slate-400">
-              Click &quot;Generate Report&quot; to get your personalised AI fitness summary for the past week.
+              Pick a period above to generate your AI fitness summary. Detailed includes lifetime data and embeds every chart in the PDF.
             </div>
           )}
         </div>

@@ -17,11 +17,26 @@ function getSupabase() {
   return createClient(url, key)
 }
 
-function last7Days() {
+function periodStart(period: string): string | null {
   const now = new Date()
+  if (period === "monthly") {
+    const start = new Date(now)
+    start.setDate(start.getDate() - 30)
+    return start.toISOString().split("T")[0]
+  }
+  if (period === "lifetime") {
+    return null // no lower bound
+  }
+  // default: weekly (7 days)
   const start = new Date(now)
   start.setDate(start.getDate() - 7)
   return start.toISOString().split("T")[0]
+}
+
+function periodLabel(period: string): string {
+  if (period === "monthly") return "monthly (last 30 days)"
+  if (period === "lifetime") return "all-time / lifetime"
+  return "weekly (last 7 days)"
 }
 
 export async function POST(req: Request) {
@@ -31,6 +46,7 @@ export async function POST(req: Request) {
 
     const body = await req.json().catch(() => ({}))
     const userId = body?.userId
+    const period: string = ["weekly", "monthly", "lifetime"].includes(body?.period) ? body.period : "weekly"
 
     if (!userId) {
       return NextResponse.json({ error: "userId is required" }, { status: 400 })
@@ -46,31 +62,32 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const since = last7Days()
+    const since = periodStart(period)
 
-    // Fetch last 7 days of workout logs
-    const { data: workoutLogs } = await supabase
+    const workoutQuery = supabase
       .from("workout_logs")
       .select("date, total_calories, is_assigned")
       .eq("user_id", userId)
-      .gte("date", since)
       .order("date", { ascending: true })
-
-    // Fetch last 7 days of weight logs
-    const { data: weightLogs } = await supabase
+    const weightQuery = supabase
       .from("weight_logs")
       .select("weight, date")
       .eq("user_id", userId)
-      .gte("date", since)
       .order("date", { ascending: true })
-
-    // Fetch last 7 days of meal logs
-    const { data: mealLogs } = await supabase
+    const mealQuery = supabase
       .from("meal_logs")
       .select("total_calories, date")
       .eq("user_id", userId)
-      .gte("date", since)
       .order("date", { ascending: true })
+
+    const [workoutsRes, weightsRes, mealsRes] = await Promise.all([
+      since ? workoutQuery.gte("date", since) : workoutQuery,
+      since ? weightQuery.gte("date", since) : weightQuery,
+      since ? mealQuery.gte("date", since) : mealQuery,
+    ])
+    const workoutLogs = workoutsRes.data
+    const weightLogs = weightsRes.data
+    const mealLogs = mealsRes.data
 
     // profiles.id IS the auth user UUID — no user_id column on profiles
     const { data: profileData } = await supabase
@@ -101,26 +118,32 @@ export async function POST(req: Request) {
         ? parseFloat((endWeight - startWeight).toFixed(1))
         : null
 
-    const prompt = `
-You are an AI fitness coach writing a weekly performance report for a user.
+    const periodDays = period === "lifetime"
+      ? Math.max(1, mealDays || 1)
+      : period === "monthly" ? 30 : 7
+    const wordLimit = period === "lifetime" ? 500 : period === "monthly" ? 350 : 250
 
-Be encouraging, data-driven, and give 2-3 actionable recommendations for next week.
-Keep the report under 250 words. Use plain text — no markdown, no bullet symbols, no asterisks.
+    const prompt = `
+You are an AI fitness coach writing a ${periodLabel(period)} performance report for a user.
+
+Be encouraging, data-driven, and give ${period === "lifetime" ? "4-5" : "2-3"} actionable recommendations for the next period.
+Keep the report under ${wordLimit} words. Use plain text — no markdown, no bullet symbols, no asterisks.
+${period === "lifetime" ? "This is a lifetime / detailed summary — discuss long-term trends and consistency over the entire period." : ""}
 
 User goal: ${profile?.goal ?? "Not specified"}
 Activity level: ${profile?.activity_level ?? "Not specified"}
 
-This week's data:
+Period data (${periodLabel(period)}):
 - Workouts completed: ${workoutCount}
 - Total calories burned: ${totalCaloriesBurned} kcal
 - Average daily calories consumed: ${avgDailyCaloriesIn != null ? `${avgDailyCaloriesIn} kcal` : "N/A"}
-- Calorie balance (in - out): ${avgDailyCaloriesIn != null ? `${avgDailyCaloriesIn - Math.round(totalCaloriesBurned / 7)} kcal/day net` : "N/A"}
-- Weight at start of week: ${startWeight ?? "N/A"} kg
-- Weight at end of week: ${endWeight ?? "N/A"} kg
+- Calorie balance (in - out): ${avgDailyCaloriesIn != null ? `${avgDailyCaloriesIn - Math.round(totalCaloriesBurned / periodDays)} kcal/day net` : "N/A"}
+- Weight at start of period: ${startWeight ?? "N/A"} kg
+- Weight at end of period: ${endWeight ?? "N/A"} kg
 - Weight change: ${weightChange != null ? `${weightChange > 0 ? "+" : ""}${weightChange} kg` : "N/A"}
 - Injuries/limitations: ${profile?.injuries ?? "None"}
 
-Write the weekly report now.
+Write the ${period === "lifetime" ? "detailed lifetime" : period} report now.
 `.trim()
 
     const completion = await groq.chat.completions.create({
@@ -137,12 +160,14 @@ Write the weekly report now.
 
     return NextResponse.json({
       report,
+      period,
       stats: {
         workoutCount,
         totalCaloriesBurned,
         startWeight,
         endWeight,
         weightChange,
+        avgDailyCaloriesIn,
         periodStart: since,
         periodEnd: new Date().toISOString().split("T")[0],
       },
