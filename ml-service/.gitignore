@@ -1,0 +1,11 @@
+.env
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+
+# Model artifacts are produced offline and shipped out-of-band.
+models/*
+!models/.gitkeep
