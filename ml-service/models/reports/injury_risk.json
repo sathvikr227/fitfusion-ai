@@ -1,0 +1,129 @@
+{
+  "model": "injury_risk",
+  "trained_at": "2026-09-09T04:29:17+00:00",
+  "python": "3.12.10",
+  "artifact": "injury_risk_model.pkl",
+  "algorithm": "MultiOutputClassifier(XGBClassifier(n_estimators=100, max_depth=4))",
+  "dataset": "valakhorasani/gym-members-exercise-dataset",
+  "rows": 973,
+  "features": [
+    "Age",
+    "BMI",
+    "Resting_BPM",
+    "Session_Duration (hours)",
+    "Workout_Frequency (days/week)",
+    "Experience_Level"
+  ],
+  "labels": [
+    "knee",
+    "back",
+    "shoulder",
+    "hamstring"
+  ],
+  "label_rules": {
+    "knee": "CALIBRATED: Resting_BPM > 68 (75th pct) AND Workout_Frequency >= 4 (75th pct). The documented rule (BPM > 80 AND frequency > 5) matched 0 rows \u2014 this dataset's Resting_BPM maxes at 74 and Workout_Frequency at 5, so the documented thresholds are unreachable. Same two signals, same direction, thresholds moved onto the observed distribution.",
+    "back": "BMI > 27 AND Session_Duration > 1.5 (as documented)",
+    "shoulder": "Experience_Level == 1 (beginner) AND Workout_Type == Strength (as documented)",
+    "hamstring": "Session_Duration > 1.2 AND Workout_Frequency > 4 (as documented)"
+  },
+  "label_prevalence": {
+    "knee": 103,
+    "back": 46,
+    "shoulder": 97,
+    "hamstring": 102
+  },
+  "metrics": {
+    "per_label": {
+      "knee": {
+        "f1": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "support": 15,
+        "confusion_matrix": [
+          [
+            180,
+            0
+          ],
+          [
+            0,
+            15
+          ]
+        ],
+        "scale_pos_weight": 7.840909090909091,
+        "label_rule": "CALIBRATED: Resting_BPM > 68 (75th pct) AND Workout_Frequency >= 4 (75th pct). The documented rule (BPM > 80 AND frequency > 5) matched 0 rows \u2014 this dataset's Resting_BPM maxes at 74 and Workout_Frequency at 5, so the documented thresholds are unreachable. Same two signals, same direction, thresholds moved onto the observed distribution."
+      },
+      "back": {
+        "f1": 0.9473684210526315,
+        "precision": 0.9,
+        "recall": 1.0,
+        "support": 9,
+        "confusion_matrix": [
+          [
+            185,
+            1
+          ],
+          [
+            0,
+            9
+          ]
+        ],
+        "scale_pos_weight": 20.027027027027028,
+        "label_rule": "BMI > 27 AND Session_Duration > 1.5 (as documented)"
+      },
+      "shoulder": {
+        "f1": 0.2857142857142857,
+        "precision": 0.25,
+        "recall": 0.3333333333333333,
+        "support": 18,
+        "confusion_matrix": [
+          [
+            159,
+            18
+          ],
+          [
+            12,
+            6
+          ]
+        ],
+        "scale_pos_weight": 8.848101265822784,
+        "label_rule": "Experience_Level == 1 (beginner) AND Workout_Type == Strength (as documented)"
+      },
+      "hamstring": {
+        "f1": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "support": 20,
+        "confusion_matrix": [
+          [
+            175,
+            0
+          ],
+          [
+            0,
+            20
+          ]
+        ],
+        "scale_pos_weight": 8.487804878048781,
+        "label_rule": "Session_Duration > 1.2 AND Workout_Frequency > 4 (as documented)"
+      }
+    },
+    "macro_f1": 0.8082706766917293
+  },
+  "labels_below_f1_target": [
+    "shoulder"
+  ],
+  "shoulder_ablation": {
+    "f1_with_workout_type": 1.0,
+    "features": [
+      "Age",
+      "BMI",
+      "Resting_BPM",
+      "Session_Duration (hours)",
+      "Workout_Frequency (days/week)",
+      "Experience_Level",
+      "Workout_Type"
+    ],
+    "note": "Diagnostic ablation, not the shipped model. Shows the shoulder label is identifiable once Workout_Type is available."
+  },
+  "disclaimer": "Proxy injury-risk scores derived from established biomechanical thresholds. Not a clinical diagnosis."
+}

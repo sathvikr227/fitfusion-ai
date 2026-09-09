@@ -2,7 +2,17 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { supabase } from "../../../lib/supabase/client"
-import { MET_VALUES } from "../../../lib/calories"
+import { MET_VALUES, estimateExerciseDurationMinutes } from "../../../lib/calories"
+
+type ShapFeature = { feature: string; label: string; impact: number; value: number }
+
+type CalorieInsight = {
+  calories: number
+  source: "ml" | "fallback"
+  modelVersion: string
+  workoutType: string
+  shap: ShapFeature[]
+}
 
 type Mode = "custom" | "assigned"
 
@@ -117,23 +127,6 @@ function getMET(exerciseName: string) {
   const lower = exerciseName.toLowerCase()
   const foundKey = Object.keys(MET_VALUES).find((key) => lower.includes(key))
   return foundKey ? MET_VALUES[foundKey] : 5.5
-}
-
-function estimateExerciseDurationMinutes(exercise: ExerciseInput) {
-  const duration = toNumber(exercise.duration)
-  if (duration > 0) return duration
-
-  const sets = toNumber(exercise.sets)
-  const reps = toNumber(exercise.reps)
-
-  if (sets > 0 && reps > 0) {
-    return Math.max(sets * 3, Math.ceil((sets * reps) / 8))
-  }
-
-  if (sets > 0) return Math.max(sets * 3, 5)
-  if (reps > 0) return Math.max(Math.ceil(reps / 4), 5)
-
-  return 10
 }
 
 function estimateExerciseCalories(exercise: ExerciseInput, bodyWeightKg: number) {
@@ -417,6 +410,7 @@ export default function WorkoutTab() {
   const [statusMessage, setStatusMessage] = useState("")
   const [todayCompleted, setTodayCompleted] = useState(false)
   const [currentStreak, setCurrentStreak] = useState(0)
+  const [calorieInsight, setCalorieInsight] = useState<CalorieInsight | null>(null)
 
   const currentDay = useMemo(() => getCurrentDayName(), [])
   const todayDayIndex = useMemo(() => dayIndexForToday(), [])
@@ -731,6 +725,60 @@ export default function WorkoutTab() {
     return workoutLogId
   }
 
+  /**
+   * Asks the XGBoost calorie model what this session burned.
+   *
+   * Returns null if the call fails for any reason, in which case the caller
+   * keeps the MET estimate it already computed — logging a workout must never
+   * depend on the ML service being up.
+   */
+  async function fetchMlCalories(
+    sessionExercises: ExerciseInput[],
+    workoutType?: string
+  ): Promise<CalorieInsight | null> {
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      const token = session?.access_token
+      if (!token) return null
+
+      const res = await fetch("/api/workout-log", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          exercises: sessionExercises.map((ex) => ({
+            name: ex.name,
+            sets: ex.sets,
+            reps: ex.reps,
+            duration: ex.duration,
+            weight: ex.weight,
+          })),
+          workoutType,
+          weightKg: bodyWeightKg,
+        }),
+      })
+
+      if (!res.ok) return null
+      const data = await res.json()
+      if (!Number.isFinite(Number(data?.calories))) return null
+
+      return {
+        calories: Number(data.calories),
+        source: data.source === "ml" ? "ml" : "fallback",
+        modelVersion: String(data.modelVersion ?? ""),
+        workoutType: String(data.workoutType ?? ""),
+        shap: Array.isArray(data.shap) ? data.shap : [],
+      }
+    } catch (err) {
+      console.warn("Calorie model unavailable, using MET estimate:", err)
+      return null
+    }
+  }
+
   async function saveCustomWorkout() {
     if (!userId) return
 
@@ -753,7 +801,9 @@ export default function WorkoutTab() {
     setSaving(true)
     setStatusMessage("")
 
-    const totalCalories = estimateWorkoutCalories(exercises, bodyWeightKg)
+    const metCalories = estimateWorkoutCalories(exercises, bodyWeightKg)
+    const insight = await fetchMlCalories(exercises)
+    const totalCalories = insight?.calories ?? metCalories
 
     try {
       await insertWorkoutAndExercises({
@@ -765,6 +815,7 @@ export default function WorkoutTab() {
       })
 
       setExercises([])
+      setCalorieInsight(insight)
       await loadWorkoutLogs(userId)
       setStatusMessage(`Saved custom workout. You burned about ${totalCalories} kcal.`)
     } catch (error: any) {
@@ -801,6 +852,12 @@ export default function WorkoutTab() {
       caloriesBurned = estimateWorkoutCalories(day.exercises, bodyWeightKg)
     }
 
+    let insight: CalorieInsight | null = null
+    if (day.exercises.length > 0) {
+      insight = await fetchMlCalories(day.exercises, day.type)
+      if (insight) caloriesBurned = insight.calories
+    }
+
     try {
       await insertWorkoutAndExercises({
         isAssigned: true,
@@ -810,6 +867,7 @@ export default function WorkoutTab() {
         date: targetDate,
       })
 
+      setCalorieInsight(insight)
       await loadWorkoutLogs(userId)
       setStatusMessage(
         `Marked ${day.day}'s workout as completed. Burned about ${caloriesBurned || 0} kcal.`
@@ -1117,6 +1175,68 @@ export default function WorkoutTab() {
       {statusMessage && (
         <div className="bg-blue-50 border border-blue-100 text-blue-700 px-4 py-3 rounded-xl">
           {statusMessage}
+        </div>
+      )}
+
+      {calorieInsight && calorieInsight.source === "ml" && calorieInsight.shap.length > 0 && (
+        <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+          <div className="flex items-baseline justify-between gap-3 mb-1">
+            <h3 className="font-semibold text-slate-800 dark:text-white">
+              Why {calorieInsight.calories} kcal?
+            </h3>
+            <span className="text-xs text-slate-400">{calorieInsight.workoutType}</span>
+          </div>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+            What pushed this estimate up or down, from the calorie model.
+          </p>
+
+          <div className="space-y-2">
+            {calorieInsight.shap.map((feature) => {
+              const widest = Math.max(
+                ...calorieInsight.shap.map((f) => Math.abs(f.impact)),
+                1
+              )
+              const width = (Math.abs(feature.impact) / widest) * 100
+              const positive = feature.impact >= 0
+
+              return (
+                <div key={feature.feature} className="flex items-center gap-3">
+                  <span className="w-36 shrink-0 text-xs text-slate-600 dark:text-slate-300">
+                    {feature.label}
+                  </span>
+                  <div className="flex-1 flex items-center">
+                    <div className="flex-1 flex justify-end">
+                      {!positive && (
+                        <div
+                          className="h-2.5 rounded-l-full bg-rose-400"
+                          style={{ width: `${width}%` }}
+                        />
+                      )}
+                    </div>
+                    <div className="w-px h-4 bg-slate-200 dark:bg-slate-600" />
+                    <div className="flex-1">
+                      {positive && (
+                        <div
+                          className="h-2.5 rounded-r-full bg-emerald-400"
+                          style={{ width: `${width}%` }}
+                        />
+                      )}
+                    </div>
+                  </div>
+                  <span
+                    className={`w-20 shrink-0 text-right text-xs font-medium tabular-nums ${
+                      positive
+                        ? "text-emerald-600 dark:text-emerald-400"
+                        : "text-rose-600 dark:text-rose-400"
+                    }`}
+                  >
+                    {positive ? "+" : ""}
+                    {Math.round(feature.impact)} kcal
+                  </span>
+                </div>
+              )
+            })}
+          </div>
         </div>
       )}
 

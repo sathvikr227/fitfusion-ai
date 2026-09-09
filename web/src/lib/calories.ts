@@ -76,6 +76,52 @@ function findMET(exerciseName: string): number {
 }
 
 //////////////////////////////////////////////
+// ⏱️ SESSION DURATION ESTIMATION
+//////////////////////////////////////////////
+
+export type LoggedExercise = {
+  name?: string
+  sets?: string | number | null
+  reps?: string | number | null
+  duration?: string | number | null
+  weight?: string | number | null
+}
+
+function toNum(value: unknown) {
+  if (value === "" || value === null || value === undefined) return 0
+  const n = typeof value === "number" ? value : Number(value)
+  return Number.isFinite(n) ? n : 0
+}
+
+/**
+ * Minutes a logged exercise took. Uses the recorded duration when present,
+ * otherwise infers it from sets and reps (a set runs about 3 minutes including
+ * rest). Shared by the workout UI and /api/workout-log so the duration fed to
+ * the ML model is the same one the UI shows.
+ */
+export function estimateExerciseDurationMinutes(exercise: LoggedExercise) {
+  const duration = toNum(exercise.duration)
+  if (duration > 0) return duration
+
+  const sets = toNum(exercise.sets)
+  const reps = toNum(exercise.reps)
+
+  if (sets > 0 && reps > 0) {
+    return Math.max(sets * 3, Math.ceil((sets * reps) / 8))
+  }
+
+  if (sets > 0) return Math.max(sets * 3, 5)
+  if (reps > 0) return Math.max(Math.ceil(reps / 4), 5)
+
+  return 10
+}
+
+/** Total minutes across every exercise in a session. */
+export function estimateSessionDurationMinutes(exercises: LoggedExercise[]) {
+  return exercises.reduce((sum, ex) => sum + estimateExerciseDurationMinutes(ex), 0)
+}
+
+//////////////////////////////////////////////
 // 🔥 WORKOUT CALORIE CALCULATION
 //////////////////////////////////////////////
 

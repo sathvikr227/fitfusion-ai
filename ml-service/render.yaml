@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: fitfusion-ml
+    runtime: python
+    plan: free
+    rootDir: ml-service
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /healthz
+    envVars:
+      - key: ML_SERVICE_API_KEY
+        sync: false   # set in Render dashboard; do not commit
+      - key: MODEL_DIR
+        value: ./models
+      - key: LOG_LEVEL
+        value: info
+      - key: PYTHON_VERSION
+        value: 3.11.9

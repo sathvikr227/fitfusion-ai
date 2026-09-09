@@ -9,6 +9,7 @@ const PUBLIC_API_PATHS = [
   '/api/help/recipe',
   '/api/seed-knowledge',
   '/api/share',  // public share stats — no auth needed for GET
+  '/api/ml-health',  // dev probe for ML service round-trip; returns no user data
 ]
 
 // In-memory rate limit store (resets on cold start)

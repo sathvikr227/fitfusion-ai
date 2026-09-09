@@ -1,0 +1,21 @@
+.env
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+
+# Model artifacts are produced offline and shipped out-of-band.
+models/*
+!models/.gitkeep
+
+# Training metrics are small JSON and worth keeping in the repo as the record
+# of what each model actually scored.
+!models/reports/
+
+# Cached Kaggle downloads and the Supabase pilot export.
+data/
+
+# Training console output.
+rl_train.log
