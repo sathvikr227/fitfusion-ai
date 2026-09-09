@@ -1,0 +1,35 @@
+{
+  "model": "calorie_predictor",
+  "trained_at": "2026-09-09T04:55:16+00:00",
+  "python": "3.12.10",
+  "artifact": "calorie_model.pkl",
+  "algorithm": "XGBRegressor(n_estimators=200, max_depth=6, learning_rate=0.1)",
+  "dataset": "valakhorasani/gym-members-exercise-dataset",
+  "rows": 973,
+  "features": [
+    "Age",
+    "Weight (kg)",
+    "BMI",
+    "Resting_BPM",
+    "Session_Duration (hours)",
+    "Workout_Type"
+  ],
+  "target": "Calories_Burned",
+  "test_size": 0.2,
+  "metrics": {
+    "mae": 87.9406268780048,
+    "rmse": 113.80141490281335,
+    "r2": 0.8447616655269745,
+    "baseline_met_mae": 416.88087692307687,
+    "baseline_met_rmse": 497.9474225727461
+  },
+  "target_mae_under_25": false,
+  "mean_abs_shap": {
+    "Session_Duration (hours)": 210.16757202148438,
+    "Age": 33.24732971191406,
+    "Weight (kg)": 30.275814056396484,
+    "BMI": 16.07695770263672,
+    "Resting_BPM": 13.72040843963623,
+    "Workout_Type": 4.192650318145752
+  }
+}

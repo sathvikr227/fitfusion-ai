@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "../../../lib/supabase/client"
 import { Loader2, Download, Brain, ChevronDown, ChevronUp } from "lucide-react"
+import { MLInsightsCard } from "../components/MLInsightsCard"
 import {
   LineChart,
   Line,
@@ -922,6 +923,9 @@ export default function AnalyticsPage() {
 
         {/* AI Anomaly Alerts */}
         <AnomalyAlerts weightLogs={weightLogs} mealLogs={mealLogs} />
+
+        {/* ML layer: trajectory, injury risk, last replan decision */}
+        <MLInsightsCard />
 
         {/* Stats grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

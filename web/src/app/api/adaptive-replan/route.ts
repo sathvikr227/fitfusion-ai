@@ -2,7 +2,32 @@ import { NextRequest, NextResponse } from "next/server"
 import Groq from "groq-sdk"
 import { createClient } from "@supabase/supabase-js"
 
+import { predictInjury, predictTrajectory, rlAction } from "../../../lib/ml-service"
+import type {
+  InjuryResponse,
+  RLActionResponse,
+  TrajectoryResponse,
+} from "../../../lib/ml-service"
+import { buildUserHistory } from "../../../lib/ml-service/history"
+import {
+  applyInjuryAdjustments,
+  applyIntensityDelta,
+  type PlanDay,
+} from "../../../lib/ml-service/injury-rules"
+
 export const runtime = "nodejs"
+
+/**
+ * Weekly adaptive replan, orchestrating three of the five models:
+ *
+ *   1. Injury risk classifier  → per-muscle-group risk + rest-day / removal rules
+ *   2. Transformer trajectory  → REGRESS / PLATEAU / IMPROVE over the last 4 sessions
+ *   3. PPO agent               → final REDUCE / MAINTAIN / INCREASE decision
+ *
+ * Each call passes a fallback, so if the ML service is down the route behaves
+ * exactly as it did before the models existed: the three completion-rate
+ * thresholds decide the direction and no injury adjustments are applied.
+ */
 
 function getSupabase() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -46,10 +71,11 @@ function extractJson(text: string) {
   return cleaned.slice(firstBrace, lastBrace + 1)
 }
 
-function sevenDaysAgo() {
-  const d = new Date()
-  d.setDate(d.getDate() - 7)
-  return d.toISOString().split("T")[0]
+function parsePlan(raw: unknown) {
+  if (!raw) return null
+  if (typeof raw === "object") return raw as Record<string, any>
+  if (typeof raw !== "string") return null
+  return safeJsonParse(raw)
 }
 
 export async function POST(req: NextRequest) {
@@ -90,36 +116,13 @@ export async function POST(req: NextRequest) {
     const clientCompletionRate = typeof body.completionRate === "number" ? body.completionRate : null
     const userNotes = typeof body.notes === "string" ? body.notes : ""
 
-    const since = sevenDaysAgo()
-
-    // ── Fetch data in parallel ────────────────────────────────────────────────
-    const [planRes, executionRes, profileRes, sleepRes] = await Promise.all([
-      supabase
-        .from("workout_plans")
-        .select("plan, created_at")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-
-      supabase
-        .from("workout_logs")
-        .select("date, total_calories")
-        .eq("user_id", userId)
-        .gte("date", since),
-
-      supabase
-        .from("profiles")
-        .select("goal, weight, activity_level, injuries")
-        .eq("id", userId)
-        .maybeSingle(),
-
-      supabase
-        .from("sleep_logs")
-        .select("duration_hours, date")
-        .eq("user_id", userId)
-        .gte("date", since),
-    ])
+    const planRes = await supabase
+      .from("workout_plans")
+      .select("plan, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
 
     if (!planRes.data?.plan) {
       return NextResponse.json(
@@ -128,54 +131,81 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // ── Compute actual completion rate from workout_logs data ─────────────────
-    const workoutRows = executionRes.data ?? []
-    // Count days with at least one workout log in the period
-    const workoutDaysActual = new Set(workoutRows.map((r: any) => r.date)).size
-    // Assume the plan has workout days from the plan structure
-    let plannedWorkoutDays = 0
-    try {
-      const plan = typeof planRes.data!.plan === "string" ? JSON.parse(planRes.data!.plan) : planRes.data!.plan
-      plannedWorkoutDays = (plan?.workout_plan ?? []).filter((d: any) => d.type?.toLowerCase() !== "rest").length
-    } catch {}
-    if (plannedWorkoutDays === 0) plannedWorkoutDays = 4 // fallback
-    const weeksInPeriod = 1 // since is 7 days
-    const totalPlannedSessions = plannedWorkoutDays * weeksInPeriod
-    let actualCompletionRate = clientCompletionRate ?? 0
-    if (totalPlannedSessions > 0) {
-      actualCompletionRate = Math.round((workoutDaysActual / totalPlannedSessions) * 100)
+    const currentPlanParsed = parsePlan(planRes.data.plan)
+    const plannedWorkoutDays = (currentPlanParsed?.workout_plan ?? []).filter(
+      (d: any) => String(d?.type ?? "").toLowerCase() !== "rest"
+    ).length
+
+    // ── One read of the user's week, shared with /api/ml-insights ─────────────
+    const history = await buildUserHistory(supabase, userId, { plannedWorkoutDays })
+
+    // The check-in screen computes its own rate from the same tick list; prefer
+    // the server's, and only fall back to the client's when we had nothing.
+    const actualCompletionRate =
+      history.completionSource === "plan_ratio" && clientCompletionRate !== null
+        ? Math.max(0, Math.min(100, clientCompletionRate))
+        : history.completionRate
+
+    const { avgSleep, streak, activeInjuries, profile, sessions } = history
+
+    // ══ STEP 1 — Injury risk classifier ═══════════════════════════════════════
+    const injuryResult = await predictInjury({
+      user_id: userId,
+      ...history.injuryFeatures,
+    })
+    const injury: InjuryResponse = injuryResult.data
+    if (injuryResult.fromFallback) {
+      console.warn(`[adaptive-replan] injury model fallback: ${injuryResult.reason}`)
     }
 
-    // ── Compute avg sleep ─────────────────────────────────────────────────────
-    const sleepRows = sleepRes.data ?? []
-    const avgSleep =
-      sleepRows.length > 0
-        ? Math.round(
-            (sleepRows.reduce((s, r) => s + (r.duration_hours ?? 0), 0) / sleepRows.length) * 10
-          ) / 10
-        : null
+    const flaggedGroups = injury.flagged ?? []
+    const injuryFlag = flaggedGroups.length > 0 || activeInjuries.length > 0 ? 1 : 0
 
-    // ── Build context strings ─────────────────────────────────────────────────
-    const profile = profileRes.data
-    const profileContext = profile
-      ? `Goal: ${profile.goal ?? "general fitness"}. Weight: ${profile.weight ?? "unknown"} kg. Activity level: ${profile.activity_level ?? "moderate"}. Injuries/limitations: ${profile.injuries ?? "none"}.`
-      : "No profile data available."
+    // ══ STEP 2 — Transformer trajectory ═══════════════════════════════════════
+    let trajectory: TrajectoryResponse | null = null
+    let trajectoryFromFallback = false
+    if (sessions.length > 0) {
+      const trajectoryResult = await predictTrajectory({ user_id: userId, sessions })
+      trajectory = trajectoryResult.data
+      trajectoryFromFallback = trajectoryResult.fromFallback
+      if (trajectoryResult.fromFallback) {
+        console.warn(`[adaptive-replan] trajectory model fallback: ${trajectoryResult.reason}`)
+      }
+    }
+    const trajectoryScore = trajectory?.trajectory_score ?? 1
+
+    // ══ STEP 3 — PPO agent makes the final call ═══════════════════════════════
+    const rlResult = await rlAction({
+      user_id: userId,
+      completion_rate: actualCompletionRate / 100,
+      sleep_avg: avgSleep ?? 7,
+      injury_flag: injuryFlag,
+      trajectory_score: trajectoryScore,
+      streak,
+    })
+    const decision: RLActionResponse = rlResult.data
+    if (rlResult.fromFallback) {
+      console.warn(`[adaptive-replan] RL agent fallback: ${rlResult.reason}`)
+    }
+
+    // ── Turn the action into a prompt directive ───────────────────────────────
+    const adjustmentDirection =
+      decision.action === "REDUCE"
+        ? "REDUCE volume and intensity by about 15% (fewer sets, lower reps, easier exercises)"
+        : decision.action === "INCREASE"
+          ? "INCREASE intensity by about 15% (more sets, higher reps, add progressive overload)"
+          : "keep intensity similar"
 
     const currentPlan = planRes.data.plan
     const planJson =
-      typeof currentPlan === "string"
-        ? currentPlan
-        : JSON.stringify(currentPlan, null, 2)
+      typeof currentPlan === "string" ? currentPlan : JSON.stringify(currentPlan, null, 2)
 
-    // Determine adjustment direction
-    let adjustmentDirection = "keep intensity similar"
-    if (actualCompletionRate < 60 || weekRating <= 2) {
-      adjustmentDirection =
-        "REDUCE volume and intensity (fewer sets, lower reps, easier exercises) — user is struggling"
-    } else if (actualCompletionRate > 85 && weekRating >= 4) {
-      adjustmentDirection =
-        "INCREASE intensity (more sets, higher reps, add progressive overload) — user is ready for more"
-    }
+    const injuryDirective =
+      flaggedGroups.length > 0
+        ? `\nINJURY RISK ALERT: elevated predicted risk for ${flaggedGroups.join(", ")}. ` +
+          `Avoid exercises that load ${flaggedGroups.join(" or ")}. Include an extra rest day. ` +
+          `These are predicted risk scores, not diagnosed injuries.`
+        : ""
 
     const prompt = `You are an expert personal trainer creating an adaptive workout plan update.
 
@@ -184,12 +214,16 @@ USER STATS THIS WEEK:
 - Week satisfaction rating: ${weekRating}/5
 - Energy level: ${energyLevel}
 - Average sleep: ${avgSleep != null ? `${avgSleep} hours/night` : "unknown"}
+- Current workout streak: ${streak} day(s)
+- Predicted trajectory: ${trajectory?.label ?? "unknown"}
 - User notes: "${userNotes || "none"}"
 
 USER PROFILE:
-${profileContext}
+${profile
+  ? `Goal: ${profile.goal ?? "general fitness"}. Weight: ${profile.weight ?? "unknown"} kg. Activity level: ${profile.activity_level ?? "moderate"}. Injuries/limitations: ${profile.injuries ?? "none"}.`
+  : "No profile data available."}
 
-ADJUSTMENT DIRECTIVE: ${adjustmentDirection}
+ADJUSTMENT DIRECTIVE: ${adjustmentDirection}${injuryDirective}
 
 CURRENT PLAN (JSON):
 ${planJson}
@@ -233,24 +267,105 @@ TASK: Modify the workout_plan section for next week based on the directive above
       throw new Error("Could not parse AI-generated plan as valid JSON")
     }
 
-    // ── Save new plan to workout_plans ────────────────────────────────────────
-    const { error: insertError } = await supabase.from("workout_plans").insert({
+    // ── Deterministic post-processing ─────────────────────────────────────────
+    // The LLM is asked to honour the directives; these steps guarantee it.
+    let workoutPlan: PlanDay[] = Array.isArray(newPlan.workout_plan) ? newPlan.workout_plan : []
+
+    workoutPlan = applyIntensityDelta(workoutPlan, decision.intensity_delta)
+
+    const adjustment = applyInjuryAdjustments(workoutPlan, flaggedGroups)
+    workoutPlan = adjustment.workoutPlan
+
+    const mlMeta = {
+      version: 1,
+      generated_at: new Date().toISOString(),
+      completion_rate: actualCompletionRate,
+      sleep_avg: avgSleep,
+      streak,
+      injury: {
+        risk: injury.risk,
+        threshold: injury.threshold,
+        flagged: flaggedGroups,
+        model_version: injury.model_version,
+        from_fallback: injuryResult.fromFallback,
+        disclaimer: injury.disclaimer,
+      },
+      trajectory: trajectory
+        ? {
+            label: trajectory.label,
+            score: trajectory.trajectory_score,
+            probs: trajectory.probs,
+            sessions_used: trajectory.sessions_used,
+            model_version: trajectory.model_version,
+            from_fallback: trajectoryFromFallback,
+          }
+        : null,
+      rl: {
+        action: decision.action,
+        intensity_delta: decision.intensity_delta,
+        confidence: decision.confidence,
+        state: decision.state,
+        model_version: decision.model_version,
+        from_fallback: rlResult.fromFallback,
+      },
+      adjustments: {
+        removed_exercises: adjustment.removedExercises,
+        rest_day_added: adjustment.restDayAdded,
+      },
+    }
+
+    const planToSave = {
+      ...newPlan,
+      workout_plan: workoutPlan,
+      ml_meta: mlMeta,
+    }
+
+    // ── Save, with the audit columns when the migration has been applied ──────
+    // Falls back to a plain insert so the route keeps working on databases that
+    // have not run supabase/migrations/20260909_ml_audit_columns.sql yet.
+    let insertError: { message: string } | null = null
+    const withAudit = await supabase.from("workout_plans").insert({
       user_id: userId,
-      plan: newPlan,
+      plan: planToSave,
+      injury_risk: injury.risk,
+      ml_meta: mlMeta,
     })
+
+    if (withAudit.error) {
+      const plain = await supabase.from("workout_plans").insert({
+        user_id: userId,
+        plan: planToSave,
+      })
+      insertError = plain.error
+      if (!plain.error) {
+        console.warn(
+          "[adaptive-replan] workout_plans.injury_risk / ml_meta columns missing — " +
+            "risk scores stored inside plan.ml_meta only. Apply " +
+            "supabase/migrations/20260909_ml_audit_columns.sql to enable the audit columns."
+        )
+      }
+    }
 
     if (insertError) {
       throw new Error(`Failed to save updated plan: ${insertError.message}`)
     }
 
-    // ── Build response message ────────────────────────────────────────────────
-    let message = "Your plan has been updated for next week."
-    if (actualCompletionRate < 60 || weekRating <= 2) {
+    // ── Response ──────────────────────────────────────────────────────────────
+    let message: string
+    if (decision.action === "REDUCE") {
       message =
         "Your plan has been adjusted to a more manageable intensity for next week. Keep going — consistency beats intensity!"
-    } else if (actualCompletionRate > 85 && weekRating >= 4) {
+    } else if (decision.action === "INCREASE") {
       message =
         "Awesome work this week! Your plan has been leveled up for next week to keep challenging you."
+    } else {
+      message = "Your plan has been updated for next week."
+    }
+
+    if (flaggedGroups.length > 0) {
+      message +=
+        ` We also eased off ${flaggedGroups.join(" and ")} work and added a rest day` +
+        " — your recent training load and recovery suggest a higher strain risk there."
     }
 
     return NextResponse.json({
@@ -259,6 +374,24 @@ TASK: Modify the workout_plan section for next week based on the directive above
       completionRate: actualCompletionRate,
       weekRating,
       adjustmentDirection,
+      ml: {
+        action: decision.action,
+        intensityDelta: decision.intensity_delta,
+        confidence: decision.confidence,
+        trajectory: trajectory?.label ?? null,
+        trajectoryScore,
+        injuryRisk: injury.risk,
+        flaggedGroups,
+        removedExercises: adjustment.removedExercises,
+        restDayAdded: adjustment.restDayAdded,
+        streak,
+        avgSleep,
+        usedFallback: {
+          injury: injuryResult.fromFallback,
+          trajectory: sessions.length === 0 ? null : trajectoryFromFallback,
+          rl: rlResult.fromFallback,
+        },
+      },
     })
   } catch (err: any) {
     console.error("[adaptive-replan] error:", err?.message ?? err)

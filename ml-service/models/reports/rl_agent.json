@@ -1,0 +1,72 @@
+{
+  "model": "rl_agent",
+  "trained_at": "2026-09-09T04:55:28+00:00",
+  "python": "3.12.10",
+  "artifact": "fitfusion_rl_agent.zip",
+  "algorithm": "PPO('MlpPolicy') via stable-baselines3",
+  "total_timesteps": 100000,
+  "hyperparameters": {
+    "learning_rate": 0.0003,
+    "n_steps": 2048,
+    "batch_size": 64,
+    "n_epochs": 10,
+    "seed": 42
+  },
+  "environment": "FitFusionEnv (custom Gymnasium env, 5-dim Box state, Discrete(3))",
+  "calibration": {
+    "mean_completion": 0.8571428571428571,
+    "std_completion": 0.2464893927880483,
+    "injury_rate": 0.10526315789473684,
+    "sources": {
+      "completion": "pilot: 14 user-days across 2 users",
+      "injury_rate": "pilot: 2/19 users with an active injury"
+    }
+  },
+  "evaluate_policy": {
+    "episodes": 100,
+    "mean_reward": 3.515,
+    "std_reward": 2.44995408120234
+  },
+  "comparison": {
+    "ppo": {
+      "policy": "ppo",
+      "episodes": 500,
+      "mean_reward": 3.771,
+      "std_reward": 2.376143724609267,
+      "injury_events_per_episode": 0.668,
+      "churn_rate": 0.026,
+      "action_distribution": {
+        "REDUCE": 0.8674434312732185,
+        "MAINTAIN": 0.01806822019587977,
+        "INCREASE": 0.11448834853090173
+      }
+    },
+    "rule_based": {
+      "policy": "rule_based_thresholds",
+      "episodes": 500,
+      "mean_reward": 3.878,
+      "std_reward": 2.261441133436818,
+      "injury_events_per_episode": 0.78,
+      "churn_rate": 0.028,
+      "action_distribution": {
+        "REDUCE": 0.2258445945945946,
+        "MAINTAIN": 0.5869932432432432,
+        "INCREASE": 0.18716216216216217
+      }
+    }
+  },
+  "ablation_without_trajectory": {
+    "policy": "ppo_without_trajectory",
+    "episodes": 500,
+    "mean_reward": 3.738,
+    "std_reward": 2.3783094836458942,
+    "injury_events_per_episode": 0.664,
+    "churn_rate": 0.028,
+    "action_distribution": {
+      "REDUCE": 0.9927364864864865,
+      "MAINTAIN": 0.005236486486486487,
+      "INCREASE": 0.002027027027027027
+    }
+  },
+  "policy_degenerate": false
+}

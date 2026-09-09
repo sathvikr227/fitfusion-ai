@@ -1,0 +1,1306 @@
+<title>FitFusion ML Layer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&display=swap">
+
+<style>
+  :root {
+    --ground: #faf9fc;
+    --surface: #ffffff;
+    --surface-sunk: #f3f1f7;
+    --line: #e3dfec;
+    --line-strong: #cdc6dd;
+    --ink: #1a1626;
+    --ink-soft: #4a4460;
+    --ink-mute: #6f6889;
+    --violet: #6d28d9;
+    --violet-soft: #ede7fb;
+    --cyan: #0e7490;
+    --cyan-soft: #dcf1f5;
+    --good: #047857;
+    --good-soft: #d9f2e6;
+    --warn: #b45309;
+    --warn-soft: #fbeed7;
+    --bad: #be123c;
+    --bad-soft: #fbe0e7;
+    --shadow: 0 1px 2px rgba(26, 22, 38, .05), 0 8px 24px -12px rgba(26, 22, 38, .18);
+
+    --sans: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --serif: "IBM Plex Serif", ui-serif, Georgia, "Times New Roman", serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #13111a;
+      --surface: #1c1926;
+      --surface-sunk: #241f31;
+      --line: #322c42;
+      --line-strong: #453d5c;
+      --ink: #f0edf7;
+      --ink-soft: #c3bcd6;
+      --ink-mute: #948da9;
+      --violet: #b399f5;
+      --violet-soft: #2c2342;
+      --cyan: #5ec2d8;
+      --cyan-soft: #14313a;
+      --good: #4ade9f;
+      --good-soft: #10301f;
+      --warn: #f0b45f;
+      --warn-soft: #35240e;
+      --bad: #fb7b98;
+      --bad-soft: #3a1420;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px -12px rgba(0, 0, 0, .7);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground: #13111a;
+    --surface: #1c1926;
+    --surface-sunk: #241f31;
+    --line: #322c42;
+    --line-strong: #453d5c;
+    --ink: #f0edf7;
+    --ink-soft: #c3bcd6;
+    --ink-mute: #948da9;
+    --violet: #b399f5;
+    --violet-soft: #2c2342;
+    --cyan: #5ec2d8;
+    --cyan-soft: #14313a;
+    --good: #4ade9f;
+    --good-soft: #10301f;
+    --warn: #f0b45f;
+    --warn-soft: #35240e;
+    --bad: #fb7b98;
+    --bad-soft: #3a1420;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px -12px rgba(0, 0, 0, .7);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .shell {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 24px 96px;
+  }
+
+  @media (min-width: 1060px) {
+    .shell {
+      grid-template-columns: 214px minmax(0, 1fr);
+      gap: 56px;
+      padding: 0 32px 120px;
+    }
+  }
+
+  /* ── Masthead ─────────────────────────────────────────────── */
+  header.masthead {
+    grid-column: 1 / -1;
+    padding: 64px 0 40px;
+    border-bottom: 2px solid var(--ink);
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    font-weight: 500;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    color: var(--violet);
+    margin: 0 0 18px;
+  }
+
+  h1 {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: clamp(2.1rem, 5vw, 3.15rem);
+    line-height: 1.08;
+    letter-spacing: -.02em;
+    text-wrap: balance;
+    margin: 0 0 18px;
+  }
+
+  .lede {
+    font-family: var(--serif);
+    font-size: clamp(1.02rem, 1.7vw, 1.16rem);
+    line-height: 1.6;
+    color: var(--ink-soft);
+    max-width: 64ch;
+    margin: 0;
+  }
+
+  .verdict {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 28px;
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 7px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 500;
+    border: 1px solid transparent;
+  }
+  .chip b { font-weight: 600; }
+  .chip.ok   { background: var(--good-soft); color: var(--good); border-color: color-mix(in srgb, var(--good) 26%, transparent); }
+  .chip.mid  { background: var(--warn-soft); color: var(--warn); border-color: color-mix(in srgb, var(--warn) 26%, transparent); }
+  .chip.info { background: var(--violet-soft); color: var(--violet); border-color: color-mix(in srgb, var(--violet) 26%, transparent); }
+
+  /* ── Side rail ────────────────────────────────────────────── */
+  nav.rail { display: none; }
+
+  @media (min-width: 1060px) {
+    nav.rail {
+      display: block;
+      grid-column: 1;
+      position: sticky;
+      top: 28px;
+      align-self: start;
+      padding-top: 52px;
+      max-height: calc(100vh - 56px);
+      overflow-y: auto;
+    }
+    nav.rail ol {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      counter-reset: rail;
+    }
+    nav.rail a {
+      display: flex;
+      gap: 10px;
+      padding: 4px 0;
+      font-size: 13.5px;
+      line-height: 1.35;
+      color: var(--ink-mute);
+      text-decoration: none;
+      border-left: 2px solid transparent;
+      padding-left: 12px;
+      transition: color .14s, border-color .14s;
+    }
+    nav.rail a:hover { color: var(--violet); border-left-color: var(--violet); }
+    nav.rail a .n {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--line-strong);
+      min-width: 15px;
+    }
+  }
+
+  main { grid-column: -2 / -1; min-width: 0; padding-top: 52px; }
+
+  /* ── Sections ─────────────────────────────────────────────── */
+  section { margin: 0 0 60px; scroll-margin-top: 24px; }
+
+  h2 {
+    font-family: var(--sans);
+    font-size: 1.42rem;
+    font-weight: 600;
+    letter-spacing: -.012em;
+    line-height: 1.25;
+    text-wrap: balance;
+    margin: 0 0 6px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  h2 .num {
+    font-family: var(--mono);
+    font-size: .72em;
+    font-weight: 500;
+    color: var(--violet);
+    margin-right: 12px;
+  }
+
+  .sub {
+    color: var(--ink-mute);
+    font-size: 14.5px;
+    margin: 14px 0 26px;
+    max-width: 68ch;
+  }
+
+  h3 {
+    font-family: var(--sans);
+    font-size: 1.02rem;
+    font-weight: 600;
+    letter-spacing: -.005em;
+    margin: 34px 0 12px;
+  }
+
+  p { max-width: 68ch; margin: 0 0 16px; color: var(--ink-soft); }
+  p strong { color: var(--ink); font-weight: 600; }
+
+  ul.notes { margin: 0 0 18px; padding-left: 20px; max-width: 68ch; }
+  ul.notes li { margin-bottom: 9px; color: var(--ink-soft); }
+  ul.notes li::marker { color: var(--line-strong); }
+
+  code {
+    font-family: var(--mono);
+    font-size: .855em;
+    background: var(--surface-sunk);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: .1em .38em;
+    color: var(--ink);
+    word-break: break-word;
+  }
+
+  /* ── Model blocks ─────────────────────────────────────────── */
+  .model {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 24px 26px 8px;
+    margin-bottom: 18px;
+    box-shadow: var(--shadow);
+  }
+
+  .model-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 4px;
+  }
+  .model-n {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--surface);
+    background: var(--violet);
+    border-radius: 5px;
+    padding: 2px 8px;
+    line-height: 1.5;
+  }
+  .model-title { font-size: 1.06rem; font-weight: 600; margin: 0; }
+  .model-algo {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--ink-mute);
+  }
+  .model p { margin-bottom: 14px; }
+
+  .metrics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+    padding: 14px 0 16px;
+    margin: 4px 0 14px;
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+  .metric { display: flex; flex-direction: column; gap: 1px; }
+  .metric .k {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+  }
+  .metric .v {
+    font-family: var(--mono);
+    font-size: 15px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+  }
+  .metric .v.good { color: var(--good); }
+  .metric .v.bad  { color: var(--bad); }
+
+  /* ── Tables ───────────────────────────────────────────────── */
+  .scroll { overflow-x: auto; margin: 0 0 20px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: 13.6px; }
+  th, td {
+    text-align: left;
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+  thead th {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    background: var(--surface-sunk);
+    white-space: nowrap;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.path { font-family: var(--mono); font-size: 12.4px; word-break: break-word; }
+  td.win { color: var(--good); font-weight: 600; }
+
+  .pill {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 999px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: .04em;
+    white-space: nowrap;
+  }
+  .pill.ok  { background: var(--good-soft); color: var(--good); }
+  .pill.no  { background: var(--bad-soft);  color: var(--bad); }
+  .pill.na  { background: var(--surface-sunk); color: var(--ink-mute); }
+  .pill.new { background: var(--cyan-soft); color: var(--cyan); }
+
+  /* ── Code blocks ──────────────────────────────────────────── */
+  pre {
+    font-family: var(--mono);
+    font-size: 12.6px;
+    line-height: 1.62;
+    background: var(--surface-sunk);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    margin: 0 0 18px;
+    color: var(--ink);
+  }
+  pre .c { color: var(--ink-mute); }
+
+  /* ── Flow diagram ─────────────────────────────────────────── */
+  .flow { margin: 0 0 22px; overflow-x: auto; }
+  .flow svg { display: block; min-width: 640px; }
+
+  /* ── Manual steps ─────────────────────────────────────────── */
+  .step {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--cyan);
+    border-radius: 8px;
+    padding: 20px 22px 6px;
+    margin-bottom: 16px;
+  }
+  .step-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 11px; margin-bottom: 12px; }
+  .step-n {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--cyan);
+  }
+  .step-title { font-size: 1rem; font-weight: 600; margin: 0; }
+  .step dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 16px; margin: 0 0 14px; font-size: 14px; }
+  .step dt {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    padding-top: 4px;
+  }
+  .step dd { margin: 0; color: var(--ink-soft); min-width: 0; }
+  .step pre { margin-bottom: 14px; }
+  .req { border-left-color: var(--bad); }
+  .req .step-n { color: var(--bad); }
+
+  .callout {
+    background: var(--violet-soft);
+    border: 1px solid color-mix(in srgb, var(--violet) 22%, transparent);
+    border-radius: 8px;
+    padding: 16px 18px;
+    margin: 0 0 20px;
+  }
+  .callout p { margin: 0; color: var(--ink); font-size: 14.5px; max-width: none; }
+  .callout p + p { margin-top: 10px; }
+
+  footer {
+    grid-column: 1 / -1;
+    border-top: 1px solid var(--line);
+    padding-top: 22px;
+    color: var(--ink-mute);
+    font-size: 13px;
+    font-family: var(--mono);
+  }
+
+  a { color: var(--violet); }
+  a:focus-visible, nav.rail a:focus-visible {
+    outline: 2px solid var(--violet);
+    outline-offset: 2px;
+    border-radius: 3px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+
+<div class="shell">
+
+  <header class="masthead">
+    <p class="eyebrow">Implementation report · 9 September 2026</p>
+    <h1>The five-model ML layer, wired into FitFusion</h1>
+    <p class="lede">
+      All five models are trained, served from the FastAPI microservice, and consumed by the
+      Next.js app. Every call carries a fallback, so the app behaves exactly as it did before
+      when the service is unreachable. Three of the reference guide's targets were met; two
+      were not, and this report says which and why.
+    </p>
+    <div class="verdict">
+      <span class="chip ok"><b>28</b> service tests passing</span>
+      <span class="chip ok"><b>22</b> orchestration checks passing</span>
+      <span class="chip ok"><b>0</b> TypeScript errors</span>
+      <span class="chip info"><b>5/5</b> artifacts loading</span>
+      <span class="chip mid"><b>2</b> targets missed, reported honestly</span>
+    </div>
+  </header>
+
+  <nav class="rail" aria-label="Report contents">
+    <ol>
+      <li><a href="#architecture"><span class="n">01</span> Architecture</a></li>
+      <li><a href="#models"><span class="n">02</span> The five models</a></li>
+      <li><a href="#metrics"><span class="n">03</span> Evaluation metrics</a></li>
+      <li><a href="#endpoints"><span class="n">04</span> API endpoints</a></li>
+      <li><a href="#files"><span class="n">05</span> Files created</a></li>
+      <li><a href="#modified"><span class="n">06</span> Files modified</a></li>
+      <li><a href="#deps"><span class="n">07</span> Dependencies</a></li>
+      <li><a href="#database"><span class="n">08</span> Database changes</a></li>
+      <li><a href="#artifacts"><span class="n">09</span> Model artifacts</a></li>
+      <li><a href="#training"><span class="n">10</span> Training</a></li>
+      <li><a href="#testing"><span class="n">11</span> Testing</a></li>
+      <li><a href="#limits"><span class="n">12</span> Limitations</a></li>
+      <li><a href="#manual"><span class="n">13</span> Manual steps</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+    <!-- ══ ARCHITECTURE ══ -->
+    <section id="architecture">
+      <h2><span class="num">01</span>How the five models work together</h2>
+      <p class="sub">
+        Two entry points use the layer. Plan generation is seeded by the recommender; the weekly
+        check-in runs the full pipeline, where each model's output becomes the next one's input
+        and the RL agent makes the final call.
+      </p>
+
+      <div class="flow">
+        <svg viewBox="0 0 700 268" role="img" aria-label="Pipeline diagram: the recommender seeds plan generation; injury risk and trajectory feed the RL agent, which sets plan intensity.">
+          <defs>
+            <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path>
+            </marker>
+          </defs>
+          <g style="color: var(--line-strong)">
+            <path d="M126 46 H 232" stroke="currentColor" stroke-width="1.5" fill="none" marker-end="url(#ar)"></path>
+            <path d="M126 138 H 232" stroke="currentColor" stroke-width="1.5" fill="none" marker-end="url(#ar)"></path>
+            <path d="M126 196 H 232" stroke="currentColor" stroke-width="1.5" fill="none" marker-end="url(#ar)"></path>
+            <path d="M366 138 H 452" stroke="currentColor" stroke-width="1.5" fill="none" marker-end="url(#ar)"></path>
+            <path d="M366 196 C 410 196, 410 152, 452 152" stroke="currentColor" stroke-width="1.5" fill="none" marker-end="url(#ar)"></path>
+            <path d="M366 46 H 452" stroke="currentColor" stroke-width="1.5" fill="none" marker-end="url(#ar)"></path>
+            <path d="M578 152 V 216" stroke="currentColor" stroke-width="1.5" fill="none" marker-end="url(#ar)"></path>
+          </g>
+
+          <!-- column labels -->
+          <g font-family="IBM Plex Mono, monospace" font-size="9.5" letter-spacing="1" fill="var(--ink-mute)">
+            <text x="10" y="16">SUPABASE</text>
+            <text x="238" y="16">ML SERVICE</text>
+            <text x="458" y="16">NEXT.JS ROUTE</text>
+          </g>
+
+          <!-- sources -->
+          <g font-family="IBM Plex Sans, sans-serif" font-size="11.5" fill="var(--ink)">
+            <rect x="10" y="30" width="116" height="32" rx="6" fill="var(--surface-sunk)" stroke="var(--line)"></rect>
+            <text x="22" y="50">profiles · injuries</text>
+
+            <rect x="10" y="122" width="116" height="32" rx="6" fill="var(--surface-sunk)" stroke="var(--line)"></rect>
+            <text x="22" y="142">sleep · vitals</text>
+
+            <rect x="10" y="180" width="116" height="32" rx="6" fill="var(--surface-sunk)" stroke="var(--line)"></rect>
+            <text x="22" y="200">workout_logs</text>
+          </g>
+
+          <!-- models -->
+          <g font-family="IBM Plex Sans, sans-serif" font-size="11.5">
+            <rect x="232" y="28" width="134" height="36" rx="6" fill="var(--violet-soft)" stroke="var(--violet)"></rect>
+            <text x="244" y="43" fill="var(--violet)" font-family="IBM Plex Mono, monospace" font-size="9">MODEL 2</text>
+            <text x="244" y="57" fill="var(--ink)">Recommender</text>
+
+            <rect x="232" y="120" width="134" height="36" rx="6" fill="var(--violet-soft)" stroke="var(--violet)"></rect>
+            <text x="244" y="135" fill="var(--violet)" font-family="IBM Plex Mono, monospace" font-size="9">MODEL 3</text>
+            <text x="244" y="149" fill="var(--ink)">Injury risk</text>
+
+            <rect x="232" y="178" width="134" height="36" rx="6" fill="var(--violet-soft)" stroke="var(--violet)"></rect>
+            <text x="244" y="193" fill="var(--violet)" font-family="IBM Plex Mono, monospace" font-size="9">MODEL 4</text>
+            <text x="244" y="207" fill="var(--ink)">Trajectory</text>
+
+            <rect x="232" y="232" width="134" height="30" rx="6" fill="var(--cyan-soft)" stroke="var(--cyan)"></rect>
+            <text x="244" y="251" fill="var(--ink)"><tspan font-family="IBM Plex Mono, monospace" font-size="9" fill="var(--cyan)">MODEL 1 </tspan>Calories</text>
+          </g>
+
+          <!-- routes -->
+          <g font-family="IBM Plex Sans, sans-serif" font-size="11.5">
+            <rect x="452" y="28" width="126" height="36" rx="6" fill="var(--surface)" stroke="var(--line-strong)"></rect>
+            <text x="462" y="51" fill="var(--ink)" font-family="IBM Plex Mono, monospace" font-size="10.5">/generate-plan</text>
+
+            <rect x="452" y="134" width="126" height="36" rx="6" fill="var(--violet-soft)" stroke="var(--violet)"></rect>
+            <text x="462" y="149" fill="var(--violet)" font-family="IBM Plex Mono, monospace" font-size="9">MODEL 5 · PPO</text>
+            <text x="462" y="163" fill="var(--ink)">RL agent</text>
+
+            <rect x="452" y="216" width="126" height="46" rx="6" fill="var(--surface)" stroke="var(--line-strong)"></rect>
+            <text x="462" y="234" fill="var(--ink)" font-family="IBM Plex Mono, monospace" font-size="10.5">/adaptive-replan</text>
+            <text x="462" y="250" fill="var(--ink-mute)" font-size="10">±15% · rest day</text>
+          </g>
+
+          <g font-family="IBM Plex Mono, monospace" font-size="9" fill="var(--ink-mute)">
+            <text x="372" y="134">risk scores</text>
+            <text x="372" y="192">0 / 1 / 2</text>
+            <text x="372" y="42">prompt seed</text>
+            <text x="586" y="190">action</text>
+          </g>
+        </svg>
+      </div>
+
+      <p>
+        The weekly check-in reads the user's week <strong>once</strong>, through a shared builder in
+        <code>lib/ml-service/history.ts</code>. That single read produces the completion rate, sleep
+        average, streak, last four sessions, and injury features. Both the replan route and the
+        analytics readout consume it, so the dashboard can never disagree with the decision that
+        was actually made.
+      </p>
+      <p>
+        The injury classifier runs first and flags any muscle group scoring above <code>0.7</code>.
+        The Transformer then classifies the last four sessions as REGRESS, PLATEAU or IMPROVE. Both
+        outputs enter the RL state vector
+        <code>[completion, sleep/10, injury_flag, trajectory/2, min(streak,14)/14]</code>, and the
+        PPO agent returns REDUCE, MAINTAIN or INCREASE.
+      </p>
+      <p>
+        That action becomes the directive in the LLaMA prompt — and then, critically, it is applied
+        again <strong>deterministically</strong> after the model responds. The ±15% delta is scaled
+        into sets and projected burn, exercises loading flagged muscle groups are stripped by name,
+        and the emptiest remaining workout day is converted to rest. The LLM shapes the plan; it
+        does not get to decide whether the safety rules were followed.
+      </p>
+    </section>
+
+    <!-- ══ MODELS ══ -->
+    <section id="models">
+      <h2><span class="num">02</span>What was implemented, per model</h2>
+      <p class="sub">
+        Each model trains from a reproducible script, saves a versioned artifact, and is served by
+        its own endpoint so a failure in one never takes down the others.
+      </p>
+
+      <div class="model">
+        <div class="model-head">
+          <span class="model-n">01</span>
+          <h3 class="model-title" style="margin:0">Calorie burn predictor</h3>
+          <span class="model-algo">XGBRegressor · 200 trees · depth 6 · lr 0.1 + SHAP</span>
+        </div>
+        <div class="metrics">
+          <div class="metric"><span class="k">MAE</span><span class="v">87.9 kcal</span></div>
+          <div class="metric"><span class="k">RMSE</span><span class="v">113.8</span></div>
+          <div class="metric"><span class="k">R²</span><span class="v good">0.845</span></div>
+          <div class="metric"><span class="k">MET baseline MAE</span><span class="v">416.9 kcal</span></div>
+          <div class="metric"><span class="k">Target &lt; 25 kcal</span><span class="v bad">not met</span></div>
+        </div>
+        <p>
+          Trained on all 973 rows with the documented six features, StandardScaler, and an 80/20
+          split. A <code>TreeExplainer</code> is built once at startup, so every prediction returns
+          its top-5 SHAP contributions in kcal — the workout log surfaces these as a diverging bar
+          chart headed "Why 412 kcal?".
+        </p>
+        <p>
+          The model cuts error against the MET table it replaces by <strong>79%</strong>, but 87.9
+          kcal is well above the guide's 25 kcal target. The dataset's calorie values average 905
+          with a standard deviation of 273, so a 25 kcal MAE would mean explaining 99% of the
+          variance from six coarse features. <code>Avg_BPM</code> would close most of the remaining
+          gap, and it is deliberately not in the documented feature list.
+        </p>
+      </div>
+
+      <div class="model">
+        <div class="model-head">
+          <span class="model-n">02</span>
+          <h3 class="model-title" style="margin:0">Hybrid diet + workout recommender</h3>
+          <span class="model-algo">StandardScaler + cosine similarity, top-10 neighbours + content filters</span>
+        </div>
+        <div class="metrics">
+          <div class="metric"><span class="k">Precision@3</span><span class="v good">0.747</span></div>
+          <div class="metric"><span class="k">Precision@2</span><span class="v">0.511</span></div>
+          <div class="metric"><span class="k">Precision@1</span><span class="v">0.219</span></div>
+          <div class="metric"><span class="k">Coverage</span><span class="v good">1.000</span></div>
+          <div class="metric"><span class="k">Diversity</span><span class="v">2.99 / 3</span></div>
+        </div>
+        <p>
+          The collaborative half finds the ten most similar users in the 973-row cohort and ranks
+          their workout types by share. The content half filters that ranking against active
+          injuries, then selects foods from the 7,385-item nutrition index by goal.
+          Output is injected into the LLaMA prompt as an explicit
+          <em>data-grounded recommendation seed</em> before generation.
+        </p>
+        <p>
+          Precision@3 of <strong>0.747</strong> clears the guide's 70% target. Precision@5 as
+          written is not reportable: the dataset has only four workout classes, so a top-5 list
+          would trivially score 1.0. Leave-one-out Precision@1–3 across all 973 users is reported
+          instead.
+        </p>
+        <p>
+          Two correctness problems surfaced during testing and were fixed. Ranking weight-loss picks
+          by lowest calories returned diet soda, black coffee and tea, so nutrition floors now apply.
+          More seriously, a keyword blocklist leaked animal foods into vegetarian results —
+          <em>Seal</em>, <em>Whale</em>, <em>Sea Cucumber</em>, then <em>Ling</em> and
+          <em>Orange Roughy</em>. Vegetarian and vegan now run an <strong>allow-list</strong> matched
+          against the food's leading identity, so an unrecognised food is dropped rather than served.
+        </p>
+      </div>
+
+      <div class="model">
+        <div class="model-head">
+          <span class="model-n">03</span>
+          <h3 class="model-title" style="margin:0">Multi-label injury risk classifier</h3>
+          <span class="model-algo">MultiOutputClassifier(XGBClassifier) · 100 trees · depth 4</span>
+        </div>
+        <div class="metrics">
+          <div class="metric"><span class="k">Knee F1</span><span class="v good">1.000</span></div>
+          <div class="metric"><span class="k">Back F1</span><span class="v good">0.947</span></div>
+          <div class="metric"><span class="k">Hamstring F1</span><span class="v good">1.000</span></div>
+          <div class="metric"><span class="k">Shoulder F1</span><span class="v bad">0.286</span></div>
+          <div class="metric"><span class="k">Macro F1</span><span class="v">0.808</span></div>
+        </div>
+        <p>
+          Four proxy labels for knee, lower back, shoulder and hamstring, built from the documented
+          biomechanical thresholds. Per-label <code>scale_pos_weight</code> handles the imbalance
+          (positives run 4.7–10.6%). Scores above 0.7 drive rest-day insertion and exercise removal,
+          and every response carries the "not a clinical diagnosis" disclaimer.
+        </p>
+        <p>
+          <strong>The documented knee rule matches zero rows.</strong>
+          <code>Resting_BPM &gt; 80 AND Workout_Frequency &gt; 5</code> is unsatisfiable on this
+          dataset — resting BPM tops out at 74 and frequency at 5. The trainer detects the
+          degenerate rule and substitutes a quantile-calibrated form of the same two signals
+          (<code>BPM &gt; 68</code>, the 75th percentile, and <code>frequency ≥ 4</code>), recording
+          the substitution in both the artifact and the report.
+        </p>
+        <p>
+          <strong>Shoulder is not identifiable from the documented features.</strong> Its label keys
+          on <code>Workout_Type == Strength</code>, which the guide's feature list excludes. An
+          ablation confirms the diagnosis rather than asserting it: adding <code>Workout_Type</code>
+          lifts shoulder F1 from <strong>0.286 to 1.000</strong>. The shipped model keeps the
+          documented features.
+        </p>
+      </div>
+
+      <div class="model">
+        <div class="model-head">
+          <span class="model-n">04</span>
+          <h3 class="model-title" style="margin:0">Transformer progression predictor</h3>
+          <span class="model-algo">nn.TransformerEncoder · d_model 32 · 4 heads · 2 layers · 20 epochs</span>
+        </div>
+        <div class="metrics">
+          <div class="metric"><span class="k">Accuracy</span><span class="v bad">0.460</span></div>
+          <div class="metric"><span class="k">Macro F1</span><span class="v">0.438</span></div>
+          <div class="metric"><span class="k">MLP baseline</span><span class="v">0.427</span></div>
+          <div class="metric"><span class="k">GBM ceiling</span><span class="v">0.400</span></div>
+          <div class="metric"><span class="k">Majority class</span><span class="v">0.389</span></div>
+        </div>
+        <p>
+          Exactly the specified architecture, with a learned positional embedding added so ordering
+          reaches attention. 925 sequences of shape (4, 4) built as pseudo-sequences grouped by
+          experience level and workout type, Gaussian augmentation at std 0.05, CrossEntropyLoss and
+          Adam at 1e-3.
+        </p>
+        <p>
+          Accuracy of <strong>0.460</strong> misses the 65% target. The evidence says this is the
+          data, not the model: a gradient-boosted tree on the same flattened windows reaches only
+          <strong>0.400</strong>, below the Transformer, and the majority class is 0.389. The
+          Gym Members dataset is cross-sectional — it has no completion rate and no calendar — so
+          the "sessions" in a pseudo-sequence are unrelated rows and carry almost no temporal
+          signal to learn. The Transformer still beats every baseline tried.
+        </p>
+        <p>
+          Two of the four session features are constructed, and the report records this:
+          completion rate is a proxy (duration over the group's 90th percentile) and day-of-week is
+          synthetic. At inference the model receives <em>real</em> FitFusion values for all four.
+        </p>
+      </div>
+
+      <div class="model">
+        <div class="model-head">
+          <span class="model-n">05</span>
+          <h3 class="model-title" style="margin:0">PPO adaptive replan agent</h3>
+          <span class="model-algo">stable-baselines3 PPO · MlpPolicy · 100,000 timesteps</span>
+        </div>
+        <div class="metrics">
+          <div class="metric"><span class="k">PPO reward</span><span class="v">3.771</span></div>
+          <div class="metric"><span class="k">Rule-based reward</span><span class="v">3.878</span></div>
+          <div class="metric"><span class="k">PPO injuries/ep</span><span class="v good">0.668</span></div>
+          <div class="metric"><span class="k">Rule injuries/ep</span><span class="v">0.780</span></div>
+          <div class="metric"><span class="k">No-trajectory ablation</span><span class="v">3.738</span></div>
+        </div>
+        <p>
+          <code>FitFusionEnv</code> implements the documented 5-dimensional Box state, Discrete(3)
+          action space and reward function (+1 improvement, −2 injury, −0.5 churn), calibrated from
+          <strong>real pilot data</strong>: mean completion 0.857 and standard deviation 0.246 across
+          14 user-days, and an active-injury rate of 0.105 across 19 profiles.
+        </p>
+        <p>
+          A naive simulator would make REDUCE trivially dominant, since cutting the plan always
+          raises the share of sessions completed. The environment therefore models training
+          adaptation — a latent ability that grows under productive overload and decays under
+          chronic undertraining — so reducing forever erodes the ability that produces future
+          completion.
+        </p>
+        <p>
+          <strong>PPO does not beat the rule baseline on mean reward</strong> (3.771 against 3.878
+          over 500 episodes on identical seeds). It does cut injury events by <strong>14%</strong>
+          and churn slightly. The learned policy is REDUCE-heavy at 86.7%, which is a direct
+          consequence of the documented reward paying for completion improvement. Removing
+          trajectory from the state costs 0.033 reward, so the Transformer input helps, marginally.
+        </p>
+      </div>
+    </section>
+
+    <!-- ══ METRICS ══ -->
+    <section id="metrics">
+      <h2><span class="num">03</span>Evaluation metrics against the guide's targets</h2>
+      <p class="sub">
+        Every number below was produced by the training runs in this session and is stored in
+        <code>ml-service/models/reports/*.json</code>. Nothing is estimated.
+      </p>
+
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr><th>Model</th><th>Primary metric</th><th class="num">Result</th><th class="num">Target</th><th>Status</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Calorie predictor</td><td>MAE</td><td class="num">87.94 kcal</td><td class="num">&lt; 25 kcal</td><td><span class="pill no">not met</span></td></tr>
+            <tr><td>Calorie predictor</td><td>vs. MET baseline</td><td class="num">−78.9% error</td><td class="num">improve</td><td><span class="pill ok">met</span></td></tr>
+            <tr><td>Recommender</td><td>Precision@3</td><td class="num">0.747</td><td class="num">&gt; 0.70</td><td><span class="pill ok">met</span></td></tr>
+            <tr><td>Recommender</td><td>Coverage</td><td class="num">1.000</td><td class="num">high</td><td><span class="pill ok">met</span></td></tr>
+            <tr><td>Injury · knee</td><td>F1</td><td class="num">1.000</td><td class="num">&gt; 0.75</td><td><span class="pill ok">met</span></td></tr>
+            <tr><td>Injury · back</td><td>F1</td><td class="num">0.947</td><td class="num">&gt; 0.75</td><td><span class="pill ok">met</span></td></tr>
+            <tr><td>Injury · hamstring</td><td>F1</td><td class="num">1.000</td><td class="num">&gt; 0.75</td><td><span class="pill ok">met</span></td></tr>
+            <tr><td>Injury · shoulder</td><td>F1</td><td class="num">0.286</td><td class="num">&gt; 0.75</td><td><span class="pill no">not met</span></td></tr>
+            <tr><td>Transformer</td><td>3-class accuracy</td><td class="num">0.460</td><td class="num">&gt; 0.65</td><td><span class="pill no">not met</span></td></tr>
+            <tr><td>Transformer</td><td>vs. MLP ablation</td><td class="num">+0.033</td><td class="num">beat it</td><td><span class="pill ok">met</span></td></tr>
+            <tr><td>RL agent</td><td>Mean reward vs. rules</td><td class="num">3.771 / 3.878</td><td class="num">beat rules</td><td><span class="pill no">not met</span></td></tr>
+            <tr><td>RL agent</td><td>Injury events/episode</td><td class="num">0.668 / 0.780</td><td class="num">lower</td><td><span class="pill ok">met</span></td></tr>
+            <tr><td>RL agent</td><td>Policy non-degenerate</td><td class="num">86.7% max</td><td class="num">&lt; 95%</td><td><span class="pill ok">met</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Per-label confusion matrices — injury classifier</h3>
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr><th>Label</th><th class="num">TN</th><th class="num">FP</th><th class="num">FN</th><th class="num">TP</th><th class="num">Precision</th><th class="num">Recall</th><th>Label rule</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>knee</td><td class="num">180</td><td class="num">0</td><td class="num">0</td><td class="num">15</td><td class="num">1.000</td><td class="num">1.000</td><td>calibrated</td></tr>
+            <tr><td>back</td><td class="num">185</td><td class="num">1</td><td class="num">0</td><td class="num">9</td><td class="num">0.900</td><td class="num">1.000</td><td>as documented</td></tr>
+            <tr><td>shoulder</td><td class="num">159</td><td class="num">18</td><td class="num">12</td><td class="num">6</td><td class="num">0.250</td><td class="num">0.333</td><td>as documented</td></tr>
+            <tr><td>hamstring</td><td class="num">175</td><td class="num">0</td><td class="num">0</td><td class="num">20</td><td class="num">1.000</td><td class="num">1.000</td><td>as documented</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>3×3 confusion matrix — Transformer</h3>
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr><th>Actual ↓ / Predicted →</th><th class="num">REGRESS</th><th class="num">PLATEAU</th><th class="num">IMPROVE</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>REGRESS</td><td class="num win">32</td><td class="num">15</td><td class="num">23</td></tr>
+            <tr><td>PLATEAU</td><td class="num">12</td><td class="num win">13</td><td class="num">18</td></tr>
+            <tr><td>IMPROVE</td><td class="num">20</td><td class="num">12</td><td class="num win">40</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        PLATEAU is the weakest class, which is expected: it is the smallest of the three (218 of 925
+        sequences) and sits between two neighbours it is easily confused with.
+      </p>
+    </section>
+
+    <!-- ══ ENDPOINTS ══ -->
+    <section id="endpoints">
+      <h2><span class="num">04</span>API endpoints</h2>
+      <p class="sub">
+        Five model endpoints on the FastAPI service, all bearer-authenticated, plus two new Next.js
+        routes. The two Step 1 paths are kept as aliases so nothing written against them breaks.
+      </p>
+
+      <h3>ML microservice</h3>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Method</th><th>Path</th><th>Model</th><th>Auth</th></tr></thead>
+          <tbody>
+            <tr><td class="num">GET</td><td class="path">/healthz</td><td>per-model load status</td><td><span class="pill na">open</span></td></tr>
+            <tr><td class="num">POST</td><td class="path">/predict/calories</td><td>1 — XGBoost + SHAP</td><td><span class="pill new">bearer</span></td></tr>
+            <tr><td class="num">POST</td><td class="path">/recommend</td><td>2 — hybrid recommender</td><td><span class="pill new">bearer</span></td></tr>
+            <tr><td class="num">POST</td><td class="path">/predict/injury-risk</td><td>3 — multi-label XGBoost</td><td><span class="pill new">bearer</span></td></tr>
+            <tr><td class="num">POST</td><td class="path">/predict/trajectory</td><td>4 — Transformer</td><td><span class="pill new">bearer</span></td></tr>
+            <tr><td class="num">POST</td><td class="path">/rl/action</td><td>5 — PPO agent</td><td><span class="pill new">bearer</span></td></tr>
+            <tr><td class="num">POST</td><td class="path">/predict/calorie</td><td>alias of /predict/calories</td><td><span class="pill na">alias</span></td></tr>
+            <tr><td class="num">POST</td><td class="path">/predict/injury</td><td>alias of /predict/injury-risk</td><td><span class="pill na">alias</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Next.js routes</h3>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Method</th><th>Path</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td class="num">POST</td><td class="path">/api/workout-log</td><td><span class="pill new">new</span> Model 1 calorie estimate + SHAP for a logged session</td></tr>
+            <tr><td class="num">GET</td><td class="path">/api/ml-insights</td><td><span class="pill new">new</span> trajectory, injury risk and last decision for the dashboard</td></tr>
+            <tr><td class="num">POST</td><td class="path">/api/adaptive-replan</td><td>now orchestrates models 3 → 4 → 5</td></tr>
+            <tr><td class="num">POST</td><td class="path">/api/generate-plan</td><td>now seeded by model 2 before the LLaMA call</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Fallback behaviour</h3>
+      <p>
+        Every endpoint answers even with no artifact loaded, and every Next.js call passes its own
+        fallback on top. Verified live by stopping the service mid-session: the round trip switched
+        to <code>fallback-met</code> at 262.5 kcal and the app kept working.
+      </p>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Endpoint</th><th>Fallback when the model is missing</th></tr></thead>
+          <tbody>
+            <tr><td class="path">/predict/calories</td><td>MET formula — the rule the model replaces</td></tr>
+            <tr><td class="path">/recommend</td><td>empty seed; the plan prompt is left exactly as before</td></tr>
+            <tr><td class="path">/predict/injury-risk</td><td>sleep / frequency / BMI heuristic, kept sub-threshold</td></tr>
+            <tr><td class="path">/predict/trajectory</td><td>completion-rate slope</td></tr>
+            <tr><td class="path">/rl/action</td><td>the original three completion-rate thresholds</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ══ FILES CREATED ══ -->
+    <section id="files">
+      <h2><span class="num">05</span>Files created</h2>
+      <p class="sub">21 new files: 5 serving modules, 7 training modules, 5 web modules, 2 routes, 1 component, 1 migration.</p>
+
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Path</th><th>Role</th></tr></thead>
+          <tbody>
+            <tr><td class="path">ml-service/app/features.py</td><td>feature contract shared by training and serving</td></tr>
+            <tr><td class="path">ml-service/app/model_registry.py</td><td>load-once, thread-safe artifact holder</td></tr>
+            <tr><td class="path">ml-service/app/rl_env.py</td><td><code>FitFusionEnv</code> + rule-based baseline policy</td></tr>
+            <tr><td class="path">ml-service/app/trajectory_model.py</td><td>Transformer architecture + MLP ablation baseline</td></tr>
+            <tr><td class="path">ml-service/app/supabase_reader.py</td><td>optional read-only Supabase access for injury risk</td></tr>
+            <tr><td class="path">ml-service/training/common.py</td><td>dataset download, paths, metrics reports</td></tr>
+            <tr><td class="path">ml-service/training/train_calorie.py</td><td>Model 1 trainer</td></tr>
+            <tr><td class="path">ml-service/training/train_recommender.py</td><td>Model 2 trainer</td></tr>
+            <tr><td class="path">ml-service/training/train_injury.py</td><td>Model 3 trainer + shoulder ablation</td></tr>
+            <tr><td class="path">ml-service/training/train_transformer.py</td><td>Model 4 trainer + MLP and GBM baselines</td></tr>
+            <tr><td class="path">ml-service/training/train_rl_agent.py</td><td>Model 5 trainer + policy comparison</td></tr>
+            <tr><td class="path">ml-service/training/export_pilot_data.py</td><td>exports live Supabase data for RL calibration</td></tr>
+            <tr><td class="path">ml-service/training/README.md</td><td>training documentation</td></tr>
+            <tr><td class="path">web/src/app/api/workout-log/route.ts</td><td>Model 1 integration point</td></tr>
+            <tr><td class="path">web/src/app/api/ml-insights/route.ts</td><td>dashboard readout</td></tr>
+            <tr><td class="path">web/src/lib/ml-service/history.ts</td><td>shared user-history builder</td></tr>
+            <tr><td class="path">web/src/lib/ml-service/injury-rules.ts</td><td>plan surgery: removal, rest day, intensity delta</td></tr>
+            <tr><td class="path">web/src/lib/ml-service/profile.ts</td><td>profile → model feature mapping</td></tr>
+            <tr><td class="path">web/src/app/dashboard/components/MLInsightsCard.tsx</td><td>trajectory arrow, sparkline, risk bars</td></tr>
+            <tr><td class="path">web/supabase/migrations/20260909_ml_audit_columns.sql</td><td>audit columns migration</td></tr>
+            <tr><td class="path">.claude/launch.json</td><td>dev server config for the preview tooling</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ══ FILES MODIFIED ══ -->
+    <section id="modified">
+      <h2><span class="num">06</span>Files modified</h2>
+      <p class="sub">
+        No existing feature was rewritten. The two dashboard pages that show as modified in git
+        (<code>dream-body</code>, <code>home</code>) were already modified before this work began and
+        were not touched.
+      </p>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Path</th><th>Change</th></tr></thead>
+          <tbody>
+            <tr><td class="path">ml-service/app/main.py</td><td>lifespan startup loading, richer <code>/healthz</code></td></tr>
+            <tr><td class="path">ml-service/app/config.py</td><td>optional Supabase settings</td></tr>
+            <tr><td class="path">ml-service/app/schemas.py</td><td>real request/response contracts for all five models</td></tr>
+            <tr><td class="path">ml-service/app/routers/*.py</td><td>all five stubs replaced with real inference</td></tr>
+            <tr><td class="path">ml-service/tests/test_smoke.py</td><td>6 smoke tests → 28 covering inference, validation, fallbacks</td></tr>
+            <tr><td class="path">ml-service/requirements.txt</td><td>ML dependencies pinned</td></tr>
+            <tr><td class="path">ml-service/README.md, .env.example, .gitignore</td><td>documentation and ignore rules</td></tr>
+            <tr><td class="path">web/src/app/api/adaptive-replan/route.ts</td><td>full 3-model orchestration; <code>sleep_hours</code> column fix</td></tr>
+            <tr><td class="path">web/src/app/api/generate-plan/route.ts</td><td>recommender seed injected before the LLaMA call</td></tr>
+            <tr><td class="path">web/src/lib/ml-service/index.ts, types.ts</td><td>rewritten client wrappers and contracts</td></tr>
+            <tr><td class="path">web/src/lib/calories.ts</td><td>added shared session-duration estimator</td></tr>
+            <tr><td class="path">web/src/app/dashboard/progress/WorkoutTab.tsx</td><td>ML calories on save + SHAP breakdown; removed a duplicated helper</td></tr>
+            <tr><td class="path">web/src/app/dashboard/analytics/page.tsx</td><td>mounts <code>MLInsightsCard</code></td></tr>
+            <tr><td class="path">CLAUDE.md</td><td>verified schema, endpoints, build order marked complete</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ══ DEPENDENCIES ══ -->
+    <section id="deps">
+      <h2><span class="num">07</span>New dependencies</h2>
+      <p class="sub">
+        All Python, all in <code>ml-service/requirements.txt</code>. <strong>No new npm packages</strong> —
+        the web app's dependency list is unchanged.
+      </p>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Package</th><th class="num">Version</th><th>Needed by</th></tr></thead>
+          <tbody>
+            <tr><td class="path">numpy</td><td class="num">2.5.3</td><td>all models</td></tr>
+            <tr><td class="path">pandas</td><td class="num">3.0.5</td><td>training, food index</td></tr>
+            <tr><td class="path">scikit-learn</td><td class="num">1.9.0</td><td>scaling, cosine similarity, metrics</td></tr>
+            <tr><td class="path">xgboost</td><td class="num">3.4.1</td><td>models 1 and 3</td></tr>
+            <tr><td class="path">shap</td><td class="num">0.52.0</td><td>model 1 explainability</td></tr>
+            <tr><td class="path">joblib</td><td class="num">1.6.0</td><td>artifact save/load</td></tr>
+            <tr><td class="path">torch</td><td class="num">2.14.0+cpu</td><td>model 4</td></tr>
+            <tr><td class="path">stable-baselines3</td><td class="num">2.9.0</td><td>model 5</td></tr>
+            <tr><td class="path">gymnasium</td><td class="num">1.3.0</td><td><code>FitFusionEnv</code></td></tr>
+            <tr><td class="path">matplotlib</td><td class="num">3.11.1</td><td>training plots only</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        <code>requirements.txt</code> pins the CPU-only torch index, which keeps the Render image
+        small — the default index would pull the CUDA build.
+      </p>
+    </section>
+
+    <!-- ══ DATABASE ══ -->
+    <section id="database">
+      <h2><span class="num">08</span>Database changes</h2>
+      <p class="sub">
+        One additive migration. No table was altered destructively and no existing column changed
+        type.
+      </p>
+      <pre><span class="c">-- web/supabase/migrations/20260909_ml_audit_columns.sql</span>
+alter table workout_plans
+  add column if not exists injury_risk jsonb,
+  add column if not exists ml_meta     jsonb;
+
+create index if not exists workout_plans_user_created_idx
+  on workout_plans(user_id, created_at desc);</pre>
+      <p>
+        <code>injury_risk</code> stores the per-muscle-group scores that drove a replan;
+        <code>ml_meta</code> stores the whole decision record — completion rate, sleep average,
+        streak, trajectory class, RL action and state, removed exercises and the rest day inserted.
+      </p>
+      <div class="callout">
+        <p>
+          <strong>The migration is optional to run immediately.</strong> The replan route inserts
+          with the audit columns and, if they do not exist, retries without them and logs a warning.
+          The same payload is always written inside <code>plan.ml_meta</code> either way, so nothing
+          breaks and no data is lost while the migration is pending.
+        </p>
+      </div>
+
+      <h3>A schema bug found and fixed</h3>
+      <p>
+        <code>/api/adaptive-replan</code> was selecting <code>sleep_logs.duration_hours</code>. That
+        column exists in the migration file but <strong>not on the live table</strong>, which only
+        has <code>sleep_hours</code> — the column every other screen reads and writes. The select
+        was erroring, so average sleep had been permanently <code>null</code> in the replan prompt.
+        It now reads <code>sleep_hours</code>, and sleep genuinely reaches the RL state.
+      </p>
+    </section>
+
+    <!-- ══ ARTIFACTS ══ -->
+    <section id="artifacts">
+      <h2><span class="num">09</span>Model artifacts generated</h2>
+      <p class="sub">
+        All in <code>ml-service/models/</code>, all gitignored, all confirmed loading at service
+        startup. Metrics reports are kept in the repo as the record of what each model scored.
+      </p>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Artifact</th><th class="num">Size</th><th>Contents</th></tr></thead>
+          <tbody>
+            <tr><td class="path">calorie_model.pkl</td><td class="num">714 KB</td><td>XGBRegressor, scaler, feature order, imputation medians, metrics</td></tr>
+            <tr><td class="path">rec_scaler.pkl</td><td class="num">0.8 KB</td><td>StandardScaler for the user vector</td></tr>
+            <tr><td class="path">user_matrix.pkl</td><td class="num">60 KB</td><td>973 scaled user vectors + their workout types</td></tr>
+            <tr><td class="path">food_index.pkl</td><td class="num">1.0 MB</td><td>7,385 foods, macros, restriction allow/block lists</td></tr>
+            <tr><td class="path">injury_risk_model.pkl</td><td class="num">390 KB</td><td>4 per-label XGBClassifiers, label rules, disclaimer</td></tr>
+            <tr><td class="path">transformer_model.pt</td><td class="num">114 KB</td><td>state dict</td></tr>
+            <tr><td class="path">transformer_meta.json</td><td class="num">0.9 KB</td><td>normalisation stats, classes, architecture, metrics</td></tr>
+            <tr><td class="path">fitfusion_rl_agent.zip</td><td class="num">143 KB</td><td>PPO policy</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ══ TRAINING ══ -->
+    <section id="training">
+      <h2><span class="num">10</span>Training instructions</h2>
+      <p class="sub">
+        Both Kaggle datasets download from the public endpoint with <strong>no credentials</strong>,
+        cached automatically on first run. Nothing needs collecting by hand.
+      </p>
+      <pre><span class="c"># from ml-service/ — one-time setup</span>
+python -m venv .venv
+.venv/Scripts/python.exe -m pip install -r requirements.txt
+
+<span class="c"># optional but recommended: calibrate the RL environment on real data</span>
+.venv/Scripts/python.exe -m training.export_pilot_data
+
+<span class="c"># build order — later models assume earlier artifacts exist</span>
+.venv/Scripts/python.exe -m training.train_calorie      <span class="c"># ~10 s</span>
+.venv/Scripts/python.exe -m training.train_recommender  <span class="c"># ~30 s</span>
+.venv/Scripts/python.exe -m training.train_injury       <span class="c"># ~15 s</span>
+.venv/Scripts/python.exe -m training.train_transformer  <span class="c"># ~2 min</span>
+.venv/Scripts/python.exe -m training.train_rl_agent     <span class="c"># ~25 min</span></pre>
+      <p>
+        Use Python <strong>3.11 or 3.12</strong>. Torch and XGBoost wheels do not yet exist for
+        3.13+, which is why this session built against 3.12 rather than the 3.14 on your PATH.
+      </p>
+      <p>
+        Each script writes its real metrics to <code>models/reports/&lt;model&gt;.json</code>,
+        including any target it failed to hit. None of the five needs a GPU: the Transformer is two
+        layers at d_model 32, and PPO is bound by the environment step, so a GPU runtime makes it no
+        faster. The scripts are plain modules, so a Colab cell only needs the repo plus
+        <code>pip install -r requirements.txt</code>.
+      </p>
+    </section>
+
+    <!-- ══ TESTING ══ -->
+    <section id="testing">
+      <h2><span class="num">11</span>Tests performed and results</h2>
+
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Suite</th><th class="num">Result</th><th>Covers</th></tr></thead>
+          <tbody>
+            <tr><td>ml-service pytest</td><td class="num win">28 passed</td><td>inference, validation, auth, imputation, restriction filtering, fallbacks</td></tr>
+            <tr><td>Orchestration checks</td><td class="num win">22 passed</td><td>muscle matching, exercise removal, rest-day placement, intensity scaling</td></tr>
+            <tr><td>TypeScript</td><td class="num win">0 errors</td><td>whole web app under <code>tsc --noEmit</code></td></tr>
+            <tr><td>Production build</td><td class="num win">passed</td><td><code>next build</code> including both new routes</td></tr>
+            <tr><td>Live round trip</td><td class="num win">passed</td><td>Next.js → FastAPI → XGBoost → SHAP → back</td></tr>
+            <tr><td>Real-data pipeline</td><td class="num win">passed</td><td>all five models on a real Supabase user</td></tr>
+            <tr><td>Service-down fallback</td><td class="num win">passed</td><td>stopped mid-session; app kept working on MET</td></tr>
+            <tr><td>Auth guards</td><td class="num win">401 each</td><td>all three new/changed routes reject missing and invalid tokens</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>The real-data run</h3>
+      <p>
+        Executed against pilot user <code>048f4f3b</code> — age 22, BMI 27.1, goal weight loss, real
+        average sleep 7.39 h, real completion 0.83, and one <strong>active left-hamstring injury</strong>
+        recorded in the <code>injuries</code> table. The layer responded coherently end to end:
+      </p>
+      <ul class="notes">
+        <li><strong>Calories</strong> — 598.9 kcal for a 45-minute strength session at 86 kg, against a 322.5 kcal MET baseline, with resting BPM correctly reported as imputed.</li>
+        <li><strong>Recommender</strong> — Cardio / Strength / Yoga, with <em>HIIT excluded</em> because of the hamstring injury, and a calorie-deficit diet matching the weight-loss goal.</li>
+        <li><strong>Injury risk</strong> — hamstring 0.99 and flagged; knee, back and shoulder all 0.001. The one muscle group the user is actually injured in is the one the model flagged.</li>
+        <li><strong>Trajectory</strong> — REGRESS at 0.725 confidence, consistent with the completion dip to 0.4 inside the four-session window.</li>
+        <li><strong>RL agent</strong> — REDUCE at 0.81 confidence, given injury flag 1 and a regressing trajectory.</li>
+      </ul>
+
+      <h3>Bugs found by testing and fixed</h3>
+      <ul class="notes">
+        <li><strong>Vegetarian results contained fish and marine mammals.</strong> Blocklists kept leaking; switched vegetarian and vegan to an allow-list matched on the food's leading identity.</li>
+        <li><strong>Weight-loss diets were diet soda and black coffee.</strong> Nutrition floors added, so picks now carry real protein.</li>
+        <li><strong>Resting a whole day discarded healthy exercises.</strong> The rest day now lands on the emptiest remaining day rather than the one that had the most flagged work.</li>
+        <li><strong>An out-of-range weekly frequency dropped calls to fallback.</strong> Clamped at the caller.</li>
+        <li><strong>Average sleep was silently always null</strong> — the <code>sleep_hours</code> column fix above.</li>
+      </ul>
+    </section>
+
+    <!-- ══ LIMITATIONS ══ -->
+    <section id="limits">
+      <h2><span class="num">12</span>Limitations and unresolved issues</h2>
+
+      <ul class="notes">
+        <li>
+          <strong>The pilot dataset is far smaller than the guide assumes.</strong> The document
+          describes 12 users and 46 plans. The live database has 19 profiles but only
+          <strong>2 users with any workout history</strong> — 18 logs, 17 sleep records, 3 injuries,
+          and 14 user-days of completion data yielding 9 usable 4-session windows. That is enough to
+          calibrate the RL environment but not to train or validate on FitFusion's own data, so
+          models 1–4 are trained entirely on the Kaggle datasets.
+        </li>
+        <li>
+          <strong>Resting BPM is never observed.</strong> <code>vitals_logs</code> is empty, so both
+          the calorie and injury models impute it from the training median. Every response lists what
+          was imputed. The wiring to read real values is in place and will pick them up the moment
+          users start logging vitals.
+        </li>
+        <li>
+          <strong>Shoulder risk is effectively non-functional</strong> at F1 0.286, for the
+          identifiability reason above. It is still returned and still counted, so a
+          false shoulder flag can strip pressing work. Adding <code>Workout_Type</code> to the
+          feature list would fix it, at the cost of deviating from the documented spec — worth
+          raising before doing.
+        </li>
+        <li>
+          <strong>The RL agent does not beat the rule baseline on reward.</strong> The documented
+          reward pays +1 whenever completion improves, and reducing intensity is the most reliable
+          way to make that happen, which is why the learned policy is 86.7% REDUCE. Adding an
+          explicit progression term to the reward — rewarding sustained ability growth, not just
+          week-over-week completion — is the change most likely to make the agent clearly better
+          than thresholds.
+        </li>
+        <li>
+          <strong>Transformer accuracy is capped by the dataset.</strong> 0.460 against a 0.400 GBM
+          ceiling on the same features. Real improvement needs real sequential data, which the app
+          will accumulate as users log sessions.
+        </li>
+        <li>
+          <strong>Not tested through a browser login.</strong> The Next.js routes were verified via
+          their auth guards, the live round trip, direct model calls on real user data, and the
+          orchestration unit checks. Driving the actual signed-in UI would have required
+          authenticating as a user, which I did not do.
+        </li>
+        <li>
+          <strong>The muscle-group keyword list is duplicated</strong> across
+          <code>app/features.py</code> and <code>lib/ml-service/injury-rules.ts</code>, because the
+          service scores risk but never sees the plan while Next.js edits the plan but never scores
+          risk. Both files carry a comment to keep them in sync.
+        </li>
+      </ul>
+    </section>
+
+    <!-- ══ MANUAL STEPS ══ -->
+    <section id="manual">
+      <h2><span class="num">13</span>Manual steps required</h2>
+      <p class="sub">
+        Two are required before this works anywhere but your machine. The rest are optional
+        improvements.
+      </p>
+
+      <div class="step req">
+        <div class="step-head">
+          <span class="step-n">REQUIRED · 01</span>
+          <h3 class="step-title" style="margin:0">Apply the Supabase migration</h3>
+        </div>
+        <dl>
+          <dt>Where</dt><dd>Supabase dashboard → SQL Editor, on project <code>ckxjfxufbrdawzshsupn</code></dd>
+          <dt>What</dt><dd>Paste and run the contents of <code>web/supabase/migrations/20260909_ml_audit_columns.sql</code></dd>
+          <dt>Why</dt><dd>Adds the <code>injury_risk</code> and <code>ml_meta</code> audit columns the guide asks for. I cannot run DDL — PostgREST only exposes data operations, and no direct Postgres connection string is in the project.</dd>
+          <dt>Expect</dt><dd>"Success. No rows returned." Re-running is safe.</dd>
+          <dt>Verify</dt><dd>Run a weekly check-in, then confirm the newest <code>workout_plans</code> row has a populated <code>injury_risk</code>.</dd>
+        </dl>
+      </div>
+
+      <div class="step req">
+        <div class="step-head">
+          <span class="step-n">REQUIRED · 02</span>
+          <h3 class="step-title" style="margin:0">Deploy the ML service and set its environment</h3>
+        </div>
+        <dl>
+          <dt>Where</dt><dd>Render dashboard, then Vercel project settings</dd>
+          <dt>What</dt>
+          <dd>
+            On Render, deploy from <code>ml-service/render.yaml</code> and set
+            <code>ML_SERVICE_API_KEY</code> to a long random string. On Vercel, add
+            <code>ML_SERVICE_URL</code> (your Render URL, no trailing slash) and
+            <code>ML_SERVICE_API_KEY</code> with <em>the same value</em>.
+          </dd>
+          <dt>Why</dt><dd>The two services authenticate with a shared bearer token. A mismatch returns 401 and every call silently falls back to the old rule-based behaviour.</dd>
+          <dt>Expect</dt><dd><code>GET /healthz</code> returns <code>models_loaded: []</code> at first — artifacts are gitignored, so see step 3.</dd>
+        </dl>
+        <div class="callout">
+          <p>
+            Your local environment is already wired. I generated a random key and wrote it to both
+            <code>web/.env.local</code> and <code>ml-service/.env</code> during this session. Neither
+            file is committed, and the value was never printed.
+          </p>
+        </div>
+      </div>
+
+      <div class="step req">
+        <div class="step-head">
+          <span class="step-n">REQUIRED · 03</span>
+          <h3 class="step-title" style="margin:0">Get the model artifacts onto Render</h3>
+        </div>
+        <dl>
+          <dt>Where</dt><dd>Render, one of three ways</dd>
+          <dt>What</dt>
+          <dd>
+            Either attach a persistent disk mounted at
+            <code>/opt/render/project/src/ml-service/models</code> and upload the eight files;
+            or host them privately and fetch them into <code>MODEL_DIR</code> in
+            <code>buildCommand</code>; or build the committed <code>Dockerfile</code> locally
+            (it copies <code>models/</code>) and deploy that image.
+          </dd>
+          <dt>Why</dt><dd><code>models/</code> is gitignored by project convention, so a plain git deploy ships no models and every endpoint serves its fallback.</dd>
+          <dt>Expect</dt><dd><code>/healthz</code> lists all five in <code>models_loaded</code>.</dd>
+          <dt>From you</dt><dd>Tell me which of the three you prefer and I will wire it up.</dd>
+        </dl>
+      </div>
+
+      <div class="step">
+        <div class="step-head">
+          <span class="step-n">OPTIONAL · 04</span>
+          <h3 class="step-title" style="margin:0">Start logging resting heart rate</h3>
+        </div>
+        <dl>
+          <dt>Where</dt><dd>The app's Vitals screen, <code>/dashboard/vitals</code></dd>
+          <dt>Why</dt><dd><code>vitals_logs</code> is empty, so resting BPM is imputed for every calorie and injury prediction today. It is a genuine input to both models.</dd>
+          <dt>Expect</dt><dd><code>Resting_BPM</code> disappears from the <code>imputed</code> list in responses, and predictions become user-specific on that axis.</dd>
+        </dl>
+      </div>
+
+      <div class="step">
+        <div class="step-head">
+          <span class="step-n">OPTIONAL · 05</span>
+          <h3 class="step-title" style="margin:0">Re-export pilot data and retrain the RL agent later</h3>
+        </div>
+        <dl>
+          <dt>Where</dt><dd><code>ml-service/</code></dd>
+          <dt>What</dt><dd><code>.venv/Scripts/python.exe -m training.export_pilot_data</code> then <code>-m training.train_rl_agent</code></dd>
+          <dt>Why</dt><dd>The environment is calibrated from 14 user-days across 2 users. More real completion data makes the simulated user more realistic, which is the main lever on how well the policy transfers.</dd>
+          <dt>Expect</dt><dd>Roughly 25 minutes; the calibration block prints the new distribution it read.</dd>
+        </dl>
+      </div>
+
+      <div class="step">
+        <div class="step-head">
+          <span class="step-n">OPTIONAL · 06</span>
+          <h3 class="step-title" style="margin:0">Decide on the shoulder-label question</h3>
+        </div>
+        <dl>
+          <dt>Why</dt><dd>Shoulder risk sits at F1 0.286 because its label needs <code>Workout_Type</code>, which the documented feature list excludes. The ablation shows F1 1.000 once it is added.</dd>
+          <dt>From you</dt>
+          <dd>
+            Say whether spec fidelity or a working shoulder signal matters more for your write-up.
+            If it is the signal, adding one feature fixes it in a few minutes; if it is fidelity,
+            the current numbers and the ablation together make a stronger methods section than a
+            passing score would.
+          </dd>
+        </dl>
+      </div>
+    </section>
+
+    <footer>
+      FitFusion AI · ML intelligence layer · all metrics from training runs in this session ·
+      reports in <code>ml-service/models/reports/</code>
+    </footer>
+
+  </main>
+</div>

@@ -1,0 +1,84 @@
+{
+  "model": "transformer",
+  "trained_at": "2026-09-09T04:32:26+00:00",
+  "python": "3.12.10",
+  "artifacts": [
+    "transformer_model.pt",
+    "transformer_meta.json"
+  ],
+  "algorithm": "nn.TransformerEncoder(d_model=32, nhead=4, num_layers=2) + Linear classifier",
+  "dataset": "valakhorasani/gym-members-exercise-dataset (pseudo-sequences)",
+  "sequences": 925,
+  "sequence_shape": [
+    4,
+    4
+  ],
+  "class_balance": {
+    "REGRESS": 348,
+    "PLATEAU": 218,
+    "IMPROVE": 359
+  },
+  "epochs": 20,
+  "augmentation": "Gaussian noise std=0.05, training set doubled",
+  "metrics": {
+    "accuracy": 0.4594594594594595,
+    "macro_f1": 0.43791358978005474,
+    "confusion_matrix": [
+      [
+        32,
+        15,
+        23
+      ],
+      [
+        12,
+        13,
+        18
+      ],
+      [
+        20,
+        12,
+        40
+      ]
+    ]
+  },
+  "ablation_mlp_baseline": {
+    "accuracy": 0.42702702702702705,
+    "macro_f1": 0.3677324101415335,
+    "confusion_matrix": [
+      [
+        38,
+        9,
+        23
+      ],
+      [
+        23,
+        4,
+        16
+      ],
+      [
+        30,
+        5,
+        37
+      ]
+    ]
+  },
+  "signal_ceiling": {
+    "gbm_flattened_accuracy": 0.4,
+    "majority_class_accuracy": 0.3891891891891892,
+    "random_chance_accuracy": 0.3333333333333333
+  },
+  "target_accuracy_over_65": false,
+  "pilot_data": {
+    "available": true,
+    "users": 2,
+    "user_days": 14,
+    "usable_4_session_windows": 9,
+    "mean_completion_rate": 0.8571428571428571
+  },
+  "feature_derivation": {
+    "session_duration": "observed (Session_Duration hours)",
+    "completion_rate": "PROXY: duration / group 90th percentile, clipped [0,1]",
+    "workout_type_encoded": "observed",
+    "day_of_week": "SYNTHETIC: position spaced by weekly frequency, mod 7"
+  }
+}

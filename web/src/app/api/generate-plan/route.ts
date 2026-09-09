@@ -2,6 +2,14 @@ import { NextResponse } from "next/server"
 import Groq from "groq-sdk"
 import { createClient } from "@supabase/supabase-js"
 
+import { recommend } from "../../../lib/ml-service"
+import type { RecommendResponse } from "../../../lib/ml-service"
+import {
+  dietaryRestrictionsFromProfile,
+  experienceLevelFromProfile,
+  injuryListFromProfile,
+} from "../../../lib/ml-service/profile"
+
 export const runtime = "nodejs"
 
 type JsonValue = Record<string, any>
@@ -602,7 +610,74 @@ function enforceWeeklyStructure(plan: any, restDays: number, intensity: "low" | 
   }
 }
 
-function buildPrompt(profile: JsonValue, restDays: number, metrics: JsonValue, difficultyBoost = false) {
+/**
+ * Model 2 output rendered for the LLaMA prompt.
+ *
+ * Turns the recommender's JSON into a short, explicit block so the model
+ * personalises a data-grounded starting point instead of inventing one. Returns
+ * "" when the recommender produced nothing, which leaves the prompt exactly as
+ * it was before this model existed.
+ */
+function buildRecommenderSeed(rec: RecommendResponse | null): string {
+  if (!rec || rec.stub) return ""
+  if (rec.recommended_workouts.length === 0 && !rec.recommended_diet_focus) return ""
+
+  const lines: string[] = [
+    "DATA-GROUNDED RECOMMENDATION SEED",
+    `Based on the ${rec.neighbours_used} users in the training cohort whose age, BMI, training`,
+    "frequency and experience level most closely match this user, the following has been effective:",
+  ]
+
+  if (rec.recommended_workouts.length > 0) {
+    const formatted = rec.recommended_workouts
+      .map((w) => `${w.workout_type} (${Math.round(w.score * 100)}% of similar users)`)
+      .join(", ")
+    lines.push(`- Effective workout styles: ${formatted}`)
+    lines.push("- Bias the weekly split toward these styles where the user's goal allows.")
+  }
+
+  if (rec.excluded_workouts.length > 0) {
+    lines.push(
+      `- WITHHELD because of active injuries: ${rec.excluded_workouts.join(", ")}. ` +
+        "Do not program these styles."
+    )
+  }
+
+  const diet = rec.recommended_diet_focus
+  if (diet) {
+    lines.push(
+      `- Diet strategy: ${diet.strategy.replace(/_/g, " ")} (optimise for ${diet.target_macro}).`
+    )
+    if (diet.foods.length > 0) {
+      const examples = diet.foods.slice(0, 6).map((f) => f.name).join(", ")
+      lines.push(`- Foods matching that strategy and this user's restrictions: ${examples}.`)
+      lines.push(
+        `- Reference macros from those foods: ~${Math.round(diet.avg_calories)} kcal and ` +
+          `~${Math.round(diet.avg_protein)} g protein per 100 g.`
+      )
+    }
+  }
+
+  if (rec.applied_restrictions.length > 0) {
+    lines.push(
+      `- Dietary restrictions already applied to the list above: ${rec.applied_restrictions.join(", ")}.`
+    )
+  }
+
+  lines.push(
+    "Treat this as a starting point to personalise, not a script to copy. The hard rules below still win."
+  )
+
+  return lines.join("\n") + "\n\n"
+}
+
+function buildPrompt(
+  profile: JsonValue,
+  restDays: number,
+  metrics: JsonValue,
+  difficultyBoost = false,
+  recommenderSeed = ""
+) {
   const training = getTrainingIntensity(profile)
   const workoutDays = 7 - restDays
 
@@ -651,6 +726,8 @@ function buildPrompt(profile: JsonValue, restDays: number, metrics: JsonValue, d
 You are an expert fitness coach.
 
 Return STRICT JSON ONLY. No markdown. No explanation. No code fences.
+
+${recommenderSeed}
 
 You MUST consider all onboarding steps and every usable profile field:
 1) Goal
@@ -812,7 +889,41 @@ export async function POST(req: Request) {
     const metrics = calculateFitnessMetrics(profile)
     const training = getTrainingIntensity(profile)
     const difficultyBoost = body?.difficultyBoost === true
-    const prompt = buildPrompt(profile, restDays, metrics, difficultyBoost)
+
+    // ── Model 2: hybrid recommender, before the LLaMA call ───────────────────
+    // Seeds the prompt with what worked for similar users. If the ML service is
+    // unavailable the seed is empty and the prompt is unchanged.
+    const { data: activeInjuries } = await supabase
+      .from("injuries")
+      .select("body_part, name")
+      .eq("user_id", userId)
+      .eq("status", "active")
+
+    let recommendation: RecommendResponse | null = null
+    if (metrics.bmi) {
+      const recResult = await recommend({
+        user_id: userId,
+        age: toNumber(profile.age, 25),
+        bmi: metrics.bmi,
+        goal: String(profile?.goal ?? ""),
+        workout_frequency: 7 - restDays,
+        experience_level: experienceLevelFromProfile(profile),
+        injuries: injuryListFromProfile(profile, activeInjuries ?? []),
+        dietary_restrictions: dietaryRestrictionsFromProfile(profile),
+      })
+      recommendation = recResult.data
+      if (recResult.fromFallback) {
+        console.warn(`[generate-plan] recommender fallback: ${recResult.reason}`)
+      }
+    }
+
+    const prompt = buildPrompt(
+      profile,
+      restDays,
+      metrics,
+      difficultyBoost,
+      buildRecommenderSeed(recommendation)
+    )
 
     const response = await groq.chat.completions.create({
       model: "llama-3.3-70b-versatile",
@@ -841,6 +952,15 @@ export async function POST(req: Request) {
         sleep_hours: training.sleepHours,
         workout_minutes: training.workoutMinutes,
         injuries: training.injuries,
+        recommender: recommendation && !recommendation.stub
+          ? {
+              model_version: recommendation.model_version,
+              workouts: recommendation.recommended_workouts,
+              excluded_workouts: recommendation.excluded_workouts,
+              diet_strategy: recommendation.recommended_diet_focus?.strategy ?? null,
+              applied_restrictions: recommendation.applied_restrictions,
+            }
+          : null,
       },
     }
 
