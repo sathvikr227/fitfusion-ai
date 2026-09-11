@@ -4,6 +4,22 @@
 -- Everything here is additive: no table is dropped, no column changes type,
 -- and no existing data is touched. It brings the live database in line with
 -- what the application code expects.
+--
+-- FAIL FAST RATHER THAN HANG.
+-- ALTER TABLE and CREATE INDEX both need a lock on workout_plans. If anything
+-- else holds that lock -- an idle-in-transaction session, a long query, or the
+-- dashboard's Table Editor left open on the table -- these statements wait
+-- forever and the SQL Editor eventually reports
+-- "Connection terminated due to connection timeout", which names the symptom
+-- and not the cause.
+--
+-- These two settings turn that silent hang into an immediate, explicit error:
+--   "canceling statement due to lock timeout"
+-- If you see that, nothing was changed. Run diagnose_locks.sql (same folder)
+-- to find the blocking session, then re-run this file.
+
+set local lock_timeout = '5s';
+set local statement_timeout = '60s';
 
 -- ── 1. ML intelligence layer audit columns ───────────────────────────────────
 -- Stores the injury-risk scores that drove a replan and the full decision
