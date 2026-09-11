@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import Groq from "groq-sdk"
 import { createClient } from "@supabase/supabase-js"
+import { GROQ_MODEL } from "../../../lib/groq-model"
 
 export const runtime = "nodejs"
 
@@ -95,7 +96,7 @@ Return ONLY a valid JSON object with this exact structure, no extra text:
 }`
 
     const completion = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+      model: GROQ_MODEL,
       messages: [{ role: "user", content: prompt }],
       temperature: 0.3,
       max_tokens: 1200,

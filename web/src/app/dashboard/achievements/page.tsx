@@ -41,7 +41,7 @@ const XP_PER_LEVEL = 500
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type EarnedMap = Record<string, string> // achievementId -> earned_at ISO string
+type EarnedMap = Record<string, string> // achievementId -> unlocked_at ISO string
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -97,12 +97,12 @@ export default function AchievementsPage() {
     // 1. Fetch already-earned achievements
     const { data: existingRaw } = await supabase
       .from("user_achievements")
-      .select("achievement_id, earned_at")
+      .select("achievement_id, unlocked_at")
       .eq("user_id", uid)
 
     const existing: EarnedMap = {}
     for (const row of existingRaw ?? []) {
-      existing[row.achievement_id] = row.earned_at
+      existing[row.achievement_id] = row.unlocked_at
     }
 
     // 2. Fetch source data
@@ -170,7 +170,7 @@ export default function AchievementsPage() {
       const inserts = toAward.map((a) => ({
         user_id: uid,
         achievement_id: a.id,
-        earned_at: now,
+        unlocked_at: now,
       }))
       await supabase.from("user_achievements").insert(inserts)
       for (const a of toAward) {

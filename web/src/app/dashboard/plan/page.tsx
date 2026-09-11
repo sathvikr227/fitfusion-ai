@@ -274,7 +274,7 @@ export default function PlanPage() {
       const today = todayDateStr()
       const { data } = await supabase
         .from("workout_execution")
-        .select("exercise_name, done, sets_done, reps_done, weight_used, notes")
+        .select("exercise_name, done")
         .eq("user_id", userId)
         .eq("date", today)
 
@@ -317,10 +317,6 @@ export default function PlanPage() {
         date: today,
         exercise_name: name,
         done: nextCompleted,
-        sets_done: exercise.sets ?? null,
-        reps_done: exercise.reps ?? null,
-        weight_used: current?.weight_used ?? null,
-        notes: current?.notes ?? null,
       },
       { onConflict: "user_id,date,exercise_name" }
     )

@@ -232,6 +232,10 @@ export default function TodayPage() {
       : (name || "").toLowerCase().includes("dinner") ? "dinner"
       : "snacks"
 
+    // meal_logs has no meal_name, source or items column. Filtering and
+    // inserting on them made every one of these queries fail, so ticking a meal
+    // never reached the table. is_assigned is the flag that marks a plan meal,
+    // and meal_type identifies which one.
     if (newEaten) {
       // Idempotent: only insert if not already there
       const { data: existing } = await supabase
@@ -239,19 +243,17 @@ export default function TodayPage() {
         .select("id")
         .eq("user_id", userId)
         .eq("date", today)
-        .eq("meal_name", name)
-        .eq("source", "plan")
+        .eq("meal_type", mealType)
+        .eq("is_assigned", true)
         .maybeSingle()
       if (!existing?.id) {
         await supabase.from("meal_logs").insert({
           user_id: userId,
           date: today,
           meal_type: mealType,
-          meal_name: name,
           total_calories: mealCalories,
           is_completed: true,
-          source: "plan",
-          items: planMeal?.items ?? [],
+          is_assigned: true,
         })
       }
     } else {
@@ -260,8 +262,8 @@ export default function TodayPage() {
         .delete()
         .eq("user_id", userId)
         .eq("date", today)
-        .eq("meal_name", name)
-        .eq("source", "plan")
+        .eq("meal_type", mealType)
+        .eq("is_assigned", true)
     }
   }, [userId, today, eatenMeals, meals])
 

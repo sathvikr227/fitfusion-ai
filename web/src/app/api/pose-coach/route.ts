@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import Groq from "groq-sdk"
 import { createClient } from "@supabase/supabase-js"
+import { GROQ_MODEL } from "../../../lib/groq-model"
 
 export const runtime = "nodejs"
 
@@ -64,7 +65,7 @@ Paragraph 1: What went well. Paragraph 2: The #1 thing to fix next set (be concr
 
     const groq = getGroq()
     const resp = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+      model: GROQ_MODEL,
       messages: [{ role: "user", content: prompt }],
       temperature: 0.6,
       max_tokens: 260,

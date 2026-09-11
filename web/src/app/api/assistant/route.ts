@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import Groq from "groq-sdk"
 import { createClient } from "@supabase/supabase-js"
 import OpenAI from "openai"
+import { GROQ_MODEL } from "../../../lib/groq-model"
 
 export const runtime = "nodejs"
 
@@ -80,7 +81,7 @@ export async function POST(req: Request) {
     ] = await Promise.all([
       supabase
         .from("profiles")
-        .select("name, goal, weight, height, age, gender, activity_level")
+        .select("full_name, goal, weight, height, age, gender, activity_level")
         .eq("id", userId)
         .maybeSingle(),
 
@@ -93,7 +94,7 @@ export async function POST(req: Request) {
 
       supabase
         .from("meal_logs")
-        .select("date, meal_name, total_calories, protein, carbs, fat")
+        .select("date, meal_type, total_calories, total_protein, total_carbs, total_fat")
         .eq("user_id", userId)
         .gte("date", sevenDaysAgo)
         .order("date", { ascending: false }),
@@ -114,13 +115,13 @@ export async function POST(req: Request) {
 
       supabase
         .from("injuries")
-        .select("description, severity, status")
+        .select("name, body_part, severity, status")
         .eq("user_id", userId)
         .neq("status", "healed"),
 
       supabase
         .from("sleep_logs")
-        .select("date, duration_hours, quality")
+        .select("date, sleep_hours, quality")
         .eq("user_id", userId)
         .order("date", { ascending: false })
         .limit(7),
@@ -196,7 +197,7 @@ export async function POST(req: Request) {
     // Avg sleep
     let avgSleep: number | null = null
     if (sleepLogs.length > 0) {
-      const total = sleepLogs.reduce((s: number, l: any) => s + (Number(l.duration_hours) || 0), 0)
+      const total = sleepLogs.reduce((s: number, l: any) => s + (Number(l.sleep_hours) || 0), 0)
       avgSleep = Math.round((total / sleepLogs.length) * 10) / 10
     }
 
@@ -228,7 +229,7 @@ export async function POST(req: Request) {
 
     // ── Build system prompt ───────────────────────────────────────────────────
     const profileLines = [
-      profile.name ? `Name: ${profile.name}` : null,
+      profile.full_name ? `Name: ${profile.full_name}` : null,
       profile.goal ? `Goal: ${profile.goal}` : null,
       profile.age ? `Age: ${profile.age}` : null,
       profile.gender ? `Gender: ${profile.gender}` : null,
@@ -257,10 +258,10 @@ export async function POST(req: Request) {
             .slice(0, 7)
             .map(
               (m: any) =>
-                `  • ${m.date}: ${m.meal_name ?? "Meal"} — ${m.total_calories ?? 0} kcal` +
-                (m.protein ? ` | P:${m.protein}g` : "") +
-                (m.carbs ? ` C:${m.carbs}g` : "") +
-                (m.fat ? ` F:${m.fat}g` : "")
+                `  • ${m.date}: ${m.meal_type ?? "Meal"} — ${m.total_calories ?? 0} kcal` +
+                (m.total_protein ? ` | P:${m.total_protein}g` : "") +
+                (m.total_carbs ? ` C:${m.total_carbs}g` : "") +
+                (m.total_fat ? ` F:${m.total_fat}g` : "")
             )
             .join("\n")
         : "  No meal logs in last 7 days."
@@ -278,7 +279,7 @@ export async function POST(req: Request) {
         ? injuries
             .map(
               (inj: any) =>
-                `  • ${inj.description} — severity: ${inj.severity}, status: ${inj.status}`
+                `  • ${inj.name ?? "Injury"} (${inj.body_part ?? "unspecified"}) — severity: ${inj.severity}, status: ${inj.status}`
             )
             .join("\n")
         : "  None"
@@ -288,7 +289,7 @@ export async function POST(req: Request) {
         ? sleepLogs
             .map(
               (sl: any) =>
-                `  • ${sl.date}: ${sl.duration_hours}h` + (sl.quality ? ` (quality: ${sl.quality})` : "")
+                `  • ${sl.date}: ${sl.sleep_hours}h` + (sl.quality ? ` (quality: ${sl.quality})` : "")
             )
             .join("\n")
         : "  No sleep logs."
@@ -348,7 +349,7 @@ Answer in 3–5 sentences unless the question needs more detail. Be specific to 
 
     // ── Call Groq ─────────────────────────────────────────────────────────────
     const completion = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+      model: GROQ_MODEL,
       temperature: 0.7,
       max_tokens: 600,
       messages: [

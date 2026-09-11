@@ -14,6 +14,7 @@ import {
   applyIntensityDelta,
   type PlanDay,
 } from "../../../lib/ml-service/injury-rules"
+import { GROQ_MODEL } from "../../../lib/groq-model"
 
 export const runtime = "nodejs"
 
@@ -239,7 +240,7 @@ TASK: Modify the workout_plan section for next week based on the directive above
     // ── Call Groq ─────────────────────────────────────────────────────────────
     const groq = getGroqClient()
     const completion = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+      model: GROQ_MODEL,
       messages: [
         {
           role: "system",
@@ -252,6 +253,7 @@ TASK: Modify the workout_plan section for next week based on the directive above
         },
       ],
       temperature: 0.4,
+      response_format: { type: "json_object" },
       max_tokens: 4096,
     })
 

@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server"
+import { GROQ_MODEL } from "../../../lib/groq-model"
 
 export const runtime = "nodejs"
-
-const GROQ_MODEL =
-  process.env.GROQ_TEXT_MODEL ?? "llama-3.3-70b-versatile"
 
 function safeParse(text: string) {
   const cleaned = text
@@ -53,6 +51,8 @@ export async function POST(req: Request) {
       body: JSON.stringify({
         model: GROQ_MODEL,
         temperature: 0.2,
+        max_tokens: 1200,
+        response_format: { type: "json_object" },
         messages: [
           {
             role: "system",

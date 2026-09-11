@@ -9,6 +9,7 @@ import {
   experienceLevelFromProfile,
   injuryListFromProfile,
 } from "../../../lib/ml-service/profile"
+import { GROQ_MODEL } from "../../../lib/groq-model"
 
 export const runtime = "nodejs"
 
@@ -926,9 +927,11 @@ export async function POST(req: Request) {
     )
 
     const response = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+      model: GROQ_MODEL,
       messages: [{ role: "user", content: prompt }],
       temperature: 0.35,
+      max_tokens: 8000,
+      response_format: { type: "json_object" },
     })
 
     const raw = response.choices[0]?.message?.content?.trim()

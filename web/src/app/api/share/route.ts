@@ -64,7 +64,7 @@ export async function GET(req: Request) {
     // Look up profile by share token
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
-      .select("id, email, full_name, goal")
+      .select("id, full_name, goal")
       .eq("share_token", token)
       .maybeSingle()
 
@@ -79,10 +79,9 @@ export async function GET(req: Request) {
 
     const userId = profile.id
 
-    // Derive display username: full_name > email prefix
-    const username =
-      profile.full_name ||
-      (profile.email ? profile.email.split("@")[0] : "Fitness User")
+    // Display name. The profiles table has no email column, so full_name is
+    // the only name we hold; shared pages stay anonymous without it.
+    const username = profile.full_name || "Fitness User"
 
     // Workouts this month (last 30 days count)
     const thirtyDaysAgo = new Date()

@@ -21,9 +21,9 @@ type VitalsLog = {
   date: string
   systolic: number | null
   diastolic: number | null
-  resting_heart_rate: number | null
-  blood_sugar_mg_dl: number | null
-  oxygen_saturation: number | null
+  heart_rate: number | null
+  blood_sugar: number | null
+  spo2: number | null
   notes: string | null
   created_at: string
 }
@@ -196,9 +196,9 @@ export default function VitalsPage() {
     date: todayStr(),
     systolic: "",
     diastolic: "",
-    resting_heart_rate: "",
-    blood_sugar_mg_dl: "",
-    oxygen_saturation: "",
+    heart_rate: "",
+    blood_sugar: "",
+    spo2: "",
     notes: "",
   })
 
@@ -239,9 +239,9 @@ export default function VitalsPage() {
         ...prev,
         systolic: todayLog.systolic?.toString() ?? "",
         diastolic: todayLog.diastolic?.toString() ?? "",
-        resting_heart_rate: todayLog.resting_heart_rate?.toString() ?? "",
-        blood_sugar_mg_dl: todayLog.blood_sugar_mg_dl?.toString() ?? "",
-        oxygen_saturation: todayLog.oxygen_saturation?.toString() ?? "",
+        heart_rate: todayLog.heart_rate?.toString() ?? "",
+        blood_sugar: todayLog.blood_sugar?.toString() ?? "",
+        spo2: todayLog.spo2?.toString() ?? "",
         notes: todayLog.notes ?? "",
       }))
     }
@@ -257,9 +257,9 @@ export default function VitalsPage() {
       date: form.date,
       systolic: form.systolic ? Number(form.systolic) : null,
       diastolic: form.diastolic ? Number(form.diastolic) : null,
-      resting_heart_rate: form.resting_heart_rate ? Number(form.resting_heart_rate) : null,
-      blood_sugar_mg_dl: form.blood_sugar_mg_dl ? Number(form.blood_sugar_mg_dl) : null,
-      oxygen_saturation: form.oxygen_saturation ? Number(form.oxygen_saturation) : null,
+      heart_rate: form.heart_rate ? Number(form.heart_rate) : null,
+      blood_sugar: form.blood_sugar ? Number(form.blood_sugar) : null,
+      spo2: form.spo2 ? Number(form.spo2) : null,
       notes: form.notes || null,
     }
     const { error } = await supabase
@@ -289,12 +289,12 @@ export default function VitalsPage() {
     .filter((l) => l.diastolic != null)
     .map((l) => ({ date: l.date, value: l.diastolic! }))
   const hrData = chronological
-    .filter((l) => l.resting_heart_rate != null)
-    .map((l) => ({ date: l.date, value: l.resting_heart_rate! }))
+    .filter((l) => l.heart_rate != null)
+    .map((l) => ({ date: l.date, value: l.heart_rate! }))
 
   const bpSt = bpStatus(latest?.systolic ?? null, latest?.diastolic ?? null)
-  const hrSt = hrStatus(latest?.resting_heart_rate ?? null)
-  const spo2St = spo2Status(latest?.oxygen_saturation ?? null)
+  const hrSt = hrStatus(latest?.heart_rate ?? null)
+  const spo2St = spo2Status(latest?.spo2 ?? null)
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -374,8 +374,8 @@ export default function VitalsPage() {
                 <input
                   type="number"
                   placeholder="e.g. 72"
-                  value={form.resting_heart_rate}
-                  onChange={(e) => setForm((p) => ({ ...p, resting_heart_rate: e.target.value }))}
+                  value={form.heart_rate}
+                  onChange={(e) => setForm((p) => ({ ...p, heart_rate: e.target.value }))}
                   className="w-full rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
@@ -388,8 +388,8 @@ export default function VitalsPage() {
                 <input
                   type="number"
                   placeholder="e.g. 95"
-                  value={form.blood_sugar_mg_dl}
-                  onChange={(e) => setForm((p) => ({ ...p, blood_sugar_mg_dl: e.target.value }))}
+                  value={form.blood_sugar}
+                  onChange={(e) => setForm((p) => ({ ...p, blood_sugar: e.target.value }))}
                   className="w-full rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
@@ -404,8 +404,8 @@ export default function VitalsPage() {
                   placeholder="e.g. 98"
                   min="80"
                   max="100"
-                  value={form.oxygen_saturation}
-                  onChange={(e) => setForm((p) => ({ ...p, oxygen_saturation: e.target.value }))}
+                  value={form.spo2}
+                  onChange={(e) => setForm((p) => ({ ...p, spo2: e.target.value }))}
                   className="w-full rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
@@ -467,27 +467,27 @@ export default function VitalsPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-bold text-slate-900 dark:text-white">
-                      {latest.resting_heart_rate ?? "—"} bpm
+                      {latest.heart_rate ?? "—"} bpm
                     </span>
                     <StatusBadge {...hrSt} />
                   </div>
                 </div>
 
                 {/* Blood Sugar */}
-                {latest.blood_sugar_mg_dl != null && (
+                {latest.blood_sugar != null && (
                   <div className="flex items-center justify-between rounded-2xl bg-slate-50 dark:bg-slate-700/50 px-4 py-3">
                     <div className="flex items-center gap-2">
                       <Zap className="h-4 w-4 text-amber-500" />
                       <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Blood Sugar</span>
                     </div>
                     <span className="text-sm font-bold text-slate-900 dark:text-white">
-                      {latest.blood_sugar_mg_dl} mg/dL
+                      {latest.blood_sugar} mg/dL
                     </span>
                   </div>
                 )}
 
                 {/* SpO2 */}
-                {latest.oxygen_saturation != null && (
+                {latest.spo2 != null && (
                   <div className="flex items-center justify-between rounded-2xl bg-slate-50 dark:bg-slate-700/50 px-4 py-3">
                     <div className="flex items-center gap-2">
                       <Activity className="h-4 w-4 text-cyan-500" />
@@ -495,7 +495,7 @@ export default function VitalsPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-bold text-slate-900 dark:text-white">
-                        {latest.oxygen_saturation}%
+                        {latest.spo2}%
                       </span>
                       <StatusBadge {...spo2St} />
                     </div>
@@ -583,7 +583,7 @@ export default function VitalsPage() {
                   <tbody>
                     {history.map((log) => {
                       const bp = bpStatus(log.systolic, log.diastolic)
-                      const hr = hrStatus(log.resting_heart_rate)
+                      const hr = hrStatus(log.heart_rate)
                       return (
                         <tr
                           key={log.id}
@@ -600,15 +600,15 @@ export default function VitalsPage() {
                           </td>
                           <td className="py-2.5 px-2 text-center">
                             <span className={`inline-flex items-center gap-1 font-medium ${hr.color}`}>
-                              {log.resting_heart_rate ?? "—"}
-                              {log.resting_heart_rate && <span className="text-xs font-normal text-slate-400">bpm</span>}
+                              {log.heart_rate ?? "—"}
+                              {log.heart_rate && <span className="text-xs font-normal text-slate-400">bpm</span>}
                             </span>
                           </td>
                           <td className="py-2.5 px-2 text-center text-slate-600 dark:text-slate-300">
-                            {log.blood_sugar_mg_dl != null ? `${log.blood_sugar_mg_dl} mg/dL` : "—"}
+                            {log.blood_sugar != null ? `${log.blood_sugar} mg/dL` : "—"}
                           </td>
                           <td className="py-2.5 px-2 text-center text-slate-600 dark:text-slate-300">
-                            {log.oxygen_saturation != null ? `${log.oxygen_saturation}%` : "—"}
+                            {log.spo2 != null ? `${log.spo2}%` : "—"}
                           </td>
                         </tr>
                       )
