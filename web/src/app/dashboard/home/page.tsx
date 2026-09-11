@@ -413,7 +413,7 @@ export default function HomeDashboard() {
           .limit(1)
           .maybeSingle(),
         supabase.from("profiles").select("calorie_target, protein_target, carbs_target, fat_target, height, weight, age, gender, goal").eq("id", user.id).maybeSingle(),
-        supabase.from("meal_logs").select("total_calories, protein, carbs, fat").eq("user_id", user.id).eq("date", todayStr()),
+        supabase.from("meal_logs").select("total_calories, total_protein, total_carbs, total_fat").eq("user_id", user.id).eq("date", todayStr()),
       ])
 
       const latestWeightKg = weightRes.data?.weight ?? null
@@ -443,9 +443,9 @@ export default function HomeDashboard() {
         const rows = todayMealRes.data
         setTodayMacros({
           caloriesConsumed: rows.reduce((s: number, r: any) => s + (r.total_calories ?? 0), 0),
-          proteinConsumed: rows.reduce((s: number, r: any) => s + (r.protein ?? 0), 0),
-          carbsConsumed: rows.reduce((s: number, r: any) => s + (r.carbs ?? 0), 0),
-          fatConsumed: rows.reduce((s: number, r: any) => s + (r.fat ?? 0), 0),
+          proteinConsumed: rows.reduce((s: number, r: any) => s + (r.total_protein ?? 0), 0),
+          carbsConsumed: rows.reduce((s: number, r: any) => s + (r.total_carbs ?? 0), 0),
+          fatConsumed: rows.reduce((s: number, r: any) => s + (r.total_fat ?? 0), 0),
         })
       }
 
@@ -565,7 +565,7 @@ export default function HomeDashboard() {
           <div>
             <p className="text-sm font-medium text-purple-600 uppercase tracking-wide">FitFusion AI</p>
             <h1 className="mt-1 text-3xl font-bold tracking-tight md:text-4xl">
-              Welcome back, {username}
+              Welcome, {username}
             </h1>
             <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
               Here's your fitness snapshot for today.

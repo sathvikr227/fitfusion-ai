@@ -162,11 +162,11 @@ export function InjuryRiskWidget({ userId }: { userId: string }) {
           .toISOString()
           .split("T")[0]
 
-        const [workoutRes, sleepRes, injuryRes, volumeRes] = await Promise.all([
+        const [workoutRes, sleepRes, injuryRes] = await Promise.all([
           // Workout frequency last 7 days
           supabase
             .from("workout_logs")
-            .select("date", { count: "exact" })
+            .select("id, date", { count: "exact" })
             .eq("user_id", userId)
             .gte("date", sevenDaysAgo),
           // Sleep last 7 days
@@ -181,13 +181,17 @@ export function InjuryRiskWidget({ userId }: { userId: string }) {
             .select("id", { count: "exact" })
             .eq("user_id", userId)
             .eq("status", "active"),
-          // Workout volume (duration_minutes) last 7 days
-          supabase
-            .from("workout_logs")
-            .select("duration_minutes")
-            .eq("user_id", userId)
-            .gte("date", sevenDaysAgo),
         ])
+
+        // Training volume lives on exercise_logs.duration — workout_logs has no
+        // duration column, so volume is summed from the session's exercises.
+        const workoutIds = (workoutRes.data ?? []).map((r: { id: string }) => r.id)
+        const volumeRes = workoutIds.length
+          ? await supabase
+              .from("exercise_logs")
+              .select("duration")
+              .in("workout_log_id", workoutIds)
+          : { data: [] as { duration: number | null }[] }
 
         const workoutsLast7 = workoutRes.count ?? (workoutRes.data?.length ?? 0)
         const activeInjuries = injuryRes.count ?? (injuryRes.data?.length ?? 0)
@@ -200,7 +204,7 @@ export function InjuryRiskWidget({ userId }: { userId: string }) {
             : 7 // default to healthy if no data
 
         const totalMinutesLast7 = (volumeRes.data ?? []).reduce(
-          (s: number, r: { duration_minutes: number | null }) => s + (r.duration_minutes ?? 0),
+          (s: number, r: { duration: number | null }) => s + (r.duration ?? 0),
           0
         )
 
