@@ -128,7 +128,7 @@ export async function buildUserHistory(
 
       supabase
         .from("vitals_logs")
-        .select("resting_heart_rate")
+        .select("heart_rate")
         .eq("user_id", userId)
         .order("date", { ascending: false })
         .limit(1)
@@ -220,7 +220,7 @@ export async function buildUserHistory(
     injuryFeatures: {
       age: Number(profile?.age) || undefined,
       bmi: bmi ?? undefined,
-      resting_bpm: Number(vitalsRes.data?.resting_heart_rate) || undefined,
+      resting_bpm: Number(vitalsRes.data?.heart_rate) || undefined,
       // Distinct training days in the last 7. Clamped because the model's
       // feature is days-per-week: a stray extra date would otherwise fail
       // validation and drop the call to its fallback for no good reason.

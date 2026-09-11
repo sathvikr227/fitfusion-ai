@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import Groq from "groq-sdk";
+import { GROQ_MODEL } from "../../../../lib/groq-model"
 
 export const runtime = "nodejs"
 
@@ -52,9 +53,10 @@ Respond ONLY with valid JSON:
 }`;
 
       const completion = await groq.chat.completions.create({
-        model: "llama-3.3-70b-versatile",
+        model: GROQ_MODEL,
         messages: [{ role: "user", content: prompt }],
         temperature: 0.4,
+        response_format: { type: "json_object" },
         max_tokens: 3000,
       });
 
@@ -95,7 +97,7 @@ Respond ONLY with valid JSON:
 }`;
 
     const completion = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+      model: GROQ_MODEL,
       messages: [{ role: "user", content: prompt }],
       temperature: 0.3,
       max_tokens: 600,

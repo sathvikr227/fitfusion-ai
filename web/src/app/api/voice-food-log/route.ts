@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import Groq from "groq-sdk"
 import { createClient } from "@supabase/supabase-js"
+import { GROQ_MODEL } from "../../../lib/groq-model"
 
 export const runtime = "nodejs"
 
@@ -68,9 +69,10 @@ Return ONLY valid JSON:
 Be realistic with estimates. If unsure about a specific item, make a reasonable educated guess.`
 
     const completion = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+      model: GROQ_MODEL,
       messages: [{ role: "user", content: prompt }],
       temperature: 0.3,
+      response_format: { type: "json_object" },
       max_tokens: 400,
     })
 
@@ -90,21 +92,18 @@ Be realistic with estimates. If unsure about a specific item, make a reasonable 
     const today = clientDate ?? new Date().toISOString().split("T")[0]
     const { error: logErr } = await supabase
       .from("meal_logs")
+      // meal_logs stores macros as total_*; it has no meal_name, source, items
+      // or bare protein/carbs/fat columns. Including them made the whole insert
+      // fail, so voice logging never saved anything.
       .insert({
         user_id: user.id,
         date: today,
         meal_type: mealType,
-        meal_name: parsed.description ?? "Voice log",
         total_calories: parsed.calories ?? 0,
         total_protein: parsed.protein ?? 0,
         total_carbs: parsed.carbs ?? 0,
         total_fat: parsed.fat ?? 0,
-        protein: parsed.protein ?? 0,
-        carbs: parsed.carbs ?? 0,
-        fat: parsed.fat ?? 0,
         is_completed: true,
-        source: "voice",
-        items: parsed.items ?? [],
       })
 
     if (logErr) {

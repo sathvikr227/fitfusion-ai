@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import Groq from "groq-sdk"
 import { createClient } from "@supabase/supabase-js"
 import OpenAI from "openai"
+import { GROQ_MODEL } from "../../../lib/groq-model"
 
 export const runtime = "nodejs"
 
@@ -348,7 +349,7 @@ Answer in 3–5 sentences unless the question needs more detail. Be specific to 
 
     // ── Call Groq ─────────────────────────────────────────────────────────────
     const completion = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+      model: GROQ_MODEL,
       temperature: 0.7,
       max_tokens: 600,
       messages: [

@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
         .maybeSingle(),
       supabase
         .from("vitals_logs")
-        .select("resting_heart_rate")
+        .select("heart_rate")
         .eq("user_id", user.id)
         .order("date", { ascending: false })
         .limit(1)
@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
 
     const heightCm = parseHeightCm(profile?.height)
     const age = Number(profile?.age) || undefined
-    const restingBpm = Number(vitalsRes.data?.resting_heart_rate) || undefined
+    const restingBpm = Number(vitalsRes.data?.heart_rate) || undefined
 
     const durationMin = estimateSessionDurationMinutes(exercises)
     const workoutType = normalizeWorkoutType(
