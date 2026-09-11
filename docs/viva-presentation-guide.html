@@ -1,0 +1,340 @@
+<title>FitFusion Viva Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap">
+
+<style>
+  :root{
+    --ground:#f6faf9; --surface:#ffffff; --sunk:#eef4f3; --line:#dde8e6; --line-2:#c2d5d2;
+    --ink:#0e1f1d; --ink-2:#415956; --ink-3:#6a827f;
+    --teal:#0f6e63; --teal-soft:#ddefec;
+    --amber:#a8620a; --amber-soft:#fbedda;
+    --shadow:0 1px 2px rgba(14,31,29,.05),0 10px 30px -18px rgba(14,31,29,.3);
+    --serif:"Source Serif 4",ui-serif,Georgia,serif;
+    --sans:"Public Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+    --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --ground:#0c1615; --surface:#14211f; --sunk:#1b2b29; --line:#263a37; --line-2:#365049;
+      --ink:#e8f2f0; --ink-2:#b3c7c4; --ink-3:#88a09d;
+      --teal:#5fc7b6; --teal-soft:#11322e;
+      --amber:#e8a95f; --amber-soft:#33240f;
+      --shadow:0 1px 2px rgba(0,0,0,.45),0 10px 30px -18px rgba(0,0,0,.8);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#0c1615; --surface:#14211f; --sunk:#1b2b29; --line:#263a37; --line-2:#365049;
+    --ink:#e8f2f0; --ink-2:#b3c7c4; --ink-3:#88a09d;
+    --teal:#5fc7b6; --teal-soft:#11322e;
+    --amber:#e8a95f; --amber-soft:#33240f;
+    --shadow:0 1px 2px rgba(0,0,0,.45),0 10px 30px -18px rgba(0,0,0,.8);
+  }
+  *{box-sizing:border-box}
+  body{background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.62;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:860px;margin:0 auto;padding:0 24px 110px}
+
+  header{padding:62px 0 34px;border-bottom:3px double var(--line-2)}
+  .kicker{font-family:var(--mono);font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--teal);margin:0 0 16px}
+  h1{font-family:var(--serif);font-weight:700;font-size:clamp(2rem,5vw,2.9rem);line-height:1.06;letter-spacing:-.02em;margin:0 0 16px;text-wrap:balance}
+  .stand{font-family:var(--serif);font-size:clamp(1rem,1.8vw,1.15rem);line-height:1.58;color:var(--ink-2);max-width:62ch;margin:0}
+
+  section{margin:52px 0 0;scroll-margin-top:20px}
+  h2{font-family:var(--serif);font-size:1.55rem;font-weight:700;letter-spacing:-.015em;line-height:1.2;margin:0 0 8px;text-wrap:balance}
+  h2 .n{font-family:var(--mono);font-size:.62em;font-weight:600;color:var(--teal);margin-right:12px;letter-spacing:0}
+  .lead{color:var(--ink-3);font-size:14.5px;margin:0 0 24px;max-width:66ch}
+  h3{font-size:1.02rem;font-weight:700;margin:30px 0 10px;letter-spacing:-.005em}
+  p{margin:0 0 15px;color:var(--ink-2);max-width:68ch}
+  p strong,li strong,td strong{color:var(--ink);font-weight:600}
+  ul,ol{margin:0 0 16px;padding-left:22px;max-width:68ch}
+  li{margin-bottom:8px;color:var(--ink-2)}
+  li::marker{color:var(--line-2)}
+
+  .say{border-left:3px solid var(--teal);background:var(--teal-soft);border-radius:0 8px 8px 0;padding:16px 20px;margin:0 0 20px}
+  .say .tag{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--teal);display:block;margin-bottom:8px}
+  .say p{font-family:var(--serif);font-size:1.06rem;line-height:1.55;color:var(--ink);margin:0;max-width:none}
+  .say p+p{margin-top:11px}
+
+  .warn{border-left:3px solid var(--amber);background:var(--amber-soft);border-radius:0 8px 8px 0;padding:15px 19px;margin:0 0 20px}
+  .warn p{margin:0;color:var(--ink);font-size:14.5px;max-width:none}
+  .warn p+p{margin-top:9px}
+
+  code{font-family:var(--mono);font-size:.85em;background:var(--sunk);border:1px solid var(--line);border-radius:4px;padding:.1em .4em;word-break:break-word}
+  pre{font-family:var(--mono);font-size:12.4px;line-height:1.6;background:var(--sunk);border:1px solid var(--line);border-radius:8px;padding:14px 16px;overflow-x:auto;margin:0 0 18px;color:var(--ink)}
+  pre .c{color:var(--ink-3)}
+
+  .scroll{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--surface);margin:0 0 20px}
+  table{border-collapse:collapse;width:100%;font-size:13.5px}
+  th,td{text-align:left;padding:9px 13px;border-bottom:1px solid var(--line);vertical-align:top}
+  thead th{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);background:var(--sunk);white-space:nowrap}
+  tbody tr:last-child td{border-bottom:none}
+  td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+
+  .step{display:grid;grid-template-columns:34px minmax(0,1fr);gap:16px;margin-bottom:22px}
+  .step .dot{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--surface);background:var(--teal);border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;margin-top:2px}
+  .step h4{margin:2px 0 7px;font-size:1rem;font-weight:700}
+  .step p{margin-bottom:9px}
+
+  .qa{border-top:1px solid var(--line);padding:18px 0 4px}
+  .qa:last-of-type{border-bottom:1px solid var(--line);margin-bottom:20px}
+  .q{font-family:var(--serif);font-size:1.1rem;font-weight:600;font-style:italic;color:var(--ink);margin:0 0 10px;max-width:66ch}
+  .qa p{font-size:15px}
+
+  footer{margin-top:62px;border-top:1px solid var(--line);padding-top:20px;font-family:var(--mono);font-size:12px;color:var(--ink-3)}
+  a{color:var(--teal)}
+  a:focus-visible{outline:2px solid var(--teal);outline-offset:2px;border-radius:3px}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+
+<header>
+  <p class="kicker">Presentation &amp; viva preparation</p>
+  <h1>How to explain FitFusion's ML layer</h1>
+  <p class="stand">A demo script, the reasoning behind every design choice, and honest answers to the questions your examiners are most likely to ask — including the four targets this project did not hit, which are the ones worth talking about most.</p>
+</header>
+
+<section>
+  <h2><span class="n">01</span>Open with this</h2>
+  <p class="lead">Ninety seconds, no jargon. Establish the problem before the solution.</p>
+
+  <div class="say">
+    <span class="tag">Say this</span>
+    <p>"FitFusion was already a working fitness app — it generated workout plans with an LLM and tracked what users actually did. But two of its most important decisions were hardcoded. Calories burned came from a fixed lookup table of 42 exercises that falls back to a default for anything it doesn't recognise. And the weekly plan adjustment used three fixed thresholds: below 60% completion reduce the plan, above 85% increase it, otherwise leave it alone."</p>
+    <p>"Neither can learn. A lookup table can't know that a heavier user burns more per minute of strength work. A fixed threshold can't know that 58% completion means something completely different for someone recovering from an injury than for someone who just skipped the gym."</p>
+    <p>"So I built five machine learning models to replace and extend those rules, served from a separate Python microservice. The key design constraint was that the app must never break if that service goes down — every single call has the original rule-based logic behind it as a fallback."</p>
+  </div>
+
+  <p>That last sentence matters. It shows you thought about production reliability, not just accuracy, and it sets up the strongest moment in the demo (step 6 below).</p>
+</section>
+
+<section>
+  <h2><span class="n">02</span>The five models in one line each</h2>
+  <p class="lead">If you memorise one table, make it this one. The right-hand column answers the question examiners actually ask: why that algorithm?</p>
+
+  <div class="scroll">
+    <table>
+      <thead><tr><th>#</th><th>Model</th><th>Task type</th><th>Why this algorithm</th></tr></thead>
+      <tbody>
+        <tr><td class="num">1</td><td><strong>Calorie predictor</strong><br>XGBoost + SHAP</td><td>Regression</td><td>973 rows is far too small for a neural network. Gradient-boosted trees handle small tabular data better, and SHAP gives exact per-prediction explanations.</td></tr>
+        <tr><td class="num">2</td><td><strong>Hybrid recommender</strong><br>Cosine similarity + filters</td><td>Retrieval</td><td>Collaborative filtering solves cold-start: a brand-new user gets recommendations from similar users immediately. Content filters enforce hard constraints similarity alone cannot express.</td></tr>
+        <tr><td class="num">3</td><td><strong>Injury risk</strong><br>Multi-label XGBoost</td><td>Multi-label classification</td><td>Several muscle groups can be at risk at the same time, so it is multi-label, not multi-class. One binary classifier per group.</td></tr>
+        <tr><td class="num">4</td><td><strong>Trajectory predictor</strong><br>PyTorch Transformer</td><td>Sequence classification</td><td>Self-attention connects any two sessions directly, instead of squeezing history through one hidden state the way an LSTM does.</td></tr>
+        <tr><td class="num">5</td><td><strong>Adaptive agent</strong><br>PPO reinforcement learning</td><td>Sequential decision</td><td>Replanning is a decision problem with delayed consequences, not a prediction problem. PPO is stable on small discrete action spaces and needs no replay buffer.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="say">
+    <span class="tag">If asked "why five models and not one?"</span>
+    <p>"Because these are five genuinely different problem types. Predicting a number is regression. Finding similar users is retrieval. Detecting several simultaneous risks is multi-label classification. Reading a sequence is sequence modelling. And choosing an action whose payoff arrives next week is sequential decision-making. No single model covers all five — you would be forcing the wrong tool onto four of them."</p>
+  </div>
+</section>
+
+<section>
+  <h2><span class="n">03</span>Run the demo in this order</h2>
+  <p class="lead">Start both servers before anyone walks in. Cold-start delay is the most common way a live demo goes wrong.</p>
+
+  <pre><span class="c"># Terminal 1 — the ML service (wait for "Application startup complete")</span>
+cd ml-service &amp;&amp; .venv/Scripts/python.exe -m uvicorn app.main:app --port 8000
+
+<span class="c"># Terminal 2 — the app</span>
+cd web &amp;&amp; npm run dev</pre>
+
+  <div class="step">
+    <div class="dot">1</div>
+    <div>
+      <h4>Prove all five models are actually loaded</h4>
+      <p>Open <code>http://localhost:8000/healthz</code>. It lists all five by name.</p>
+      <div class="say"><span class="tag">Say this</span><p>"The models load once when the server starts, not per request. A prediction takes a few milliseconds because the trained model is already in memory."</p></div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="dot">2</div>
+    <div>
+      <h4>Show the interactive API docs</h4>
+      <p>Open <code>http://localhost:8000/docs</code>. FastAPI generates this from the code itself. Expand <code>POST /predict/calories</code> and show the request schema.</p>
+      <p>This lands well because it proves the service is a real, documented API with typed validation — not a script someone ran once.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="dot">3</div>
+    <div>
+      <h4>Log a workout — the calorie model with its explanation</h4>
+      <p>In the app go to <strong>Progress → Workout</strong>, add an exercise, and save. A panel appears headed <em>"Why 412 kcal?"</em> with green and red bars.</p>
+      <div class="say"><span class="tag">Say this</span><p>"This is SHAP. Each bar shows how much that feature pushed the estimate above or below the dataset average. Session duration dominates, which is what you would expect. The old MET table could only ever give you a number — it could never tell you why."</p></div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="dot">4</div>
+    <div>
+      <h4>Analytics — trajectory and injury risk</h4>
+      <p>Go to <strong>Dashboard → Analytics</strong> and scroll to <em>Training intelligence</em>. Point at the arrow, the four-session sparkline, and the four risk bars.</p>
+      <div class="say"><span class="tag">Say this</span><p>"The arrow is the Transformer reading the last four sessions as an ordered sequence. The bars below are the injury model scoring four muscle groups independently. Anything above 0.7 automatically changes next week's plan."</p></div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="dot">5</div>
+    <div>
+      <h4>The weekly check-in — three models in one request</h4>
+      <p>Trigger the weekly check-in, then show the terminal where the pipeline runs in order.</p>
+      <div class="say"><span class="tag">Say this</span><p>"This single request runs three models in sequence. Injury risk scores the muscle groups. The Transformer classifies the trajectory. Both feed into a five-number state vector for the reinforcement learning agent, which makes the final call — reduce, maintain or increase. Then the plan is edited deterministically in code: the intensity change is applied to the sets, exercises loading an at-risk muscle are removed by name, and a rest day is inserted."</p></div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="dot">6</div>
+    <div>
+      <h4>Kill the ML service on purpose</h4>
+      <p>Press <code>Ctrl+C</code> in Terminal 1. Reload the app. Everything still works. Restart it, reload again, and the models come back.</p>
+      <div class="say"><span class="tag">Say this</span><p>"Every ML call passes a fallback function. If the service is down, slow, or returns something malformed, the original rule-based logic runs and the user never sees an error. The ML layer is an upgrade, not a dependency."</p></div>
+      <p>Examiners remember this one. Very few student projects demonstrate graceful degradation deliberately.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="n">04</span>Numbers to memorise</h2>
+  <p class="lead">Know these five. Everything else you can look up in the technical report.</p>
+
+  <div class="scroll">
+    <table>
+      <thead><tr><th>Model</th><th>Headline result</th><th>Compared against</th></tr></thead>
+      <tbody>
+        <tr><td>Calorie predictor</td><td class="num">MAE 87.9 kcal · R² 0.845</td><td>MET table MAE 416.9 → <strong>79% lower error</strong></td></tr>
+        <tr><td>Recommender</td><td class="num">Precision@3 = 0.747</td><td>target was 0.70 → <strong>met</strong></td></tr>
+        <tr><td>Injury risk</td><td class="num">F1 1.00 / 0.95 / 1.00 / 0.29</td><td>knee, back, hamstring, shoulder</td></tr>
+        <tr><td>Transformer</td><td class="num">46.0% accuracy</td><td>majority class 38.9%, GBM 40.0%</td></tr>
+        <tr><td>RL agent</td><td class="num">0.668 injuries/episode</td><td>rule-based 0.780 → <strong>14% fewer</strong></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>Supporting facts worth knowing: <strong>973</strong> rows in the Gym Members dataset, <strong>7,385</strong> usable foods in the nutrition dataset, <strong>925</strong> training sequences for the Transformer, and <strong>100,000</strong> timesteps of PPO training. The RL environment was calibrated from your own users' real data — mean completion <strong>0.857</strong> and an active-injury rate of <strong>0.105</strong>.</p>
+</section>
+
+<section>
+  <h2><span class="n">05</span>How to talk about what didn't work</h2>
+  <p class="lead">This section is the difference between a good grade and a great one. Four documented targets were missed. Do not hide them — lead with them.</p>
+
+  <div class="warn">
+    <p><strong>The instinct to hide a missed target is the wrong one.</strong> An examiner who finds a weakness you did not mention concludes you do not understand your own system. An examiner you walk through a weakness — with evidence for <em>why</em> — concludes you are a real engineer. You have evidence for all four.</p>
+  </div>
+
+  <h3>Calorie MAE was 87.9 kcal; the target was under 25</h3>
+  <div class="say">
+    <span class="tag">Say this</span>
+    <p>"I did not hit it, and I think the target was unrealistic for that feature set. Calories in the dataset average 905 with a standard deviation of 273. An MAE of 25 would mean explaining about 99% of the variance from six coarse features. The model still reduces error against the MET table it replaces by 79%, and R² is 0.845. If I could add one feature it would be average heart rate during the session — that is the strongest missing signal."</p>
+  </div>
+
+  <h3>Shoulder injury F1 was 0.29 while the other three were above 0.94</h3>
+  <p>This is your best technical story. The shoulder label is defined as <em>beginner AND strength training</em> — but <code>Workout_Type</code> is not in the specified feature list, so the label is mathematically not learnable from the inputs given.</p>
+  <div class="say">
+    <span class="tag">Say this</span>
+    <p>"Rather than just report a bad number, I ran an ablation. I retrained shoulder with <code>Workout_Type</code> added and F1 went from 0.29 to 1.00. That proves the problem is feature identifiability, not the model or the training — the label depends on a variable the feature list excludes. I kept the specified features in the shipped model and documented the finding."</p>
+  </div>
+
+  <h3>Transformer accuracy was 46%; the target was 65%</h3>
+  <div class="say">
+    <span class="tag">Say this</span>
+    <p>"I tested whether that was my model or the data. I trained a gradient-boosted tree on exactly the same flattened windows and it only reached 40% — worse than the Transformer. The majority class alone is 38.9%. The Gym Members dataset is cross-sectional; it has no completion rate and no calendar, so the sequences I build from it are unrelated rows with almost no temporal signal to learn. The Transformer beat every baseline I tried. The ceiling is the data, and it rises as soon as real users log enough sessions."</p>
+  </div>
+
+  <h3>The RL agent did not beat the rule-based baseline on reward</h3>
+  <div class="say">
+    <span class="tag">Say this</span>
+    <p>"3.771 against 3.878 over 500 episodes on identical seeds — slightly behind. But it produced 14% fewer injury events. And when I inspected the policy it chose REDUCE 86.7% of the time, which traces straight back to the reward function: it pays +1 whenever completion improves, and the most reliable way to improve completion is to make the plan easier. That is a reward design problem, not a training failure. The fix is a term that rewards sustained progression rather than week-over-week completion."</p>
+  </div>
+
+  <div class="warn">
+    <p><strong>One more finding worth volunteering.</strong> The specification defined knee risk as resting BPM above 80 <em>and</em> training more than 5 days a week. On this dataset resting BPM never exceeds 74 and frequency never exceeds 5 — so that rule matches <strong>zero rows</strong> and cannot train at all. The training script detects the degenerate rule automatically and substitutes a percentile-calibrated version of the same two signals, recording the substitution inside the saved model. Finding that a specification is unsatisfiable and handling it in code is exactly the kind of thing examiners reward.</p>
+  </div>
+</section>
+
+<section>
+  <h2><span class="n">06</span>Questions you should expect</h2>
+  <p class="lead">Answers written the way you would actually say them out loud.</p>
+
+  <div class="qa">
+    <p class="q">Why a separate Python service? Why not do it all in the web app?</p>
+    <p>Because the models need Python — XGBoost, PyTorch and stable-baselines3 have no real JavaScript equivalent. Separating them also means the ML layer can be deployed, scaled and updated independently. And it gives a clean failure boundary: if the Python service dies, the app keeps running on its rule-based logic.</p>
+  </div>
+
+  <div class="qa">
+    <p class="q">How do the two services authenticate?</p>
+    <p>A shared bearer token in an environment variable. The web app sends <code>Authorization: Bearer</code> on every request and FastAPI verifies it. User identity is established earlier, in the web app, using the Supabase JWT — the ML service never re-verifies users, it just refuses anything without the right service token. It fails closed: if the key is not configured it returns 503 rather than allowing everything through.</p>
+  </div>
+
+  <div class="qa">
+    <p class="q">Where does the RL agent get its training data?</p>
+    <p>It generates its own by running 100,000 simulated weeks in a custom Gymnasium environment. There is no dataset — that is the nature of reinforcement learning. The important part is that the simulator's parameters are calibrated from real data from this app: mean completion 0.857, standard deviation 0.246, and an active injury rate of 0.105.</p>
+  </div>
+
+  <div class="qa">
+    <p class="q">Isn't the simulated environment just telling the agent what you want it to learn?</p>
+    <p>That is the right question, and I hit exactly that problem. My first environment made REDUCE trivially optimal, because cutting the plan always increases the share of sessions completed. So I modelled training adaptation: a hidden fitness level that grows when the load is appropriately challenging and decays when it is too easy. That way reducing forever erodes the very thing that produces future completion, and the agent has a real optimum to find instead of a trivial one.</p>
+  </div>
+
+  <div class="qa">
+    <p class="q">Are these real injury predictions? Could someone get hurt trusting this?</p>
+    <p>No, and I am careful about that in the code. They are <em>proxy</em> risk labels derived from published biomechanical thresholds, not clinical diagnoses — there is no medically labelled injury data here. Every API response carries a disclaimer field saying exactly that, and it is shown in the UI. The system's action is conservative: it removes exercises and adds rest, so a false positive costs a user some training volume, not their health.</p>
+  </div>
+
+  <div class="qa">
+    <p class="q">What happens to a brand-new user with no history at all?</p>
+    <p>Every model degrades deliberately. The recommender is collaborative, so it works from day one using profile similarity — that is the cold-start case it is designed for. The Transformer pads a short history by repeating the earliest session. The calorie and injury models impute missing features from the training-set median and report exactly which fields were imputed in the response. Nothing crashes and nothing silently invents data.</p>
+  </div>
+
+  <div class="qa">
+    <p class="q">How do you know the LLM actually followed the ML decision?</p>
+    <p>I do not trust it to. The agent's action goes into the prompt as a directive, but after the LLM returns its plan I apply the decision again deterministically in code — the intensity change is multiplied into the sets and calorie estimates, exercises matching at-risk muscle groups are removed by name, and a rest day is inserted. The LLM shapes the plan; it does not get to decide whether the safety rules were applied.</p>
+  </div>
+
+  <div class="qa">
+    <p class="q">How did you validate that this works end to end?</p>
+    <p>28 automated tests on the service, 22 on the plan-editing logic, a clean TypeScript check and a passing production build. Beyond that I ran the whole pipeline against a real user in the database who had a recorded active hamstring injury — the classifier scored hamstring at 0.99 and the other three groups at 0.001, the recommender excluded HIIT, the Transformer read the trajectory as regressing, and the agent returned REDUCE. The one muscle group that user was actually injured in was the one the model flagged.</p>
+  </div>
+
+  <div class="qa">
+    <p class="q">What would you do next?</p>
+    <p>Three things, in order. Fix the RL reward function to reward progression rather than week-over-week completion. Collect real sequential data from users so the Transformer trains on genuine sessions instead of pseudo-sequences. And start capturing resting heart rate, which is currently imputed on every prediction and is a real input to two of the five models.</p>
+  </div>
+</section>
+
+<section>
+  <h2><span class="n">07</span>If something breaks mid-demo</h2>
+
+  <div class="scroll">
+    <table>
+      <thead><tr><th>Symptom</th><th>Cause</th><th>What to say and do</th></tr></thead>
+      <tbody>
+        <tr><td>Calories show a plain number, no SHAP panel</td><td>ML service not running</td><td>"That is the fallback working." Start the service, reload.</td></tr>
+        <tr><td>Analytics card does not appear</td><td>No workout history for that user</td><td>It needs at least one logged session. Log one, then reload.</td></tr>
+        <tr><td>Whole app fails to load any data</td><td>Supabase project paused</td><td>Free projects sleep when idle. Open the Supabase dashboard and resume it — about a minute.</td></tr>
+        <tr><td><code>/healthz</code> shows empty <code>models_loaded</code></td><td>Artifacts missing from <code>models/</code></td><td>Re-run the training scripts, or restore the folder.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="warn">
+    <p><strong>Check Supabase an hour before you present.</strong> Free-tier projects pause after inactivity and take about a minute to wake. It was unreachable while this guide was being written. Open the dashboard, confirm the project is active, then load the app once to warm everything up.</p>
+  </div>
+</section>
+
+<section>
+  <h2><span class="n">08</span>Close with this</h2>
+  <div class="say">
+    <span class="tag">Say this</span>
+    <p>"To summarise: five models, each solving a different class of problem, integrated into the exact routes where those decisions used to be hardcoded. Three clearly beat what they replaced. Two are limited by the data available rather than by the modelling, and I can show you the experiments that establish that. And the whole layer is optional by design — if the ML service disappears, the app degrades to exactly what it was before, with no errors and no impact on the user."</p>
+  </div>
+  <p>That closing does three things at once: it summarises, it is honest about the limits, and it ends on the engineering decision you are most likely to be given credit for.</p>
+</section>
+
+<footer>
+  FitFusion AI · viva preparation · metrics from <code>ml-service/models/reports/</code> · full technical write-up in <code>docs/ml-implementation-report.html</code>
+</footer>
+</div>
