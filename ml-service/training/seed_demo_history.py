@@ -176,6 +176,99 @@ def phase_for(week: int):
     return 0.8, 7.0, 4, "steady"
 
 
+def build_top_up(user_id: str, profile: dict, rng: random.Random,
+                 start_day: dt.date, until: dt.date, last_weight: float,
+                 last_hr: int):
+    """Continue an existing history forward, using the final phase's settings.
+
+    The 26-week window lands on a week boundary, so it can stop a few days short
+    of today. This fills that tail rather than regenerating everything.
+    """
+    comp_mean, sleep_mean, _sessions, label = PHASES[-1][2], PHASES[-1][3], PHASES[-1][4], PHASES[-1][5]
+    out = {t: [] for t in (
+        "workout_logs", "exercise_logs", "workout_execution", "sleep_logs",
+        "weight_logs", "vitals_logs", "body_metrics", "meal_logs", "water_logs",
+        "mood_logs",
+    )}
+
+    # Mon/Tue/Thu/Fri/Sat, matching the main generator's training rhythm
+    TRAIN_WEEKDAYS = {0, 1, 3, 4, 5}
+    done_total = attempted_total = 0
+    day = start_day
+    rotation_i = 0
+
+    while day <= until:
+        sleep_hours = round(max(4.0, min(9.5, rng.gauss(sleep_mean, 0.55))), 1)
+        out["sleep_logs"].append({
+            "user_id": user_id, "date": day.isoformat(), "sleep_hours": sleep_hours,
+            "quality": "Good" if sleep_hours >= 7 else "Fair" if sleep_hours >= 6 else "Poor",
+        })
+        out["water_logs"].append({
+            "user_id": user_id, "date": day.isoformat(),
+            "amount_ml": int(rng.gauss(2400, 300)),
+        })
+        for meal_type, kcal, prot, carb, fat in MEALS:
+            j = rng.uniform(0.85, 1.15)
+            out["meal_logs"].append({
+                "user_id": user_id, "date": day.isoformat(), "meal_type": meal_type,
+                "total_calories": round(kcal * j), "total_protein": round(prot * j, 1),
+                "total_carbs": round(carb * j, 1), "total_fat": round(fat * j, 1),
+                "is_completed": True,
+            })
+
+        if day.weekday() == 0:  # Monday: weekly snapshots
+            last_weight = round(last_weight - rng.uniform(0.15, 0.45), 1)
+            last_hr = max(55, last_hr - rng.choice([0, 1, 1, 2]))
+            out["weight_logs"].append({"user_id": user_id, "date": day.isoformat(),
+                                       "weight": last_weight})
+            out["vitals_logs"].append({
+                "user_id": user_id, "date": day.isoformat(), "heart_rate": last_hr,
+                "systolic": int(rng.gauss(119, 5)), "diastolic": int(rng.gauss(77, 4)),
+                "spo2": int(rng.gauss(98, 1)),
+            })
+            out["mood_logs"].append({"user_id": user_id, "date": day.isoformat(),
+                                     "mood": 4, "energy": 4, "stress": 2})
+
+        if day.weekday() in TRAIN_WEEKDAYS:
+            stype = ROTATION[rotation_i % len(ROTATION)]
+            rotation_i += 1
+            exercises = SESSIONS[stype]
+            session_completion = max(0.05, min(1.0, rng.gauss(comp_mean, 0.08)))
+            n_done = round(len(exercises) * session_completion)
+            done_idx = set(rng.sample(range(len(exercises)), n_done)) if n_done else set()
+
+            total_cal, log_rows = 0, []
+            for i, (name, sets, reps, cal_per_set) in enumerate(exercises):
+                done = i in done_idx
+                attempted_total += 1
+                done_total += int(done)
+                out["workout_execution"].append({
+                    "user_id": user_id, "date": day.isoformat(),
+                    "exercise_name": name, "done": done,
+                })
+                if not done:
+                    continue
+                duration = sets * 3 if cal_per_set else reps
+                calories = int(cal_per_set * sets) if cal_per_set else int(reps * 9)
+                total_cal += calories
+                log_rows.append({"exercise_name": name, "sets": sets, "reps": reps,
+                                 "weight": None, "duration": duration,
+                                 "calories": calories})
+            if log_rows:
+                out["workout_logs"].append({
+                    "user_id": user_id, "date": day.isoformat(), "is_assigned": True,
+                    "total_calories": total_cal, "_exercises": log_rows,
+                })
+        day += dt.timedelta(days=1)
+
+    summary = [{
+        "week": 0, "phase": f"top-up ({label})",
+        "completion": round(done_total / attempted_total, 2) if attempted_total else 0.0,
+        "weight": last_weight, "resting_hr": last_hr,
+    }]
+    return out, summary
+
+
 def build(user_id: str, profile: dict, rng: random.Random):
     """Generate every row. Returns dict of table -> list[row], plus a summary."""
     today = dt.date.today()
@@ -335,6 +428,9 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--user", required=True, help="profiles.id to seed")
     ap.add_argument("--apply", action="store_true", help="actually write (default is a dry run)")
+    ap.add_argument("--top-up", metavar="YYYY-MM-DD", default=None,
+                    help="instead of the full 26 weeks, extend existing history "
+                         "forward to this date using the final phase's settings")
     args = ap.parse_args()
 
     banner(f"Seed 6 months of demo history for {args.user}")
@@ -349,7 +445,32 @@ def main() -> None:
     print(f"  profile: age {profile.get('age')}, {profile.get('height')}cm, "
           f"{profile.get('weight')}kg, goal {profile.get('goal')}\n")
 
-    rows, weekly = build(args.user, profile, rng)
+    if args.top_up:
+        until = dt.date.fromisoformat(args.top_up)
+        # continue from the day after the newest sleep log, which is written daily
+        latest = db.get(f"sleep_logs?select=date&user_id=eq.{args.user}"
+                        f"&order=date.desc&limit=1")
+        if not latest:
+            raise SystemExit("No existing history to top up. Run without --top-up first.")
+        start_day = dt.date.fromisoformat(latest[0]["date"]) + dt.timedelta(days=1)
+        if start_day > until:
+            print(f"  Already covered through {latest[0]['date']} — nothing to add.")
+            return
+
+        w = db.get(f"weight_logs?select=weight&user_id=eq.{args.user}"
+                   f"&order=date.desc&limit=1")
+        v = db.get(f"vitals_logs?select=heart_rate&user_id=eq.{args.user}"
+                   f"&order=date.desc&limit=1")
+        last_weight = float(w[0]["weight"]) if w else float(profile.get("weight") or 78)
+        last_hr = int(v[0]["heart_rate"]) if v else 64
+
+        print(f"  topping up {start_day} .. {until} "
+              f"(continuing from {last_weight}kg, RHR {last_hr})")
+        print()
+        rows, weekly = build_top_up(args.user, profile, rng, start_day, until,
+                                    last_weight, last_hr)
+    else:
+        rows, weekly = build(args.user, profile, rng)
 
     # Dates that already hold a workout — never double-log a day.
     existing = {r["date"] for r in db.get(
