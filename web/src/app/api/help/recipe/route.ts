@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { requireUser } from "../../../../lib/supabase/require-user"
 import Groq from "groq-sdk"
 import { GROQ_MODEL } from "../../../../lib/groq-model"
 
@@ -19,6 +20,8 @@ function extractJson(text: string): string {
 }
 
 export async function POST(req: Request) {
+  const user = await requireUser(req)
+  if (user instanceof NextResponse) return user
   let query = ""
   try {
     const body = await req.json()

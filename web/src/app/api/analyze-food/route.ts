@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { requireUser } from "../../../lib/supabase/require-user"
 
 export const runtime = "nodejs"
 
@@ -73,6 +74,8 @@ async function lookupNutrition(food: string, origin: string, mealType?: string) 
 }
 
 export async function POST(req: Request) {
+  const user = await requireUser(req)
+  if (user instanceof NextResponse) return user
   try {
     const openaiKey = process.env.OPENAI_API_KEY
     if (!openaiKey) {

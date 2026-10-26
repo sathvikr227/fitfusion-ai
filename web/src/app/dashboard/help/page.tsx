@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { authHeaders } from "../../../lib/supabase/client";
 import {
   Loader2,
   Search,
@@ -217,6 +218,7 @@ export default function HelpPage() {
 
     try {
       const endpoint = mode === "diet" ? "/api/help/recipe" : "/api/help/workout";
+      const auth = await authHeaders();
 
       let data: ApiResponse | null = null;
 
@@ -225,6 +227,7 @@ export default function HelpPage() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            ...auth,
           },
           body: JSON.stringify({
             query: finalQuery,
@@ -250,6 +253,7 @@ export default function HelpPage() {
 
         const getRes = await fetch(url.toString(), {
           method: "GET",
+          headers: auth,
         });
 
         const getData = (await getRes.json()) as ApiResponse;

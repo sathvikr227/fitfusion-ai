@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { requireUser } from "../../../lib/supabase/require-user"
 import { GROQ_MODEL } from "../../../lib/groq-model"
 
 export const runtime = "nodejs"
@@ -25,6 +26,8 @@ function toNum(v: any) {
 }
 
 export async function POST(req: Request) {
+  const user = await requireUser(req)
+  if (user instanceof NextResponse) return user
   try {
     if (!process.env.GROQ_API_KEY) {
       return NextResponse.json(

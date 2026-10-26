@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireUser } from "../../../../lib/supabase/require-user";
 import Groq from "groq-sdk";
 import { GROQ_MODEL } from "../../../../lib/groq-model"
 
@@ -784,6 +785,8 @@ async function handleQuery(query: string) {
 }
 
 export async function POST(req: Request) {
+  const user = await requireUser(req);
+  if (user instanceof NextResponse) return user;
   try {
     const body = await req.json().catch(() => ({}));
     const query = String(body?.query || body?.name || "").trim();
@@ -798,6 +801,8 @@ export async function POST(req: Request) {
 }
 
 export async function GET(req: Request) {
+  const user = await requireUser(req);
+  if (user instanceof NextResponse) return user;
   try {
     const { searchParams } = new URL(req.url);
     const query = String(

@@ -1,3 +1,5 @@
+import hmac
+
 from fastapi import Header, HTTPException, status
 
 from .config import settings
@@ -18,7 +20,8 @@ def require_bearer(authorization: str | None = Header(default=None)) -> None:
         )
 
     token = authorization.removeprefix("Bearer ").strip()
-    if token != settings.ML_SERVICE_API_KEY:
+    # Constant-time compare so response timing does not leak the key.
+    if not hmac.compare_digest(token.encode(), settings.ML_SERVICE_API_KEY.encode()):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid bearer token",
