@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from .features import INJURY_LABELS, normalize_workout_type
 
@@ -33,17 +33,13 @@ TrajectoryLabel = Literal["REGRESS", "PLATEAU", "IMPROVE"]
 
 # ── 1. Calorie predictor ──────────────────────────────────────────────────────
 class CalorieRequest(MLModel):
-    """Session-level features for the XGBoost calorie model.
-
-    Accepts the guide's body {age, weight, bmi, resting_bpm, duration,
-    workout_type} and the app's body {exercise, duration_min, weight_kg}.
-    """
+    """One logged session. Heart rate, age and sex unlock the validated
+    heart-rate method; without them the MET estimate is returned."""
 
     weight_kg: float = Field(..., gt=0, description="Body weight in kilograms")
     age: float | None = Field(default=None, ge=10, le=100)
-    bmi: float | None = Field(default=None, gt=5, le=70)
-    height_cm: float | None = Field(default=None, gt=50, le=260)
-    resting_bpm: float | None = Field(default=None, ge=30, le=140)
+    sex: Literal["male", "female"] | None = None
+    avg_hr: float | None = Field(default=None, ge=30, le=230, description="Average session heart rate, bpm")
 
     duration_hours: float | None = Field(default=None, ge=0)
     duration_min: float | None = Field(default=None, ge=0)
@@ -62,73 +58,77 @@ class CalorieRequest(MLModel):
             self.duration_min = self.duration_hours * 60.0
 
         self.workout_type = normalize_workout_type(self.workout_type or self.exercise)
-
-        if self.bmi is None and self.height_cm:
-            metres = self.height_cm / 100.0
-            self.bmi = round(self.weight_kg / (metres * metres), 2)
         return self
 
-
-class ShapFeature(MLModel):
-    feature: str
-    label: str
-    impact: float  # kcal pushed above (+) or below (-) the dataset average
-    value: float
+    @field_validator("sex", mode="before")
+    @classmethod
+    def normalise_sex(cls, value):
+        """Profiles store "Male" / "Female" / "Other"; anything else is unknown."""
+        text = str(value or "").strip().lower()
+        if text in ("male", "m", "man"):
+            return "male"
+        if text in ("female", "f", "woman"):
+            return "female"
+        return None
 
 
 class CalorieResponse(MLModel):
     calories: float
+    kcal_per_min: float
+    method: Literal["heart_rate", "met_table"]
+    validated: bool  # True only for the calorimetry-validated heart-rate method
+    expected_error_kcal_per_min: float | None = None
+    reason: str | None = None  # why the MET estimate was used instead
     baseline_met_calories: float
     model_version: str
     workout_type: str
-    shap_top_features: list[ShapFeature] = Field(default_factory=list)
-    shap_base_value: float | None = None
-    imputed: list[str] = Field(default_factory=list)
     stub: bool = False
 
 
-# ── 2. Hybrid recommender ─────────────────────────────────────────────────────
+# ── 2. Meal recommender ───────────────────────────────────────────────────────
+MealSlot = Literal["breakfast", "lunch", "dinner", "snack"]
+
+
+class MealRequestSlot(MLModel):
+    slot: MealSlot
+    kcal_target: float = Field(..., gt=0, le=3000, description="Calories for this meal, per serving")
+    min_protein_g: float = Field(default=0, ge=0, le=150)
+
+
 class RecommendRequest(MLModel):
-    age: float = Field(..., ge=10, le=100)
-    bmi: float = Field(..., gt=5, le=70)
-    goal: str | None = None
-    workout_frequency: float = Field(default=3, ge=0, le=7)
-    experience_level: int = Field(default=1, ge=1, le=3)
-    injuries: list[str] = Field(default_factory=list)
+    """One meal plan day. Next.js computes the per-meal calorie targets."""
+
+    meals: list[MealRequestSlot] = Field(..., min_length=1, max_length=6)
     dietary_restrictions: list[str] = Field(default_factory=list)
-    top_k: int = Field(default=3, ge=1, le=4)
-    diet_items: int = Field(default=8, ge=1, le=25)
+    per_meal: int = Field(default=5, ge=1, le=20)
+    exclude_recipe_ids: list[int] = Field(default_factory=list)
     user_id: str | None = None
 
 
-class RecommendedWorkout(MLModel):
-    workout_type: str
-    score: float
-
-
-class RecommendedFood(MLModel):
+class RecommendedRecipe(MLModel):
+    recipe_id: int
     name: str
-    category: str
-    calories: float
-    protein: float
-    carbs: float
-    fat: float
+    kcal: float
+    protein_g: float
+    minutes: int
+    likes_last_year: int
+    likes_all_time: int
 
 
-class DietFocus(MLModel):
-    strategy: str
-    target_macro: str
-    avg_calories: float
-    avg_protein: float
-    foods: list[RecommendedFood] = Field(default_factory=list)
+class MealRecommendation(MLModel):
+    slot: MealSlot
+    kcal_min: float
+    kcal_max: float
+    widened: bool  # True when the ±25% calorie band had too few recipes
+    recipes: list[RecommendedRecipe] = Field(default_factory=list)
 
 
 class RecommendResponse(MLModel):
-    recommended_workouts: list[RecommendedWorkout] = Field(default_factory=list)
-    recommended_diet_focus: DietFocus | None = None
-    excluded_workouts: list[str] = Field(default_factory=list)
+    meals: list[MealRecommendation] = Field(default_factory=list)
     applied_restrictions: list[str] = Field(default_factory=list)
-    neighbours_used: int = 0
+    unsupported_restrictions: list[str] = Field(default_factory=list)
+    reason: str | None = None  # why no recipes were returned
+    method: str = "popularity_last_365d"
     model_version: str
     stub: bool = False
 

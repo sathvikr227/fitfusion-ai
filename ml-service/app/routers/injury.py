@@ -22,9 +22,9 @@ from ..features import (
     INJURY_FEATURES,
     INJURY_LABELS,
     INJURY_RISK_THRESHOLD,
+    canonical_injuries,
 )
 from ..model_registry import ModelRegistry, get_registry
-from ..routers.recommend import canonical_injuries
 from ..schemas import InjuryRequest, InjuryResponse
 from ..supabase_reader import SupabaseUnavailable, fetch_injury_features
 

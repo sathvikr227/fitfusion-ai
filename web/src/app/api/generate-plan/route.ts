@@ -3,12 +3,9 @@ import Groq from "groq-sdk"
 import { createClient } from "@supabase/supabase-js"
 
 import { recommend } from "../../../lib/ml-service"
-import type { RecommendResponse } from "../../../lib/ml-service"
-import {
-  dietaryRestrictionsFromProfile,
-  experienceLevelFromProfile,
-  injuryListFromProfile,
-} from "../../../lib/ml-service/profile"
+import type { MealSlot, RecommendResponse } from "../../../lib/ml-service"
+import { dietaryRestrictionsFromProfile } from "../../../lib/ml-service/profile"
+import { calorieTargets, type CalorieTargets } from "../../../lib/meal-targets"
 import { GROQ_MODEL } from "../../../lib/groq-model"
 
 export const runtime = "nodejs"
@@ -611,65 +608,115 @@ function enforceWeeklyStructure(plan: any, restDays: number, intensity: "low" | 
   }
 }
 
-/**
- * Model 2 output rendered for the LLaMA prompt.
- *
- * Turns the recommender's JSON into a short, explicit block so the model
- * personalises a data-grounded starting point instead of inventing one. Returns
- * "" when the recommender produced nothing, which leaves the prompt exactly as
- * it was before this model existed.
- */
-function buildRecommenderSeed(rec: RecommendResponse | null): string {
-  if (!rec || rec.stub) return ""
-  if (rec.recommended_workouts.length === 0 && !rec.recommended_diet_focus) return ""
+const SLOT_LABEL: Record<MealSlot, string> = {
+  breakfast: "Breakfast",
+  lunch: "Lunch",
+  dinner: "Dinner",
+  snack: "Snack",
+}
 
-  const lines: string[] = [
-    "DATA-GROUNDED RECOMMENDATION SEED",
-    `Based on the ${rec.neighbours_used} users in the training cohort whose age, BMI, training`,
-    "frequency and experience level most closely match this user, the following has been effective:",
+function titleCase(text: string) {
+  return text.replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+function sameDish(a: unknown, b: unknown) {
+  const clean = (v: unknown) => String(v ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim()
+  return clean(a) !== "" && clean(a) === clean(b)
+}
+
+function hasRecipes(rec: RecommendResponse | null): boolean {
+  return Boolean(rec && rec.meals.some((m) => m.recipes.length > 0))
+}
+
+/**
+ * Stage 2 output rendered for the LLaMA prompt: the calorie target plus, per
+ * meal, the real recipes it may choose from. Food.com recipes carry nutrition
+ * per serving, so the plan's numbers stop being invented.
+ */
+function buildMealSeed(targets: CalorieTargets | null, rec: RecommendResponse | null): string {
+  if (!targets) return ""
+
+  const lines = [
+    "DAILY CALORIE TARGET (Mifflin-St Jeor BMR x activity factor, adjusted for goal)",
+    `- Target: ${targets.daily} kcal/day (BMR ${targets.bmr}, maintenance ${targets.tdee}).`,
+    `- Per meal: ${targets.meals.map((m) => `${SLOT_LABEL[m.slot]} ~${m.kcal_target} kcal`).join(", ")}.`,
   ]
 
-  if (rec.recommended_workouts.length > 0) {
-    const formatted = rec.recommended_workouts
-      .map((w) => `${w.workout_type} (${Math.round(w.score * 100)}% of similar users)`)
-      .join(", ")
-    lines.push(`- Effective workout styles: ${formatted}`)
-    lines.push("- Bias the weekly split toward these styles where the user's goal allows.")
-  }
-
-  if (rec.excluded_workouts.length > 0) {
+  if (rec && hasRecipes(rec)) {
     lines.push(
-      `- WITHHELD because of active injuries: ${rec.excluded_workouts.join(", ")}. ` +
-        "Do not program these styles."
+      "",
+      "MEAL OPTIONS — real recipes with nutrition per serving, already filtered for this user's dietary restrictions:"
     )
-  }
-
-  const diet = rec.recommended_diet_focus
-  if (diet) {
-    lines.push(
-      `- Diet strategy: ${diet.strategy.replace(/_/g, " ")} (optimise for ${diet.target_macro}).`
-    )
-    if (diet.foods.length > 0) {
-      const examples = diet.foods.slice(0, 6).map((f) => f.name).join(", ")
-      lines.push(`- Foods matching that strategy and this user's restrictions: ${examples}.`)
-      lines.push(
-        `- Reference macros from those foods: ~${Math.round(diet.avg_calories)} kcal and ` +
-          `~${Math.round(diet.avg_protein)} g protein per 100 g.`
-      )
+    for (const meal of rec.meals) {
+      if (meal.recipes.length === 0) continue
+      lines.push(`${SLOT_LABEL[meal.slot]}:`)
+      for (const r of meal.recipes) {
+        lines.push(`  - "${titleCase(r.name)}" — ${Math.round(r.kcal)} kcal, ${r.protein_g} g protein`)
+      }
     }
-  }
-
-  if (rec.applied_restrictions.length > 0) {
     lines.push(
-      `- Dietary restrictions already applied to the list above: ${rec.applied_restrictions.join(", ")}.`
+      "",
+      "DIET PLAN RULES:",
+      '- diet_plan.meals must be exactly: "Breakfast", "Lunch", "Dinner", "Snack", in that order.',
+      "- Each meal has ONE item: pick one recipe from that meal's options and copy its name, calories and protein exactly.",
+      "- daily_total_calories is the sum of the four meals."
+    )
+  } else if (rec?.unsupported_restrictions.length) {
+    lines.push(
+      `- No verified recipes: the restriction(s) ${rec.unsupported_restrictions.join(", ")} cannot be checked ` +
+        "automatically. Build meals yourself and follow them strictly."
     )
   }
-
-  lines.push(
-    "Treat this as a starting point to personalise, not a script to copy. The hard rules below still win."
-  )
 
   return lines.join("\n") + "\n\n"
+}
+
+/**
+ * Guarantees the diet plan uses the recommended recipes. A meal whose item is
+ * one of its slot's options keeps the LLM's choice; anything else is replaced
+ * by the most popular option. Nutrition always comes from the recipe, never
+ * from the LLM.
+ */
+function enforceRecipeMeals(plan: any, rec: RecommendResponse | null) {
+  if (!rec || !hasRecipes(rec)) return { plan, replaced: 0, kept: 0 }
+
+  const llmMeals: any[] = Array.isArray(plan?.diet_plan?.meals) ? plan.diet_plan.meals : []
+  let replaced = 0
+  let kept = 0
+
+  const meals = rec.meals.map((slotRec) => {
+    const label = SLOT_LABEL[slotRec.slot]
+    const llmMeal = llmMeals.find((m) => String(m?.name ?? "").toLowerCase().includes(slotRec.slot))
+    if (slotRec.recipes.length === 0) {
+      return llmMeal ?? { name: label, items: [], total_calories: 0 }
+    }
+
+    const chosenName = llmMeal?.items?.[0]?.food
+    const matched = slotRec.recipes.find((r) => sameDish(r.name, chosenName))
+    const recipe = matched ?? slotRec.recipes[0]
+    if (matched) kept += 1
+    else replaced += 1
+
+    return {
+      name: label,
+      items: [
+        {
+          food: titleCase(recipe.name),
+          calories: Math.round(recipe.kcal),
+          protein: recipe.protein_g,
+          recipe_id: recipe.recipe_id,
+        },
+      ],
+      total_calories: Math.round(recipe.kcal),
+    }
+  })
+
+  const daily_total_calories = meals.reduce((sum: number, m: any) => sum + (Number(m.total_calories) || 0), 0)
+  return {
+    plan: { ...plan, diet_plan: { ...plan.diet_plan, meals, daily_total_calories } },
+    replaced,
+    kept,
+  }
 }
 
 function buildPrompt(
@@ -891,30 +938,31 @@ export async function POST(req: Request) {
     const training = getTrainingIntensity(profile)
     const difficultyBoost = body?.difficultyBoost === true
 
-    // ── Model 2: hybrid recommender, before the LLaMA call ───────────────────
-    // Seeds the prompt with what worked for similar users. If the ML service is
-    // unavailable the seed is empty and the prompt is unchanged.
-    const { data: activeInjuries } = await supabase
-      .from("injuries")
-      .select("body_part, name")
-      .eq("user_id", userId)
-      .eq("status", "active")
+    // ── Stage 2: calorie target + recommended recipes, before the LLaMA call ──
+    // If the ML service is unavailable the recipes are empty and the plan is
+    // written from the calorie target alone.
+    const targets = calorieTargets({
+      age: toNumber(profile.age, 0) || null,
+      heightCm: parseHeightCm(profile.height),
+      weightKg: parseWeightKg(profile.weight),
+      gender: profile?.gender ?? profile?.sex,
+      activityLevel: profile?.activity_level,
+      goal: profile?.goal,
+    })
 
     let recommendation: RecommendResponse | null = null
-    if (metrics.bmi) {
+    let recommendationFromFallback = false
+    if (targets) {
       const recResult = await recommend({
         user_id: userId,
-        age: toNumber(profile.age, 25),
-        bmi: metrics.bmi,
-        goal: String(profile?.goal ?? ""),
-        workout_frequency: 7 - restDays,
-        experience_level: experienceLevelFromProfile(profile),
-        injuries: injuryListFromProfile(profile, activeInjuries ?? []),
+        meals: targets.meals,
         dietary_restrictions: dietaryRestrictionsFromProfile(profile),
+        per_meal: 5,
       })
       recommendation = recResult.data
+      recommendationFromFallback = recResult.fromFallback
       if (recResult.fromFallback) {
-        console.warn(`[generate-plan] recommender fallback: ${recResult.reason}`)
+        console.warn(`[generate-plan] meal recommender fallback: ${recResult.reason}`)
       }
     }
 
@@ -923,7 +971,7 @@ export async function POST(req: Request) {
       restDays,
       metrics,
       difficultyBoost,
-      buildRecommenderSeed(recommendation)
+      buildMealSeed(targets, recommendation)
     )
 
     const response = await groq.chat.completions.create({
@@ -942,7 +990,9 @@ export async function POST(req: Request) {
 
     const parsed = extractJson(raw)
     const normalized = normalizePlan(parsed)
-    const planCore = enforceWeeklyStructure(normalized, restDays, training.intensity)
+    const structured = enforceWeeklyStructure(normalized, restDays, training.intensity)
+    const mealEnforcement = enforceRecipeMeals(structured, recommendation)
+    const planCore = mealEnforcement.plan
 
     const plan = {
       ...planCore,
@@ -955,15 +1005,19 @@ export async function POST(req: Request) {
         sleep_hours: training.sleepHours,
         workout_minutes: training.workoutMinutes,
         injuries: training.injuries,
-        recommender: recommendation && !recommendation.stub
-          ? {
-              model_version: recommendation.model_version,
-              workouts: recommendation.recommended_workouts,
-              excluded_workouts: recommendation.excluded_workouts,
-              diet_strategy: recommendation.recommended_diet_focus?.strategy ?? null,
-              applied_restrictions: recommendation.applied_restrictions,
-            }
-          : null,
+        meal_recommender: {
+          daily_calorie_target: targets?.daily ?? null,
+          bmr: targets?.bmr ?? null,
+          maintenance_calories: targets?.tdee ?? null,
+          method: recommendation?.method ?? null,
+          model_version: recommendation?.model_version ?? null,
+          from_fallback: recommendationFromFallback,
+          applied_restrictions: recommendation?.applied_restrictions ?? [],
+          unsupported_restrictions: recommendation?.unsupported_restrictions ?? [],
+          reason: recommendation?.reason ?? (targets ? null : "age, height or weight missing"),
+          meals_kept_from_llm: mealEnforcement.kept,
+          meals_replaced_with_top_recipe: mealEnforcement.replaced,
+        },
       },
     }
 

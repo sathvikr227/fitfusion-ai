@@ -1,0 +1,136 @@
+{
+  "model": "meal_recommender_rolling",
+  "trained_at": "2026-09-16T17:20:38+00:00",
+  "python": "3.12.10",
+  "supersedes": "meal_recommender.json test section (frozen popularity over a 5-year window)",
+  "years": [
+    2012,
+    2013,
+    2014,
+    2015,
+    2016,
+    2017
+  ],
+  "als_config": {
+    "factors": 64,
+    "alpha": 2.0,
+    "reg": 1.0
+  },
+  "popularity_window_days": 365,
+  "hybrid_max_prior_likes": 1,
+  "per_year": {
+    "2012": {
+      "users": 5957,
+      "train_likes": 823207,
+      "popularity": 0.023274205882901536,
+      "als": 0.0186470632122806,
+      "hybrid": 0.019906086210434035
+    },
+    "2013": {
+      "users": 4928,
+      "train_likes": 872154,
+      "popularity": 0.01514112747371676,
+      "als": 0.01625647418058132,
+      "hybrid": 0.017200061842918984
+    },
+    "2014": {
+      "users": 3573,
+      "train_likes": 914250,
+      "popularity": 0.013250169925232896,
+      "als": 0.015303488687199853,
+      "hybrid": 0.01721598052412494
+    },
+    "2015": {
+      "users": 2146,
+      "train_likes": 939308,
+      "popularity": 0.02266416662968387,
+      "als": 0.015892431840707703,
+      "hybrid": 0.019930953120608295
+    },
+    "2016": {
+      "users": 1764,
+      "train_likes": 957731,
+      "popularity": 0.025677122700932226,
+      "als": 0.012962063132131161,
+      "hybrid": 0.019764784220566534
+    },
+    "2017": {
+      "users": 1663,
+      "train_likes": 971692,
+      "popularity": 0.023855816128816727,
+      "als": 0.01564441771898176,
+      "hybrid": 0.02085588294247344
+    }
+  },
+  "pooled": {
+    "popularity": 0.019679833559569967,
+    "als": 0.016417489399367487,
+    "hybrid": 0.018829583986091403
+  },
+  "pooled_by_prior_likes": {
+    "1": {
+      "popularity": 0.028073760432007853,
+      "als": 0.015621011291114385,
+      "hybrid": 0.028073760432007853,
+      "user_years": 3880
+    },
+    "2-4": {
+      "popularity": 0.02242413803840974,
+      "als": 0.01564414551172766,
+      "hybrid": 0.01564414551172766,
+      "user_years": 4078
+    },
+    "5-19": {
+      "popularity": 0.018365771655245337,
+      "als": 0.0196569512358986,
+      "hybrid": 0.0196569512358986,
+      "user_years": 5434
+    },
+    "20+": {
+      "popularity": 0.014164078545009407,
+      "als": 0.014706508199504134,
+      "hybrid": 0.014706508199504134,
+      "user_years": 6639
+    }
+  },
+  "comparisons": {
+    "als_vs_popularity": {
+      "difference": -0.0032623441602024797,
+      "ci95": [
+        -0.005128999464741893,
+        -0.0013327362067470329
+      ],
+      "relative_pct": -16.57709223163657,
+      "user_years": 20031,
+      "users": 12490
+    },
+    "hybrid_vs_als": {
+      "difference": 0.0024120945867239113,
+      "ci95": [
+        0.0013444301407700308,
+        0.003462256678972712
+      ],
+      "relative_pct": 14.692225638451403,
+      "user_years": 20031,
+      "users": 12490
+    },
+    "hybrid_vs_popularity_exploratory": {
+      "difference": -0.0008502495734785686,
+      "ci95": [
+        -0.0024441295987923366,
+        0.0007434222150281271
+      ],
+      "relative_pct": -4.320410388151412,
+      "user_years": 20031,
+      "users": 12490
+    }
+  },
+  "rules": {
+    "rule1_als_beats_popularity": false,
+    "rule2_hybrid_beats_als": false
+  },
+  "years_als_ahead": 2,
+  "decision": "DROP",
+  "policy": "popularity (non-ML) within dietary filters",
+  "figure": "meal_recommender_rolling.png"
+}

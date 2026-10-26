@@ -35,8 +35,8 @@ app = FastAPI(
     title="FitFusion ML Service",
     version="1.0.0",
     description=(
-        "5-model intelligence layer for FitFusion AI: XGBoost+SHAP calorie "
-        "predictor, hybrid recommender, multi-label injury risk, Transformer "
+        "Intelligence layer for FitFusion AI: calibrated heart-rate energy "
+        "estimate, hybrid recommender, multi-label injury risk, Transformer "
         "trajectory, and a PPO adaptive-replan agent."
     ),
     lifespan=lifespan,

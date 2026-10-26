@@ -36,6 +36,20 @@ const MET: Record<string, number> = {
   HIIT: 10.0, "Stair Climber": 9.0, Other: 5.0,
 }
 
+// Steady aerobic activities, where average heart rate tracks energy use. The
+// heart-rate estimate was validated on cycling and treadmill walking/running;
+// interval work and "Other" keep the MET estimate.
+const HEART_RATE_ACTIVITIES = new Set([
+  "Running", "Walking", "Cycling", "Swimming", "Rowing", "Elliptical", "Hiking", "Stair Climber",
+])
+
+type EnergyEstimate = {
+  calories: number
+  method: "heart_rate" | "met_table"
+  expectedErrorKcalPerMin: number | null
+  reason: string | null
+}
+
 const ACTIVITY_EMOJI: Record<string, string> = {
   Running: "🏃", Walking: "🚶", Cycling: "🚴", Swimming: "🏊",
   "Jump Rope": "🪢", Rowing: "🚣", Elliptical: "⚙️", Hiking: "🥾",
@@ -156,6 +170,45 @@ export default function CardioTab() {
     setLoading(false)
   }
 
+  /**
+   * Asks /api/workout-log for the heart-rate estimate. Returns null on any
+   * failure so saving never depends on the ML service; the MET value stands.
+   */
+  const fetchHeartRateEstimate = async (
+    minutes: number,
+    avgHeartRate: number
+  ): Promise<EnergyEstimate | null> => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+      if (!token) return null
+
+      const res = await fetch("/api/workout-log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          exercises: [{ name: activity, duration: minutes }],
+          workoutType: HEART_RATE_ACTIVITIES.has(activity) ? "Cardio" : activity,
+          avgHeartRate,
+          weightKg,
+        }),
+      })
+      if (!res.ok) return null
+      const data = await res.json()
+      if (!Number.isFinite(Number(data?.calories))) return null
+      return {
+        calories: Math.round(Number(data.calories)),
+        method: data.method === "heart_rate" ? "heart_rate" : "met_table",
+        expectedErrorKcalPerMin:
+          typeof data.expectedErrorKcalPerMin === "number" ? data.expectedErrorKcalPerMin : null,
+        reason: typeof data.methodReason === "string" ? data.methodReason : null,
+      }
+    } catch (err) {
+      console.warn("Heart-rate calorie estimate unavailable, using MET:", err)
+      return null
+    }
+  }
+
   const saveCardio = async () => {
     if (!userId) { setStatus("Please log in first."); return }
     const dur = parseFloat(duration)
@@ -164,13 +217,18 @@ export default function CardioTab() {
     setStatus("")
     const dist = parseFloat(distance)
     const hr = parseFloat(heartRate)
+
+    const estimate = isFinite(hr) && hr > 0 ? await fetchHeartRateEstimate(dur, hr) : null
+    const useHeartRate = estimate?.method === "heart_rate"
+    const caloriesToSave = useHeartRate ? estimate.calories : calories
+
     const { error } = await supabase.from("cardio_logs").insert({
       user_id: userId,
       date,
       activity,
       duration_minutes: dur,
       distance_km: isFinite(dist) && dist > 0 ? dist : null,
-      calories_burned: calories,
+      calories_burned: caloriesToSave,
       avg_heart_rate: isFinite(hr) && hr > 0 ? hr : null,
       notes: notes || null,
     })
@@ -188,7 +246,16 @@ export default function CardioTab() {
     setNotes("")
     setCalories(null)
     await loadData()
-    setStatus("Cardio session saved successfully.")
+    if (useHeartRate) {
+      setStatus(
+        `Cardio session saved. ${caloriesToSave} kcal estimated from your heart rate ` +
+          `(lab-validated, typical error ±${estimate.expectedErrorKcalPerMin ?? "?"} kcal/min).`
+      )
+    } else if (estimate?.reason) {
+      setStatus(`Cardio session saved. ${caloriesToSave ?? 0} kcal from the MET table — ${estimate.reason}.`)
+    } else {
+      setStatus("Cardio session saved successfully.")
+    }
   }
 
   // Weekly stats
@@ -286,7 +353,13 @@ export default function CardioTab() {
               <p className="text-2xl font-semibold text-purple-600">
                 {calories !== null ? `${calories} kcal` : "—"}
               </p>
-              <p className="text-xs text-slate-400 mt-0.5">Based on {weightKg} kg body weight</p>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {parseFloat(heartRate) > 0 && HEART_RATE_ACTIVITIES.has(activity)
+                  ? "MET preview · refined from your heart rate on save"
+                  : HEART_RATE_ACTIVITIES.has(activity)
+                    ? `MET estimate for ${weightKg} kg · add avg heart rate for a lab-validated estimate`
+                    : `MET estimate for ${weightKg} kg`}
+              </p>
             </div>
           </div>
 

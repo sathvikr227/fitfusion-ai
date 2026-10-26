@@ -1,0 +1,14 @@
+{
+  "model": "meal_catalog",
+  "trained_at": "2026-09-17T00:45:27+00:00",
+  "python": "3.12.10",
+  "artifact": "meal_catalog.pkl",
+  "method": "popularity_last_365d",
+  "window": [
+    "2017-12-20",
+    "2018-12-20"
+  ],
+  "recipes": 98325,
+  "why_not_ml": "rolling yearly evaluation: ALS significantly worse than popularity (\u0394Recall@10 -0.0033)",
+  "vegetarian_audit": "50/50 correct on a fresh random sample"
+}

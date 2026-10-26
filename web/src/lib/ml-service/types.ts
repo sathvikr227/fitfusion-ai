@@ -1,12 +1,13 @@
 // Mirrors ml-service/app/schemas.py — keep in sync when adding fields.
 
-// ── 1. Calorie predictor ─────────────────────────────────────────────────────
+// ── 1. Session energy expenditure ────────────────────────────────────────────
 export type CalorieRequest = {
   weight_kg: number
   age?: number
-  bmi?: number
-  height_cm?: number
-  resting_bpm?: number
+  /** "Male" / "Female" from profiles.gender; anything else counts as unknown. */
+  sex?: string
+  /** Average session heart rate. With age and sex it unlocks the validated method. */
+  avg_hr?: number
   /** Send one of these two. The service normalises to hours. */
   duration_min?: number
   duration_hours?: number
@@ -17,64 +18,58 @@ export type CalorieRequest = {
   intensity?: "low" | "moderate" | "high"
 }
 
-export type ShapFeature = {
-  feature: string
-  label: string
-  /** kcal this feature pushed above (+) or below (-) the dataset average. */
-  impact: number
-  value: number
-}
-
 export type CalorieResponse = {
   calories: number
+  kcal_per_min: number
+  /** heart_rate = calibrated Keytel equation, validated against lab calorimetry. */
+  method: "heart_rate" | "met_table"
+  validated: boolean
+  expected_error_kcal_per_min: number | null
+  /** Why the MET estimate was used instead of the heart-rate method. */
+  reason: string | null
   baseline_met_calories: number
   model_version: string
   workout_type: string
-  shap_top_features: ShapFeature[]
-  shap_base_value: number | null
-  imputed: string[]
   stub: boolean
 }
 
-// ── 2. Hybrid recommender ────────────────────────────────────────────────────
+// ── 2. Meal recommender ──────────────────────────────────────────────────────
+export type MealSlot = "breakfast" | "lunch" | "dinner" | "snack"
+
 export type RecommendRequest = {
-  age: number
-  bmi: number
-  goal?: string
-  workout_frequency?: number
-  experience_level?: number
-  injuries?: string[]
+  meals: Array<{ slot: MealSlot; kcal_target: number; min_protein_g?: number }>
   dietary_restrictions?: string[]
-  top_k?: number
-  diet_items?: number
+  per_meal?: number
+  exclude_recipe_ids?: number[]
   user_id?: string
 }
 
-export type RecommendedWorkout = { workout_type: string; score: number }
-
-export type RecommendedFood = {
+export type RecommendedRecipe = {
+  recipe_id: number
   name: string
-  category: string
-  calories: number
-  protein: number
-  carbs: number
-  fat: number
+  kcal: number
+  protein_g: number
+  minutes: number
+  likes_last_year: number
+  likes_all_time: number
 }
 
-export type DietFocus = {
-  strategy: string
-  target_macro: string
-  avg_calories: number
-  avg_protein: number
-  foods: RecommendedFood[]
+export type MealRecommendation = {
+  slot: MealSlot
+  kcal_min: number
+  kcal_max: number
+  /** True when the ±25% calorie band had too few recipes and ±50% was used. */
+  widened: boolean
+  recipes: RecommendedRecipe[]
 }
 
 export type RecommendResponse = {
-  recommended_workouts: RecommendedWorkout[]
-  recommended_diet_focus: DietFocus | null
-  excluded_workouts: string[]
+  meals: MealRecommendation[]
   applied_restrictions: string[]
-  neighbours_used: number
+  /** Restrictions the ingredient filters cannot verify; no recipes are returned. */
+  unsupported_restrictions: string[]
+  reason: string | null
+  method: string
   model_version: string
   stub: boolean
 }

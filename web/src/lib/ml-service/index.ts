@@ -15,7 +15,7 @@ import type {
 // Every wrapper passes a fallback. If the ML service is down, slow, misconfigured,
 // or returns something unusable, the rule-based path runs and the user sees no error.
 
-// ── 1. Calorie predictor ─────────────────────────────────────────────────────
+// ── 1. Session energy expenditure ────────────────────────────────────────────
 
 // MET per dataset workout class, mirroring ml-service/app/routers/calorie.py.
 // The app's richer per-exercise table stays in lib/calories.ts and is unchanged.
@@ -68,28 +68,33 @@ export function predictCalorie(req: CalorieRequest): Promise<MLCallResult<Calori
     const multiplier =
       req.intensity === "high" ? 1.15 : req.intensity === "low" ? 0.85 : 1.0
     const kcal = Math.round(met * req.weight_kg * hours * multiplier * 10) / 10
+    const minutes = hours * 60
     return {
       calories: kcal,
+      kcal_per_min: minutes > 0 ? Math.round((kcal / minutes) * 100) / 100 : 0,
+      method: "met_table",
+      validated: false,
+      expected_error_kcal_per_min: null,
+      reason: "ML service unavailable",
       baseline_met_calories: kcal,
       model_version: "fallback-met",
       workout_type: workoutType,
-      shap_top_features: [],
-      shap_base_value: null,
-      imputed: [],
       stub: true,
     }
   })
 }
 
-// ── 2. Hybrid recommender ────────────────────────────────────────────────────
+// ── 2. Meal recommender ──────────────────────────────────────────────────────
 
+// Fallback returns no recipes: the plan is then written without recipe
+// grounding, exactly as before this stage existed.
 export function recommend(req: RecommendRequest): Promise<MLCallResult<RecommendResponse>> {
-  return callMLService<RecommendRequest, RecommendResponse>("/recommend", req, () => ({
-    recommended_workouts: [],
-    recommended_diet_focus: null,
-    excluded_workouts: [],
+  return callMLService<RecommendRequest, RecommendResponse>("/recommend", req, (reason) => ({
+    meals: [],
     applied_restrictions: [],
-    neighbours_used: 0,
+    unsupported_restrictions: [],
+    reason: `ML service unavailable (${reason})`,
+    method: "none",
     model_version: "fallback-empty",
     stub: true,
   }))
