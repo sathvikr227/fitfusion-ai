@@ -21,7 +21,7 @@ export type UserHistory = {
   sessions: SessionFeatures[]
   /** Whole percent, 0-100. */
   completionRate: number
-  completionSource: "workout_execution" | "plan_ratio"
+  completionSource: "plan_exercises" | "workout_execution" | "plan_ratio"
   avgSleep: number | null
   streak: number
   activeInjuries: Array<{ body_part?: string | null; name?: string | null }>
@@ -42,6 +42,34 @@ function daysAgo(days: number) {
   const d = new Date()
   d.setDate(d.getDate() - days)
   return d.toISOString().split("T")[0]
+}
+
+const WEEK_DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+
+/**
+ * Exercises the plan scheduled between `from` and `to` (YYYY-MM-DD,
+ * inclusive), matching plan days to dates by weekday name. Returns null when
+ * the plan has no weekday-named days to match.
+ */
+export function plannedExerciseCount(plan: any, from: string, to: string): number | null {
+  const days: any[] = Array.isArray(plan?.workout_plan) ? plan.workout_plan : []
+  const byName = new Map<string, number>()
+  for (const day of days) {
+    const name = String(day?.day ?? "").trim().toLowerCase()
+    const isRest = String(day?.type ?? "").toLowerCase() === "rest"
+    const count = Array.isArray(day?.exercises) ? day.exercises.length : 0
+    if (name) byName.set(name, isRest ? 0 : count)
+  }
+  if (!WEEK_DAYS.some((d) => byName.has(d.toLowerCase()))) return null
+
+  let total = 0
+  const cursor = new Date(`${from}T00:00:00Z`)
+  const end = new Date(`${to}T00:00:00Z`)
+  while (cursor <= end) {
+    total += byName.get(WEEK_DAYS[cursor.getUTCDay()].toLowerCase()) ?? 0
+    cursor.setUTCDate(cursor.getUTCDate() + 1)
+  }
+  return total
 }
 
 /** Consecutive days ending today (or yesterday) that have a workout log. */
@@ -77,6 +105,14 @@ export function bmiFrom(height: unknown, weight: unknown): number | null {
   return Math.round((weightKg / (metres * metres)) * 10) / 10
 }
 
+function safeParse(text: string) {
+  try {
+    return JSON.parse(text)
+  } catch {
+    return null
+  }
+}
+
 export async function buildUserHistory(
   supabase: SupabaseClient,
   userId: string,
@@ -85,7 +121,7 @@ export async function buildUserHistory(
   const since = daysAgo(7)
   const sinceMonth = daysAgo(30)
 
-  const [weekLogsRes, profileRes, sleepRes, execRes, injuriesRes, recentLogsRes, vitalsRes] =
+  const [weekLogsRes, profileRes, sleepRes, execRes, injuriesRes, recentLogsRes, vitalsRes, planRes] =
     await Promise.all([
       supabase
         .from("workout_logs")
@@ -133,23 +169,49 @@ export async function buildUserHistory(
         .order("date", { ascending: false })
         .limit(1)
         .maybeSingle(),
+
+      supabase
+        .from("workout_plans")
+        .select("plan, created_at")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
     ])
 
   const executionRows = execRes.data ?? []
   const weekDates = (weekLogsRes.data ?? []).map((r: any) => String(r.date))
 
   // ── Completion rate ────────────────────────────────────────────────────────
+  // Ticked exercises over the exercises the plan scheduled since the later of
+  // a week ago and the plan's creation. Today counts once anything is ticked,
+  // so an unstarted day doesn't drag the rate down. Rows only exist for
+  // exercises someone ticked, so dividing by rows alone reads 2-of-2 as 100%.
+  const today = daysAgo(0)
+  const doneRows = executionRows.filter((r: any) => r.done)
+  const rawPlan = planRes.data?.plan
+  const latestPlan = typeof rawPlan === "string" ? safeParse(rawPlan) : rawPlan
+  const planStart = planRes.data?.created_at ? String(planRes.data.created_at).slice(0, 10) : since
+  const windowStart = planStart > since ? planStart : since
+  const tickedToday = executionRows.some((r: any) => String(r.date) === today)
+  const windowEnd = tickedToday ? today : daysAgo(1)
+  const planned = windowEnd >= windowStart ? plannedExerciseCount(latestPlan, windowStart, windowEnd) : 0
+
   let completionRate: number
   let completionSource: UserHistory["completionSource"]
-  if (executionRows.length > 0) {
-    const done = executionRows.filter((r: any) => r.done).length
+  if (planned !== null && planned > 0 && executionRows.length > 0) {
+    const doneInWindow = doneRows.filter((r: any) => String(r.date) >= windowStart).length
+    completionRate = Math.round((doneInWindow / Math.max(planned, doneInWindow)) * 100)
+    completionSource = "plan_exercises"
+  } else if (executionRows.length > 0) {
+    const done = doneRows.length
     completionRate = Math.round((done / executionRows.length) * 100)
     completionSource = "workout_execution"
   } else {
-    const planned = options.plannedWorkoutDays && options.plannedWorkoutDays > 0
+    const plannedDays = options.plannedWorkoutDays && options.plannedWorkoutDays > 0
       ? options.plannedWorkoutDays
       : 4
-    completionRate = Math.round((new Set(weekDates).size / planned) * 100)
+    completionRate = Math.round((new Set(weekDates).size / plannedDays) * 100)
     completionSource = "plan_ratio"
   }
   completionRate = Math.max(0, Math.min(100, completionRate))

@@ -42,12 +42,6 @@ function StarRating({ value, onChange }: StarRatingProps) {
   )
 }
 
-function sevenDaysAgo() {
-  const d = new Date()
-  d.setDate(d.getDate() - 7)
-  return d.toISOString().split("T")[0]
-}
-
 
 export function WeeklyCheckIn({ userId }: Props) {
   const router = useRouter()
@@ -63,27 +57,26 @@ export function WeeklyCheckIn({ userId }: Props) {
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState("")
 
-  // Fetch last 7 days completion rate from workout_execution
+  // Last 7 days' completion, computed server-side over the exercises the plan
+  // scheduled (lib/ml-service/history.ts) — the same number the replan uses.
   useEffect(() => {
     if (!isOpen || !userId) return
 
     const fetchRate = async () => {
       setLoadingRate(true)
-      const since = sevenDaysAgo()
-
-      const { data } = await supabase
-        .from("workout_execution")
-        .select("exercise_name, done")
-        .eq("user_id", userId)
-        .gte("date", since)
-
-      if (data && data.length > 0) {
-        const doneCount = data.filter((r) => r.done).length
-        setCompletionRate(Math.round((doneCount / data.length) * 100))
-      } else {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        const res = await fetch("/api/ml-insights", {
+          headers: { Authorization: `Bearer ${session?.access_token ?? ""}` },
+        })
+        const data = await res.json()
+        const rate = Number(data?.week?.completionRate)
+        setCompletionRate(res.ok && Number.isFinite(rate) ? rate : 0)
+      } catch {
         setCompletionRate(0)
+      } finally {
+        setLoadingRate(false)
       }
-      setLoadingRate(false)
     }
 
     fetchRate()

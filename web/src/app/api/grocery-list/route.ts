@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import Groq from "groq-sdk"
 import { createClient } from "@supabase/supabase-js"
-import { GROQ_MODEL } from "../../../lib/groq-model"
+import { groqJson } from "../../../lib/groq-json"
 
 export const runtime = "nodejs"
 
@@ -95,15 +95,12 @@ Return ONLY a valid JSON object with this exact structure, no extra text:
   ]
 }`
 
-    const completion = await groq.chat.completions.create({
-      model: GROQ_MODEL,
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.3,
-      max_tokens: 1200,
-      response_format: { type: "json_object" },
-    })
-
-    const content = completion.choices[0]?.message?.content ?? "{}"
+    const content =
+      (await groqJson(groq, {
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.3,
+        maxTokens: 2500,
+      })) || "{}"
 
     let result: { groceries?: unknown[] }
     try {
@@ -124,7 +121,11 @@ Return ONLY a valid JSON object with this exact structure, no extra text:
 
     return NextResponse.json(result)
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Unknown error"
-    return NextResponse.json({ error: message }, { status: 500 })
+    // Log the provider error; never show raw API payloads to the user.
+    console.error("GROCERY LIST ERROR:", err)
+    return NextResponse.json(
+      { error: "Couldn't build your grocery list right now. Please try again." },
+      { status: 500 }
+    )
   }
 }

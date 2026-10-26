@@ -4,7 +4,13 @@ import { createClient } from "@supabase/supabase-js"
 
 import { recommend } from "../../../lib/ml-service"
 import type { MealSlot, RecommendResponse } from "../../../lib/ml-service"
-import { dietaryRestrictionsFromProfile } from "../../../lib/ml-service/profile"
+import { dietaryRestrictionsFromProfile, injuryListFromProfile } from "../../../lib/ml-service/profile"
+import {
+  INJURY_MUSCLE_KEYWORDS,
+  applyInjuryAdjustments,
+  painGroupsFromText,
+} from "../../../lib/ml-service/injury-rules"
+import { separateConsecutiveFocus } from "../../../lib/plan-structure"
 import { calorieTargets, type CalorieTargets } from "../../../lib/meal-targets"
 import { GROQ_MODEL } from "../../../lib/groq-model"
 
@@ -719,6 +725,22 @@ function enforceRecipeMeals(plan: any, rec: RecommendResponse | null) {
   }
 }
 
+/** Muscle groups the profile's injury text names, e.g. "mild knee pain" -> knee. */
+function profilePainGroups(profile: JsonValue | null): string[] {
+  return painGroupsFromText("", injuryListFromProfile(profile))
+}
+
+/** A prompt line forbidding exercises that load an injured area, or "". */
+function injuryConstraint(profile: JsonValue | null): string {
+  const groups = profilePainGroups(profile)
+  if (groups.length === 0) return ""
+  const banned = Array.from(new Set(groups.flatMap((g) => INJURY_MUSCLE_KEYWORDS[g] ?? [])))
+  return (
+    `- HARD CONSTRAINT (injury: ${groups.join(", ")}): do NOT include any exercise involving ` +
+    `${banned.join(", ")}. Use pain-free alternatives for the same muscles instead.\n`
+  )
+}
+
 function buildPrompt(
   profile: JsonValue,
   restDays: number,
@@ -870,6 +892,7 @@ Derived coaching rules:
 - Recovery priority: ${training.sleepHours !== null && training.sleepHours < 6 ? "High" : "Normal"}
 - Workout duration guidance: ${training.workoutMinutes ?? "N/A"} minutes
 - Avoid aggravating injuries: ${injuries !== "No" ? "Yes" : "No"}
+${injuryConstraint(profile)}- Never put the same muscle group on consecutive days (no Legs day followed by another Legs/Lower day); spread push, pull and legs across the week
 - Respect rest days and recovery completely
 ${dietaryRestrictions ? `- DIETARY RESTRICTIONS: ${dietaryRestrictions}. ALL meal suggestions MUST comply with these restrictions. Do not include any foods that violate them.` : ""}
 
@@ -990,7 +1013,15 @@ export async function POST(req: Request) {
 
     const parsed = extractJson(raw)
     const normalized = normalizePlan(parsed)
-    const structured = enforceWeeklyStructure(normalized, restDays, training.intensity)
+    const weekly = enforceWeeklyStructure(normalized, restDays, training.intensity)
+    // The prompt forbids these; code guarantees it. No rest day is added: the
+    // injury is ongoing, not this week's news.
+    const painGroups = profilePainGroups(profile)
+    const injuryStrip = applyInjuryAdjustments(weekly.workout_plan, painGroups, { addRestDay: false })
+    const structured = {
+      ...weekly,
+      workout_plan: separateConsecutiveFocus(injuryStrip.workoutPlan),
+    }
     const mealEnforcement = enforceRecipeMeals(structured, recommendation)
     const planCore = mealEnforcement.plan
 
@@ -1005,6 +1036,8 @@ export async function POST(req: Request) {
         sleep_hours: training.sleepHours,
         workout_minutes: training.workoutMinutes,
         injuries: training.injuries,
+        injury_groups: painGroups,
+        removed_for_injury: injuryStrip.removedExercises,
         meal_recommender: {
           daily_calorie_target: targets?.daily ?? null,
           bmr: targets?.bmr ?? null,

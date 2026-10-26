@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "../../../lib/supabase/client"
+import { RANGES, firstRangeError } from "../../../lib/validation"
 import {
   Heart,
   Activity,
@@ -11,6 +12,7 @@ import {
   FileText,
   Save,
   TrendingUp,
+  Trash2,
 } from "lucide-react"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -36,10 +38,16 @@ function todayStr() {
 
 function bpStatus(systolic: number | null, diastolic: number | null): { label: string; color: string; bg: string } {
   if (!systolic || !diastolic) return { label: "—", color: "text-slate-500", bg: "bg-slate-100 dark:bg-slate-700" }
-  if (systolic < 120 && diastolic < 80) return { label: "Normal", color: "text-emerald-700 dark:text-emerald-400", bg: "bg-emerald-100 dark:bg-emerald-900/30" }
-  if (systolic < 130 && diastolic < 80) return { label: "Elevated", color: "text-amber-700 dark:text-amber-400", bg: "bg-amber-100 dark:bg-amber-900/30" }
-  if (systolic < 140 || (diastolic >= 80 && diastolic < 90)) return { label: "High Stage 1", color: "text-orange-700 dark:text-orange-400", bg: "bg-orange-100 dark:bg-orange-900/30" }
-  return { label: "High Stage 2", color: "text-rose-700 dark:text-rose-400", bg: "bg-rose-100 dark:bg-rose-900/30" }
+  // Readings outside a plausible range (old rows saved before validation) get no category.
+  if (systolic < RANGES.systolic.min || systolic > RANGES.systolic.max || diastolic < RANGES.diastolic.min || diastolic > RANGES.diastolic.max) {
+    return { label: "Invalid", color: "text-slate-500", bg: "bg-slate-100 dark:bg-slate-700" }
+  }
+  // ACC/AHA categories, worst first, so either number alone can raise the category.
+  if (systolic > 180 || diastolic > 120) return { label: "Crisis", color: "text-rose-800 dark:text-rose-300", bg: "bg-rose-200 dark:bg-rose-900/50" }
+  if (systolic >= 140 || diastolic >= 90) return { label: "High Stage 2", color: "text-rose-700 dark:text-rose-400", bg: "bg-rose-100 dark:bg-rose-900/30" }
+  if (systolic >= 130 || diastolic >= 80) return { label: "High Stage 1", color: "text-orange-700 dark:text-orange-400", bg: "bg-orange-100 dark:bg-orange-900/30" }
+  if (systolic >= 120) return { label: "Elevated", color: "text-amber-700 dark:text-amber-400", bg: "bg-amber-100 dark:bg-amber-900/30" }
+  return { label: "Normal", color: "text-emerald-700 dark:text-emerald-400", bg: "bg-emerald-100 dark:bg-emerald-900/30" }
 }
 
 function hrStatus(hr: number | null): { label: string; color: string; bg: string } {
@@ -191,6 +199,7 @@ export default function VitalsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState("")
+  const [formError, setFormError] = useState("")
 
   const [form, setForm] = useState({
     date: todayStr(),
@@ -251,6 +260,24 @@ export default function VitalsPage() {
 
   const handleSave = async () => {
     if (!userId) return
+    const validationError =
+      firstRangeError([
+        ["systolic", form.systolic],
+        ["diastolic", form.diastolic],
+        ["heartRate", form.heart_rate],
+        ["bloodSugar", form.blood_sugar],
+        ["spo2", form.spo2],
+      ]) ??
+      (Boolean(form.systolic) !== Boolean(form.diastolic)
+        ? "Enter both systolic and diastolic pressure, or neither."
+        : form.systolic && Number(form.systolic) <= Number(form.diastolic)
+          ? "Systolic (top number) must be higher than diastolic (bottom number)."
+          : null)
+    if (validationError) {
+      setFormError(validationError)
+      return
+    }
+    setFormError("")
     setSaving(true)
     const payload = {
       user_id: userId,
@@ -274,6 +301,15 @@ export default function VitalsPage() {
       setToast("Error saving vitals.")
       setTimeout(() => setToast(""), 3000)
     }
+  }
+
+  const handleDelete = async (log: VitalsLog) => {
+    const label = new Date(log.date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })
+    if (!window.confirm(`Delete the vitals entry for ${label}?`)) return
+    const { error } = await supabase.from("vitals_logs").delete().eq("id", log.id)
+    setToast(error ? "Error deleting entry." : "Entry deleted.")
+    if (!error) fetchLogs()
+    setTimeout(() => setToast(""), 3000)
   }
 
   // ── Derived data ──────────────────────────────────────────────────────────
@@ -351,6 +387,8 @@ export default function VitalsPage() {
                   <input
                     type="number"
                     placeholder="Systolic"
+                    min={RANGES.systolic.min}
+                    max={RANGES.systolic.max}
                     value={form.systolic}
                     onChange={(e) => setForm((p) => ({ ...p, systolic: e.target.value }))}
                     className="w-full rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -359,6 +397,8 @@ export default function VitalsPage() {
                   <input
                     type="number"
                     placeholder="Diastolic"
+                    min={RANGES.diastolic.min}
+                    max={RANGES.diastolic.max}
                     value={form.diastolic}
                     onChange={(e) => setForm((p) => ({ ...p, diastolic: e.target.value }))}
                     className="w-full rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -374,6 +414,8 @@ export default function VitalsPage() {
                 <input
                   type="number"
                   placeholder="e.g. 72"
+                  min={RANGES.heartRate.min}
+                  max={RANGES.heartRate.max}
                   value={form.heart_rate}
                   onChange={(e) => setForm((p) => ({ ...p, heart_rate: e.target.value }))}
                   className="w-full rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -388,6 +430,8 @@ export default function VitalsPage() {
                 <input
                   type="number"
                   placeholder="e.g. 95"
+                  min={RANGES.bloodSugar.min}
+                  max={RANGES.bloodSugar.max}
                   value={form.blood_sugar}
                   onChange={(e) => setForm((p) => ({ ...p, blood_sugar: e.target.value }))}
                   className="w-full rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -402,8 +446,8 @@ export default function VitalsPage() {
                 <input
                   type="number"
                   placeholder="e.g. 98"
-                  min="80"
-                  max="100"
+                  min={RANGES.spo2.min}
+                  max={RANGES.spo2.max}
                   value={form.spo2}
                   onChange={(e) => setForm((p) => ({ ...p, spo2: e.target.value }))}
                   className="w-full rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -421,6 +465,12 @@ export default function VitalsPage() {
                   className="w-full rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
                 />
               </div>
+
+              {formError && (
+                <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-800 dark:bg-rose-900/30 dark:text-rose-300">
+                  {formError}
+                </p>
+              )}
 
               <button
                 onClick={handleSave}
@@ -578,6 +628,7 @@ export default function VitalsPage() {
                       <th className="pb-2 text-center font-medium">HR</th>
                       <th className="pb-2 text-center font-medium">Sugar</th>
                       <th className="pb-2 text-center font-medium">SpO2</th>
+                      <th className="pb-2"><span className="sr-only">Actions</span></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -609,6 +660,15 @@ export default function VitalsPage() {
                           </td>
                           <td className="py-2.5 px-2 text-center text-slate-600 dark:text-slate-300">
                             {log.spo2 != null ? `${log.spo2}%` : "—"}
+                          </td>
+                          <td className="py-2.5 pl-2 text-right">
+                            <button
+                              onClick={() => handleDelete(log)}
+                              aria-label={`Delete entry for ${log.date}`}
+                              className="rounded-lg p-1.5 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-900/30"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
                           </td>
                         </tr>
                       )

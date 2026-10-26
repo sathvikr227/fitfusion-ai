@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { requireUser } from "../../../lib/supabase/require-user"
 import { GROQ_MODEL } from "../../../lib/groq-model"
+import { reasoningOptions } from "../../../lib/groq-json"
 
 export const runtime = "nodejs"
 
@@ -54,8 +55,9 @@ export async function POST(req: Request) {
       body: JSON.stringify({
         model: GROQ_MODEL,
         temperature: 0.2,
-        max_tokens: 1200,
+        max_tokens: 2000,
         response_format: { type: "json_object" },
+        ...reasoningOptions(GROQ_MODEL),
         messages: [
           {
             role: "system",

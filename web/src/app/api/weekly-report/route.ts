@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import Groq from "groq-sdk"
 import { createClient } from "@supabase/supabase-js"
 import { GROQ_MODEL } from "../../../lib/groq-model"
+import { calorieTargets } from "../../../lib/meal-targets"
 
 export const runtime = "nodejs"
 
@@ -93,7 +94,7 @@ export async function POST(req: Request) {
     // profiles.id IS the auth user UUID — no user_id column on profiles
     const { data: profileData } = await supabase
       .from("profiles")
-      .select("goal, weight, activity_level, injuries")
+      .select("goal, weight, height, age, gender, activity_level, injuries")
       .eq("id", userId)
       .maybeSingle()
 
@@ -119,6 +120,23 @@ export async function POST(req: Request) {
         ? parseFloat((endWeight - startWeight).toFixed(1))
         : null
 
+    // Surplus or deficit means intake vs maintenance (TDEE), never intake vs
+    // logged workout burn: the activity factor already includes training.
+    const heightRaw = Number(profile?.height)
+    const targets = calorieTargets({
+      age: Number(profile?.age) || null,
+      heightCm: Number.isFinite(heightRaw) && heightRaw > 0 ? (heightRaw < 3 ? heightRaw * 100 : heightRaw) : null,
+      weightKg: Number(endWeight ?? profile?.weight) || null,
+      gender: profile?.gender,
+      activityLevel: profile?.activity_level,
+      goal: profile?.goal,
+    })
+    const balanceVsMaintenance =
+      avgDailyCaloriesIn != null && targets ? avgDailyCaloriesIn - targets.tdee : null
+    // Under half of maintenance is far more likely missing logs than real eating.
+    const likelyUnderLogged =
+      avgDailyCaloriesIn != null && targets ? avgDailyCaloriesIn < targets.tdee * 0.5 : false
+
     const periodDays = period === "lifetime"
       ? Math.max(1, mealDays || 1)
       : period === "monthly" ? 30 : 7
@@ -138,12 +156,17 @@ Period data (${periodLabel(period)}):
 - Workouts completed: ${workoutCount}
 - Total calories burned: ${totalCaloriesBurned} kcal
 - Average daily calories consumed: ${avgDailyCaloriesIn != null ? `${avgDailyCaloriesIn} kcal` : "N/A"}
-- Calorie balance (in - out): ${avgDailyCaloriesIn != null ? `${avgDailyCaloriesIn - Math.round(totalCaloriesBurned / periodDays)} kcal/day net` : "N/A"}
+- Maintenance calories (Mifflin-St Jeor x activity): ${targets ? `${targets.tdee} kcal/day` : "unknown"}
+- Daily calorie target for this goal: ${targets ? `${targets.daily} kcal/day` : "unknown"}
+- Intake vs maintenance: ${balanceVsMaintenance != null ? `${balanceVsMaintenance > 0 ? "+" : ""}${balanceVsMaintenance} kcal/day (${balanceVsMaintenance > 0 ? "surplus" : "deficit"})` : "N/A"}
+- Meals logged on: ${mealDays} of ${periodDays} days
 - Weight at start of period: ${startWeight ?? "N/A"} kg
 - Weight at end of period: ${endWeight ?? "N/A"} kg
 - Weight change: ${weightChange != null ? `${weightChange > 0 ? "+" : ""}${weightChange} kg` : "N/A"}
 - Injuries/limitations: ${profile?.injuries ?? "None"}
 
+Calorie rules: a surplus or deficit is intake compared with maintenance above, never with workout calories. Do not invent a different balance.
+${likelyUnderLogged ? "Logged intake is under half of maintenance, so meals are probably not being fully logged. Say that and encourage complete logging; do not describe it as a surplus or praise it as fuel.\n" : ""}
 Write the ${period === "lifetime" ? "detailed lifetime" : period} report now.
 `.trim()
 

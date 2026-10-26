@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { supabase } from "../../../lib/supabase/client"
 import { Share2, Copy } from "lucide-react"
 import { toast } from "../../../components/Toast"
+import { firstRangeError } from "../../../lib/validation"
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -111,6 +112,16 @@ export default function ProfilePage() {
   ])
 
   const handleSave = async () => {
+    const rangeProblem = firstRangeError([
+      ["age", age],
+      ["heightCm", height],
+      ["weightKg", weight],
+    ])
+    if (rangeProblem) {
+      setStatus(rangeProblem)
+      toast.error(rangeProblem)
+      return
+    }
     setSaving(true)
     setStatus(null)
 
