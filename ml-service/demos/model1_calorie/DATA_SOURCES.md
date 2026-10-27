@@ -16,7 +16,7 @@ and 2026-09-16 (Malaga, WEEE).
 | Publisher | PhysioNet. Authors: Denis Mongin, Jeronimo García Romero, José Ramón Alvero Cruz (published 10 Dec 2021) |
 | URL | https://physionet.org/content/treadmill-exercise-cardioresp/1.0.1/ |
 | DOI | 10.13026/7ezk-j442 (v1.0.1) |
-| Licence | The `LICENSE.txt` in the v1.0.1 download (SHA-256 verified against `SHA256SUMS.txt`) is **Creative Commons Attribution-NonCommercial-ShareAlike 4.0**: non-commercial use with attribution, which covers a college project. When the web page was fetched on 2026-10-27, its summary showed "PhysioNet Contributor Review Health Data License 1.5.0". **Please confirm the licence shown on the page before the viva.** |
+| Licence | **Creative Commons Attribution-NonCommercial-ShareAlike 4.0**: non-commercial use with attribution, which covers a college project. This is the `LICENSE.txt` in the v1.0.1 download (SHA-256 verified against `SHA256SUMS.txt`), and the project owner confirmed it on the PhysioNet page on 2026-10-28. |
 | Type | Real lab measurements: breath-by-breath gas analysis (VO2, VCO2) with heart rate during graded treadmill tests |
 | Files | `subject-info.csv` (992 tests: Age, Weight, Height, Humidity, Temperature, Sex, ID, ID_test); `test_measure.csv` (575,087 rows: time, Speed, HR, VO2, VCO2, RR, VE, ID_test, ID) |
 | Inputs used | age, sex, height (cm), weight (kg), heart rate (bpm) |
