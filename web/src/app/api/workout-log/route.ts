@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
     const [profileRes, weightRes] = await Promise.all([
       supabase
         .from("profiles")
-        .select("age, gender, weight")
+        .select("age, gender, weight, height")
         .eq("id", user.id)
         .maybeSingle(),
       supabase
@@ -89,6 +89,10 @@ export async function POST(req: NextRequest) {
     const age = Number(profile?.age) || undefined
     const sex = typeof profile?.gender === "string" ? profile.gender : undefined
     const avgHeartRate = Number(body?.avgHeartRate) || undefined
+    // profiles.height is cm; tolerate an older metres value.
+    const rawHeight = Number(profile?.height)
+    const heightCm =
+      rawHeight > 0 ? (rawHeight < 3 ? Math.round(rawHeight * 100) : rawHeight) : undefined
 
     const durationMin = estimateSessionDurationMinutes(exercises)
     const workoutType = normalizeWorkoutType(
@@ -109,6 +113,7 @@ export async function POST(req: NextRequest) {
       age,
       sex,
       avg_hr: avgHeartRate,
+      height_cm: heightCm,
       duration_min: durationMin,
       workout_type: workoutType,
       intensity: body?.intensity ?? "moderate",
@@ -123,6 +128,10 @@ export async function POST(req: NextRequest) {
       source: result.fromFallback ? "fallback" : "ml",
       fallbackReason: result.reason ?? null,
       method: result.data.method,
+      estimator: result.data.estimator,
+      explanation: result.data.explanation,
+      estimatorFallbackReason: result.data.fallback_reason,
+      warnings: result.data.warnings,
       validated: result.data.validated,
       kcalPerMin: result.data.kcal_per_min,
       expectedErrorKcalPerMin: result.data.expected_error_kcal_per_min,

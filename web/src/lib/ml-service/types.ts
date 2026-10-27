@@ -8,6 +8,8 @@ export type CalorieRequest = {
   sex?: string
   /** Average session heart rate. With age and sex it unlocks the validated method. */
   avg_hr?: number
+  /** Height in cm. Needed by the XGBoost model; without it the Keytel fallback runs. */
+  height_cm?: number
   /** Send one of these two. The service normalises to hours. */
   duration_min?: number
   duration_hours?: number
@@ -18,15 +20,29 @@ export type CalorieRequest = {
   intensity?: "low" | "moderate" | "high"
 }
 
+/** SHAP breakdown of an XGBoost estimate, in kcal/min. base + sum(contributions) = kcal_per_min. */
+export type CalorieExplanation = {
+  base_kcal_per_min: number
+  contributions: Record<string, number>
+  inputs: Record<string, number>
+  raw_model_kcal_per_min: number
+}
+
 export type CalorieResponse = {
   calories: number
   kcal_per_min: number
-  /** heart_rate = calibrated Keytel equation, validated against lab calorimetry. */
+  /** heart_rate = calibrated XGBoost (or Keytel fallback), validated against lab calorimetry. */
   method: "heart_rate" | "met_table"
+  /** Which estimator produced the number. */
+  estimator: "xgboost" | "keytel" | "met"
   validated: boolean
   expected_error_kcal_per_min: number | null
   /** Why the MET estimate was used instead of the heart-rate method. */
   reason: string | null
+  /** Why Keytel was used instead of XGBoost (e.g. no height on file). */
+  fallback_reason: string | null
+  explanation: CalorieExplanation | null
+  warnings: string[]
   baseline_met_calories: number
   model_version: string
   workout_type: string

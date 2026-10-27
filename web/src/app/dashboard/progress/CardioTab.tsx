@@ -46,8 +46,15 @@ const HEART_RATE_ACTIVITIES = new Set([
 type EnergyEstimate = {
   calories: number
   method: "heart_rate" | "met_table"
+  estimator: "xgboost" | "keytel" | "met"
   expectedErrorKcalPerMin: number | null
   reason: string | null
+  /** SHAP contributions in kcal/min, largest first (XGBoost only). */
+  factors: Array<{ name: string; kcalPerMin: number }>
+}
+
+const FACTOR_LABELS: Record<string, string> = {
+  hr: "Heart rate", age: "Age", is_female: "Sex", height_cm: "Height", weight_kg: "Weight",
 }
 
 const ACTIVITY_EMOJI: Record<string, string> = {
@@ -95,6 +102,7 @@ export default function CardioTab() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [status, setStatus] = useState("")
+  const [factors, setFactors] = useState<EnergyEstimate["factors"]>([])
 
   // Form state
   const [date, setDate] = useState(todayStr())
@@ -199,6 +207,11 @@ export default function CardioTab() {
       return {
         calories: Math.round(Number(data.calories)),
         method: data.method === "heart_rate" ? "heart_rate" : "met_table",
+        estimator: data.estimator === "xgboost" || data.estimator === "keytel" ? data.estimator : "met",
+        factors: Object.entries((data.explanation?.contributions ?? {}) as Record<string, number>)
+          .map(([name, kcalPerMin]) => ({ name, kcalPerMin: Number(kcalPerMin) }))
+          .filter((f) => Number.isFinite(f.kcalPerMin))
+          .sort((a, b) => Math.abs(b.kcalPerMin) - Math.abs(a.kcalPerMin)),
         expectedErrorKcalPerMin:
           typeof data.expectedErrorKcalPerMin === "number" ? data.expectedErrorKcalPerMin : null,
         reason: typeof data.methodReason === "string" ? data.methodReason : null,
@@ -215,6 +228,7 @@ export default function CardioTab() {
     if (!isFinite(dur) || dur <= 0) { setStatus("Please enter a valid duration."); return }
     setSaving(true)
     setStatus("")
+    setFactors([])
     const dist = parseFloat(distance)
     const hr = parseFloat(heartRate)
 
@@ -247,10 +261,12 @@ export default function CardioTab() {
     setCalories(null)
     await loadData()
     if (useHeartRate) {
+      const by = estimate.estimator === "xgboost" ? "the XGBoost model" : "the Keytel heart-rate equation"
       setStatus(
-        `Cardio session saved. ${caloriesToSave} kcal estimated from your heart rate ` +
+        `Cardio session saved. ${caloriesToSave} kcal estimated by ${by} from your heart rate ` +
           `(lab-validated, typical error ±${estimate.expectedErrorKcalPerMin ?? "?"} kcal/min).`
       )
+      setFactors(estimate.factors)
     } else if (estimate?.reason) {
       setStatus(`Cardio session saved. ${caloriesToSave ?? 0} kcal from the MET table — ${estimate.reason}.`)
     } else {
@@ -387,6 +403,19 @@ export default function CardioTab() {
       {status && (
         <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 text-blue-700 dark:text-blue-300 px-4 py-3 rounded-xl">
           {status}
+          {factors.length > 0 && (
+            <div className="mt-2 text-sm">
+              <p className="font-medium">Why this estimate (SHAP, kcal/min vs the average session):</p>
+              <ul className="mt-1 space-y-0.5">
+                {factors.map((f) => (
+                  <li key={f.name}>
+                    {FACTOR_LABELS[f.name] ?? f.name}: {f.kcalPerMin >= 0 ? "+" : ""}
+                    {f.kcalPerMin.toFixed(2)}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       )}
 

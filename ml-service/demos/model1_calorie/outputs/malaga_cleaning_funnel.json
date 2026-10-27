@@ -1,0 +1,38 @@
+[
+  {
+    "step": "raw breath-by-breath rows",
+    "rows": 575087,
+    "tests": 992,
+    "people": 857
+  },
+  {
+    "step": "HR 40-220 bpm, VO2 and VCO2 present",
+    "rows": 569128,
+    "tests": 981,
+    "people": 846
+  },
+  {
+    "step": "after first 60 s (analyser settling)",
+    "rows": 549376,
+    "tests": 981,
+    "people": 846
+  },
+  {
+    "step": "exercise phase only (recovery walk removed)",
+    "rows": 427664,
+    "tests": 981,
+    "people": 846
+  },
+  {
+    "step": "sub-maximal, RER <= 1.0",
+    "rows": 279822,
+    "tests": 980,
+    "people": 845
+  },
+  {
+    "step": "60-s windows with >= 10 samples",
+    "rows": 10186,
+    "tests": 973,
+    "people": 840
+  }
+]

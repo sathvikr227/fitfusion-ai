@@ -1,6 +1,6 @@
 {
   "model": "calorie_hr",
-  "trained_at": "2026-09-16T15:45:22+00:00",
+  "trained_at": "2026-10-27T15:41:17+00:00",
   "python": "3.12.10",
   "artifact": "calorie_hr_model.pkl",
   "figure": "calorie_hr_bland_altman.png",
@@ -259,6 +259,7 @@
     "results": {
       "ridge": {
         "mae": 1.5523,
+        "rmse": 2.0183,
         "mape_pct": 18.8705,
         "bias": 0.0023,
         "loa_low": -3.9535,
@@ -268,6 +269,7 @@
       },
       "xgb_depth2": {
         "mae": 1.5029,
+        "rmse": 2.0092,
         "mape_pct": 17.6674,
         "bias": -0.0092,
         "loa_low": -3.9472,
@@ -277,6 +279,7 @@
       },
       "xgb_depth3": {
         "mae": 1.5159,
+        "rmse": 2.0236,
         "mape_pct": 17.8011,
         "bias": -0.0084,
         "loa_low": -3.9748,
@@ -286,6 +289,7 @@
       },
       "xgb_depth4": {
         "mae": 1.5541,
+        "rmse": 2.0688,
         "mape_pct": 18.3342,
         "bias": -0.0054,
         "loa_low": -4.0603,
@@ -295,6 +299,7 @@
       },
       "keytel_2005": {
         "mae": 2.1608,
+        "rmse": 2.7403,
         "mape_pct": 27.6419,
         "bias": 1.4301,
         "loa_low": -3.1514,
@@ -304,6 +309,7 @@
       },
       "fitfusion_met_table": {
         "mae": 1.7452,
+        "rmse": 2.3435,
         "mape_pct": 19.1307,
         "bias": -1.0148,
         "loa_low": -5.1551,
@@ -316,6 +322,7 @@
   },
   "ablation_without_hr": {
     "mae": 3.4124,
+    "rmse": 4.0111,
     "mape_pct": 44.2868,
     "bias": -0.0,
     "loa_low": -7.8618,
@@ -327,6 +334,7 @@
     "exercise": {
       "model_1": {
         "mae": 2.8827,
+        "rmse": 3.2114,
         "mape_pct": 70.6559,
         "bias": 2.6304,
         "loa_low": -0.9806,
@@ -336,6 +344,7 @@
       },
       "keytel_2005": {
         "mae": 3.9108,
+        "rmse": 4.3169,
         "mape_pct": 94.1844,
         "bias": 3.8233,
         "loa_low": -0.1058,
@@ -345,6 +354,7 @@
       },
       "fitfusion_met_table": {
         "mae": 3.8964,
+        "rmse": 4.4717,
         "mape_pct": 112.8637,
         "bias": 2.5933,
         "loa_low": -4.547,
@@ -354,6 +364,7 @@
       },
       "researcher_met": {
         "mae": 10.1166,
+        "rmse": 11.4605,
         "mape_pct": 264.4323,
         "bias": 10.0604,
         "loa_low": -0.6986,
@@ -365,6 +376,7 @@
     "rest_out_of_training_range": {
       "model_1": {
         "mae": 3.9194,
+        "rmse": 4.0132,
         "mape_pct": 366.855,
         "bias": 3.9194,
         "loa_low": 2.2288,
@@ -374,6 +386,7 @@
       },
       "keytel_2005": {
         "mae": 3.4542,
+        "rmse": 3.9926,
         "mape_pct": 317.5244,
         "bias": 3.3039,
         "loa_low": -1.0898,
@@ -383,6 +396,7 @@
       },
       "fitfusion_met_table": {
         "mae": 5.0153,
+        "rmse": 5.0927,
         "mape_pct": 471.3404,
         "bias": 5.0153,
         "loa_low": 3.2817,
@@ -392,6 +406,7 @@
       },
       "researcher_met": {
         "mae": 0.2594,
+        "rmse": 0.3491,
         "mape_pct": 25.7639,
         "bias": 0.2394,
         "loa_low": -0.2586,

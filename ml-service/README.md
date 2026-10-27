@@ -11,7 +11,7 @@ the rule it replaced, flags `"stub": true`, and `/healthz` reports why.
 | Method | Path | Model | Auth |
 |---|---|---|---|
 | GET  | `/healthz` | liveness + per-model load status | none |
-| POST | `/predict/calories` | 1 — energy expenditure: calibrated Keytel HR equation, MET fallback | bearer |
+| POST | `/predict/calories` | 1 — energy expenditure: calibrated XGBoost HR model + SHAP; Keytel, then MET fallback | bearer |
 | POST | `/recommend` | 2 — meal recommendations: popularity + dietary filters + calorie bands | bearer |
 | POST | `/predict/injury-risk` | 3 — multi-label injury risk | bearer |
 | POST | `/predict/trajectory` | 4 — Transformer progression | bearer |

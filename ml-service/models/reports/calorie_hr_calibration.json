@@ -1,6 +1,6 @@
 {
   "model": "calorie_hr_calibration",
-  "trained_at": "2026-09-16T15:52:16+00:00",
+  "trained_at": "2026-10-27T15:41:21+00:00",
   "python": "3.12.10",
   "design": "leave-one-participant-out on WEEE exercise segments",
   "primary_correction": "linear",
@@ -8,6 +8,7 @@
     "uncalibrated": {
       "model_1": {
         "mae": 2.8827,
+        "rmse": 3.2114,
         "mape_pct": 70.6559,
         "bias": 2.6304,
         "loa_low": -0.9806,
@@ -17,6 +18,7 @@
       },
       "keytel_2005": {
         "mae": 3.9108,
+        "rmse": 4.3169,
         "mape_pct": 94.1844,
         "bias": 3.8233,
         "loa_low": -0.1058,
@@ -26,6 +28,7 @@
       },
       "fitfusion_met_table": {
         "mae": 3.8964,
+        "rmse": 4.4717,
         "mape_pct": 112.8637,
         "bias": 2.5933,
         "loa_low": -4.547,
@@ -37,6 +40,7 @@
     "offset": {
       "model_1": {
         "mae": 1.5176,
+        "rmse": 1.9412,
         "mape_pct": 31.1357,
         "bias": 0.0106,
         "loa_low": -3.7941,
@@ -46,6 +50,7 @@
       },
       "keytel_2005": {
         "mae": 1.6873,
+        "rmse": 2.0995,
         "mape_pct": 36.8165,
         "bias": 0.0046,
         "loa_low": -4.1104,
@@ -55,6 +60,7 @@
       },
       "fitfusion_met_table": {
         "mae": 3.1654,
+        "rmse": 3.7218,
         "mape_pct": 77.3096,
         "bias": -0.0054,
         "loa_low": -7.3001,
@@ -66,6 +72,7 @@
     "ratio": {
       "model_1": {
         "mae": 1.2573,
+        "rmse": 1.6323,
         "mape_pct": 28.9269,
         "bias": 0.0131,
         "loa_low": -3.1862,
@@ -75,6 +82,7 @@
       },
       "keytel_2005": {
         "mae": 1.2493,
+        "rmse": 1.6045,
         "mape_pct": 29.0301,
         "bias": 0.0064,
         "loa_low": -3.1384,
@@ -84,6 +92,7 @@
       },
       "fitfusion_met_table": {
         "mae": 2.7361,
+        "rmse": 3.1642,
         "mape_pct": 66.8496,
         "bias": 0.0084,
         "loa_low": -6.1934,
@@ -95,6 +104,7 @@
     "linear": {
       "model_1": {
         "mae": 1.2734,
+        "rmse": 1.6644,
         "mape_pct": 29.5814,
         "bias": -0.0052,
         "loa_low": -3.2675,
@@ -104,6 +114,7 @@
       },
       "keytel_2005": {
         "mae": 1.2943,
+        "rmse": 1.646,
         "mape_pct": 29.9848,
         "bias": -0.0122,
         "loa_low": -3.2384,
@@ -113,6 +124,7 @@
       },
       "fitfusion_met_table": {
         "mae": 1.6926,
+        "rmse": 2.1786,
         "mape_pct": 39.4552,
         "bias": 0.0106,
         "loa_low": -4.2595,
@@ -182,7 +194,13 @@
     "fitfusion_met_table": 50.7778
   },
   "shipped_method": {
-    "method": "keytel_2005_linear_calibration",
+    "method": "xgboost_hr_linear_calibration",
+    "served_estimator": "xgboost",
+    "model_artifact": "calorie_hr_model.pkl",
+    "model_intercept": 0.3075,
+    "model_slope": 0.6185,
+    "model_expected_mae_kcal_per_min": 1.2734,
+    "model_expected_mape_pct": 29.5814,
     "intercept": 0.1091,
     "slope": 0.5579,
     "fitted_on": "WEEE exercise segments (cycling, treadmill walk/run), all participants",
@@ -197,8 +215,8 @@
     "validated_workout_types": [
       "Cardio"
     ],
-    "decision": "Ship calibrated Keytel. The trained XGBoost model beat Keytel uncalibrated (p=0.0002) but tied once both were calibrated (MAE 1.22 vs 1.30, p=0.16), so the simpler method is used.",
-    "model_version": "energy-keytel-cal-v1"
+    "decision": "Serve calibrated XGBoost (project requirement), Keytel as fallback. The model beat Keytel uncalibrated (p=0.0002) but tied once both were calibrated (MAE 1.22 vs 1.30, p=0.16): no significant accuracy gain over Keytel.",
+    "model_version": "energy-xgb-cal-v2"
   },
   "figure": "calorie_hr_calibration.png"
 }

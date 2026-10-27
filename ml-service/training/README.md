@@ -61,6 +61,7 @@ Run in this order — later models assume the earlier artifacts exist.
 ```bash
 .venv/Scripts/python.exe -m training.train_calorie_hr        # ~1 min  (Stage 1 experiment)
 .venv/Scripts/python.exe -m training.calibrate_calorie_hr    # ~10 s   (writes calorie_energy.json)
+.venv/Scripts/python.exe -m training.train_calorie_gym_comparison  # ~10 s (slide design, comparison only)
 .venv/Scripts/python.exe -m training.data_foodcom           # ~1.5 min (Stage 2 data + dietary flags)
 .venv/Scripts/python.exe -m training.train_meal_recommender # ~30 min  (Stage 2 method comparison)
 .venv/Scripts/python.exe -m training.evaluate_meal_rolling  # ~20 min  (Stage 2 final verdict)
@@ -72,8 +73,9 @@ Run in this order — later models assume the earlier artifacts exist.
 
 | Script | Artifacts |
 |---|---|
-| `train_calorie_hr.py` | `calorie_hr_model.pkl` (evaluated, not served), `reports/calorie_hr.json`, `reports/calorie_hr_bland_altman.png` |
-| `calibrate_calorie_hr.py` | `calorie_energy.json` (served), `reports/calorie_hr_calibration.json`, `reports/calorie_hr_calibration.png` |
+| `train_calorie_hr.py` | `calorie_hr_model.pkl` (served, with calibration), `reports/calorie_hr.json`, `reports/calorie_hr_bland_altman.png` |
+| `train_calorie_gym_comparison.py` | `calorie_gym_comparison.pkl` (comparison only, not served), `reports/calorie_gym_comparison.json`, `reports/calorie_gym_*.png` |
+| `calibrate_calorie_hr.py` | `calorie_energy.json` (served calibration: XGBoost + Keytel fallback), `reports/calorie_hr_calibration.json`, `reports/calorie_hr_calibration.png` |
 | `data_foodcom.py` | `data/processed/foodcom_*.pkl`, vegetarian audit sheets |
 | `train_meal_recommender.py` | `meal_recommender.pkl` (evaluated, not served), `reports/meal_recommender.json` |
 | `evaluate_meal_rolling.py` | `reports/meal_recommender_rolling.json` + `.png` (decision: DROP ML) |

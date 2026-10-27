@@ -40,6 +40,9 @@ class CalorieRequest(MLModel):
     age: float | None = Field(default=None, ge=10, le=100)
     sex: Literal["male", "female"] | None = None
     avg_hr: float | None = Field(default=None, ge=30, le=230, description="Average session heart rate, bpm")
+    height_cm: float | None = Field(
+        default=None, ge=100, le=250, description="Height in cm; needed by the XGBoost model"
+    )
 
     duration_hours: float | None = Field(default=None, ge=0)
     duration_min: float | None = Field(default=None, ge=0)
@@ -72,13 +75,32 @@ class CalorieRequest(MLModel):
         return None
 
 
+class CalorieExplanation(MLModel):
+    """SHAP breakdown of one XGBoost prediction, in kcal/min after calibration.
+
+    base_kcal_per_min + sum(contributions) == kcal_per_min (up to rounding, and
+    unless the estimate was clipped at zero).
+    """
+
+    base_kcal_per_min: float
+    contributions: dict[str, float]
+    inputs: dict[str, float]
+    raw_model_kcal_per_min: float  # XGBoost output before the WEEE calibration
+
+
 class CalorieResponse(MLModel):
     calories: float
     kcal_per_min: float
     method: Literal["heart_rate", "met_table"]
+    # Which estimator produced the number: the trained model, the Keytel
+    # fallback, or the MET table.
+    estimator: Literal["xgboost", "keytel", "met"] = "met"
     validated: bool  # True only for the calorimetry-validated heart-rate method
     expected_error_kcal_per_min: float | None = None
     reason: str | None = None  # why the MET estimate was used instead
+    fallback_reason: str | None = None  # why Keytel was used instead of XGBoost
+    explanation: CalorieExplanation | None = None
+    warnings: list[str] = Field(default_factory=list)
     baseline_met_calories: float
     model_version: str
     workout_type: str

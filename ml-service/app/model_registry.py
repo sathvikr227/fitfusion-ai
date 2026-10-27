@@ -20,6 +20,7 @@ from .config import settings
 log = logging.getLogger("ml-service.registry")
 
 CALORIE_ARTIFACT = "calorie_energy.json"
+CALORIE_MODEL_ARTIFACT = "calorie_hr_model.pkl"
 MEAL_CATALOG_ARTIFACT = "meal_catalog.pkl"
 INJURY_ARTIFACT = "injury_risk_model.pkl"
 TRAJECTORY_ARTIFACT = "transformer_model.pt"
@@ -36,6 +37,7 @@ class ModelRegistry:
         self._loaded = False
 
         self.calorie: dict[str, Any] | None = None
+        self.calorie_model: dict[str, Any] | None = None
         self.recommender: dict[str, Any] | None = None
         self.injury: dict[str, Any] | None = None
         self.trajectory_model: Any | None = None
@@ -75,6 +77,28 @@ class ModelRegistry:
         except Exception as exc:  # noqa: BLE001
             self.errors["calorie"] = str(exc)
             log.exception("failed to load %s", CALORIE_ARTIFACT)
+            return
+
+        # The XGBoost model is optional: without it the calibrated Keytel
+        # equation in the same JSON still serves heart-rate sessions.
+        if self.calorie.get("served_estimator") != "xgboost":
+            return
+        model_path = self._path(self.calorie.get("model_artifact", CALORIE_MODEL_ARTIFACT))
+        if not model_path.exists():
+            self.errors["calorie_model"] = f"{model_path.name} not found"
+            return
+        try:
+            import joblib
+
+            from .calorie_model import check_bundle
+
+            bundle = joblib.load(model_path)
+            check_bundle(bundle)
+            self.calorie_model = bundle
+            log.info("loaded calorie XGBoost model (%s)", bundle.get("model_version"))
+        except Exception as exc:  # noqa: BLE001
+            self.errors["calorie_model"] = str(exc)
+            log.exception("failed to load %s", model_path.name)
 
     def _load_recommender(self) -> None:
         path = self._path(MEAL_CATALOG_ARTIFACT)
@@ -149,6 +173,7 @@ class ModelRegistry:
     def status(self) -> dict[str, bool]:
         return {
             "calorie": self.calorie is not None,
+            "calorie_xgboost": self.calorie_model is not None,
             "recommender": self.recommender is not None,
             "injury": self.injury is not None,
             "trajectory": self.trajectory_model is not None,

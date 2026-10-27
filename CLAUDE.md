@@ -41,7 +41,7 @@ fitfusion-ai-wb/
 
 | # | Model | Endpoint | Replaces | Consumed by |
 |---|---|---|---|---|
-| 1 | Session energy expenditure: calibrated Keytel HR equation (MET fallback) | `POST /predict/calories` | MET-only estimate | `/api/workout-log` (Cardio + Workout tabs) |
+| 1 | Session energy expenditure: calibrated XGBoost HR model + SHAP (Keytel, then MET fallback) | `POST /predict/calories` | MET-only estimate | `/api/workout-log` (Cardio + Workout tabs) |
 | 2 | Meal recommender: popularity within ingredient-checked dietary filters + calorie bands (non-ML) | `POST /recommend` | LLM-invented meals and calories | `/api/generate-plan` |
 | 3 | Injury risk multi-label XGB (knee/back/shoulder/hamstring) | `POST /predict/injury-risk` | reactive injury logging | `/api/adaptive-replan` |
 | 4 | PyTorch transformer trajectory (improve/plateau/regress) | `POST /predict/trajectory` | single-week completion rate | `/api/adaptive-replan` |
@@ -55,9 +55,14 @@ labels are not physiological (yoga burns the same ~720 kcal/h as HIIT), and has
 been retired. A heart-rate XGBoost model trained on the Malaga treadmill
 dataset beat the published Keytel equation out of the box, but tied it once both
 were calibrated on WEEE (held-out-participant MAE 1.27 vs 1.29 kcal/min,
-p = 0.16). The simpler method therefore ships: Keytel with a linear correction.
-It runs for cardio sessions with an average HR inside the validated range, plus
-the profile's age and sex; every other session gets the MET estimate and a `reason`.
+p = 0.16). On 2026-10-27 the user chose to serve the calibrated XGBoost model
+(the project specifies an explainable XGBoost predictor), with per-request SHAP
+contributions; the tie with Keytel is documented, not hidden. It needs heart rate,
+age, sex and height; without height or the model artifact, calibrated Keytel runs
+(`estimator: "keytel"` + `fallback_reason`); non-cardio sessions, missing HR or HR
+outside the validated range get the MET estimate and a `reason`. The Gym Members
+design from the slides is trained only as a documented comparison
+(`training/train_calorie_gym_comparison.py`). Teacher demo: `ml-service/demos/model1_calorie/`.
 
 Stage 2 was rebuilt on 2026-09-16/17 on the Food.com dataset (231,637 recipes,
 1.13M ratings). The old workout-type collaborative filter scored below "always

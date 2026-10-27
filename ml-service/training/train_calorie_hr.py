@@ -134,6 +134,7 @@ def error_summary(y_true, y_pred, weights=None) -> dict:
     ss_tot = float(np.average((y_true - np.average(y_true, weights=w)) ** 2, weights=w))
     return {
         "mae": float(np.average(np.abs(err), weights=w)),
+        "rmse": float(np.sqrt(ss_res)),
         "mape_pct": float(np.average(np.abs(err) / y_true, weights=w) * 100),
         "bias": bias,
         "loa_low": bias - 1.96 * sd,

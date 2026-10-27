@@ -1,0 +1,192 @@
+{
+  "model": "calorie_gym_comparison",
+  "trained_at": "2026-10-27T15:34:34+00:00",
+  "python": "3.12.10",
+  "artifact": "calorie_gym_comparison.pkl",
+  "served": false,
+  "dataset": "Gym Members Exercise Dataset (Kaggle: valakhorasani/gym-members-exercise-dataset)",
+  "file": "gym_members_exercise_tracking.csv",
+  "algorithm": "XGBRegressor(n_estimators=200, max_depth=6, learning_rate=0.1)",
+  "split": {
+    "test_size": 0.2,
+    "random_state": 42,
+    "train": 778,
+    "test": 195
+  },
+  "features": {
+    "xgb_slide_features": [
+      "Age",
+      "Weight (kg)",
+      "BMI",
+      "Resting_BPM",
+      "Session_Duration (hours)",
+      "type_Cardio",
+      "type_HIIT",
+      "type_Strength",
+      "type_Yoga"
+    ],
+    "xgb_plus_avg_bpm_and_sex": [
+      "Age",
+      "Weight (kg)",
+      "BMI",
+      "Resting_BPM",
+      "Session_Duration (hours)",
+      "type_Cardio",
+      "type_HIIT",
+      "type_Strength",
+      "type_Yoga",
+      "Avg_BPM",
+      "is_female"
+    ]
+  },
+  "data_checks": {
+    "rows": 973,
+    "columns": 15,
+    "missing_values": 0,
+    "duplicate_rows": 0,
+    "bmi_matches_weight_height_max_abs_diff": 0.005,
+    "ranges": {
+      "Age": [
+        18.0,
+        59.0
+      ],
+      "Weight (kg)": [
+        40.0,
+        129.9
+      ],
+      "Height (m)": [
+        1.5,
+        2.0
+      ],
+      "Resting_BPM": [
+        50.0,
+        74.0
+      ],
+      "Avg_BPM": [
+        120.0,
+        169.0
+      ],
+      "Session_Duration (hours)": [
+        0.5,
+        2.0
+      ],
+      "Calories_Burned": [
+        303.0,
+        1783.0
+      ]
+    },
+    "extreme_outliers_3iqr": {
+      "type_HIIT": 221,
+      "type_Yoga": 239
+    },
+    "workout_type_counts": {
+      "Strength": 258,
+      "Cardio": 255,
+      "Yoga": 239,
+      "HIIT": 221
+    }
+  },
+  "label_checks": {
+    "by_workout_type": {
+      "Cardio": {
+        "kcal_per_hour": 723.8,
+        "avg_bpm": 143.9,
+        "weight": 74.8,
+        "met_expected_kcal_per_hour": 561.3
+      },
+      "HIIT": {
+        "kcal_per_hour": 716.5,
+        "avg_bpm": 143.5,
+        "weight": 74.6,
+        "met_expected_kcal_per_hour": 597.0
+      },
+      "Strength": {
+        "kcal_per_hour": 724.0,
+        "avg_bpm": 144.3,
+        "weight": 72.2,
+        "met_expected_kcal_per_hour": 360.9
+      },
+      "Yoga": {
+        "kcal_per_hour": 716.5,
+        "avg_bpm": 143.3,
+        "weight": 73.9,
+        "met_expected_kcal_per_hour": 184.7
+      }
+    },
+    "yoga_to_hiit_kcal_ratio": 1.0,
+    "expected_yoga_to_hiit_ratio_from_met": 0.312,
+    "r2_keytel_form_linear_model_all_rows": 0.9908,
+    "r2_duration_only_all_rows": 0.8247,
+    "corr_label_resting_bpm": 0.0165
+  },
+  "test_results": {
+    "xgb_slide_features": {
+      "mae": 86.02,
+      "rmse": 111.38,
+      "r2": 0.8513
+    },
+    "xgb_plus_avg_bpm_and_sex": {
+      "mae": 22.16,
+      "rmse": 35.69,
+      "r2": 0.9847
+    },
+    "baseline_training_mean": {
+      "mae": 231.2,
+      "rmse": 288.92,
+      "r2": -0.0006
+    },
+    "baseline_met_table": {
+      "mae": 416.88,
+      "rmse": 497.95,
+      "r2": -1.9721
+    },
+    "baseline_duration_only_linear": {
+      "mae": 95.03,
+      "rmse": 123.64,
+      "r2": 0.8168
+    }
+  },
+  "train_cv_mae": {
+    "xgb_slide_features": {
+      "mae_mean": 89.59,
+      "mae_std": 4.29
+    },
+    "xgb_plus_avg_bpm_and_sex": {
+      "mae_mean": 22.29,
+      "mae_std": 1.08
+    }
+  },
+  "target_mae_kcal": 25.0,
+  "target_met_with_slide_features": false,
+  "mean_abs_shap_test": {
+    "xgb_slide_features": {
+      "Session_Duration (hours)": 209.23,
+      "Age": 33.6,
+      "Weight (kg)": 29.41,
+      "BMI": 15.83,
+      "Resting_BPM": 13.1,
+      "type_HIIT": 2.39,
+      "type_Strength": 2.05,
+      "type_Cardio": 1.96,
+      "type_Yoga": 1.66
+    },
+    "xgb_plus_avg_bpm_and_sex": {
+      "Session_Duration (hours)": 210.09,
+      "Avg_BPM": 72.62,
+      "Age": 39.26,
+      "is_female": 28.0,
+      "Weight (kg)": 7.62,
+      "Resting_BPM": 1.66,
+      "BMI": 1.47,
+      "type_Cardio": 0.29,
+      "type_HIIT": 0.22,
+      "type_Yoga": 0.17,
+      "type_Strength": 0.16
+    }
+  },
+  "figures": [
+    "calorie_gym_label_check.png",
+    "calorie_gym_shap.png"
+  ],
+  "conclusion": "Labels are consistent with a Keytel-style formula on Avg_BPM, sex, weight, age and duration rather than calorimetry. The slide features omit Avg_BPM and sex, so they cannot reach the 25 kcal target; adding them mostly re-learns the formula. Not served."
+}

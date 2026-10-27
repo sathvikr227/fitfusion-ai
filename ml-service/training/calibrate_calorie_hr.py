@@ -19,10 +19,13 @@ Rules fixed before any calibrated result was computed:
 
 Outcome (2026-09-16): calibrated Model 1 and calibrated Keytel tied (MAE 1.27 vs
 1.29, Wilcoxon p = 0.16), so the trained model's advantage does not survive
-calibration. FitFusion ships the simpler method — calibrated Keytel — and keeps
-the trained model and both experiments as evidence. The shipped correction is
-refitted on all 16 participants; its expected error is the leave-one-participant-
-out estimate for Keytel reported here.
+calibration.
+
+Serving (2026-10-27, the user's decision): the calibrated XGBoost model is served
+because the project specifies an XGBoost + SHAP predictor; calibrated Keytel is
+kept as its fallback. The tie above is reported, not hidden. Both corrections are
+refitted on all 16 participants; each expected error is that method's
+leave-one-participant-out estimate reported here.
 
     .venv/Scripts/python.exe -m training.calibrate_calorie_hr
 """
@@ -228,22 +231,33 @@ def main() -> None:
     print(f"  Typical error on a {SESSION_MINUTES}-minute session after calibration: "
           + ", ".join(f"{m} ±{v:.0f} kcal" for m, v in session.items()))
 
-    # Shipped method: Keytel with the linear correction fitted on every participant.
-    a, b = fit_correction(PRIMARY, ex["pred_keytel"].to_numpy(float), ex["kcal_per_min"].to_numpy(float))
-    print(f"\n  Shipped: kcal/min = {a:.3f} + {b:.3f} × Keytel (fitted on all 16 participants)")
+    # Served corrections, fitted on every participant: XGBoost (primary) and
+    # Keytel (fallback when the model artifact is unavailable).
+    measured = ex["kcal_per_min"].to_numpy(float)
+    a, b = fit_correction(PRIMARY, ex["pred_keytel"].to_numpy(float), measured)
+    ma, mb = fit_correction(PRIMARY, ex["pred_model"].to_numpy(float), measured)
+    print(f"\n  Served:   kcal/min = {ma:.3f} + {mb:.3f} × XGBoost (fitted on all 16 participants)")
+    print(f"  Fallback: kcal/min = {a:.3f} + {b:.3f} × Keytel")
     keytel_vs_model = comparisons["calibrated_model_vs_calibrated_keytel"]
     decision = (
-        "Ship calibrated Keytel. The trained XGBoost model beat Keytel uncalibrated "
-        "(p=0.0002) but tied once both were calibrated "
+        "Serve calibrated XGBoost (project requirement), Keytel as fallback. The model "
+        "beat Keytel uncalibrated (p=0.0002) but tied once both were calibrated "
         f"(MAE {keytel_vs_model['mae_a']:.2f} vs {keytel_vs_model['mae_b']:.2f}, "
-        f"p={keytel_vs_model['wilcoxon_p']:.2f}), so the simpler method is used."
+        f"p={keytel_vs_model['wilcoxon_p']:.2f}): no significant accuracy gain over Keytel."
         if not ml_survives
-        else "Trained model beats calibrated Keytel; revisit the shipped method."
+        else "Serve calibrated XGBoost: it beats calibrated Keytel significantly."
     )
     print(f"  Decision: {decision}")
 
     energy = {
-        "method": "keytel_2005_linear_calibration",
+        "method": "xgboost_hr_linear_calibration",
+        "served_estimator": "xgboost",
+        "model_artifact": ARTIFACT,
+        "model_intercept": ma,
+        "model_slope": mb,
+        "model_expected_mae_kcal_per_min": results[PRIMARY]["model_1"]["mae"],
+        "model_expected_mape_pct": results[PRIMARY]["model_1"]["mape_pct"],
+        # Keytel fallback coefficients (keys kept for older readers).
         "intercept": a,
         "slope": b,
         "fitted_on": "WEEE exercise segments (cycling, treadmill walk/run), all participants",
@@ -254,7 +268,7 @@ def main() -> None:
         "validated_hr_range_bpm": [float(ex["hr"].min()), float(ex["hr"].max())],
         "validated_workout_types": ["Cardio"],
         "decision": decision,
-        "model_version": "energy-keytel-cal-v1",
+        "model_version": "energy-xgb-cal-v2",
     }
     path = MODEL_DIR / ENERGY_ARTIFACT
     path.write_text(json.dumps(rounded(energy), indent=2), encoding="utf-8")
