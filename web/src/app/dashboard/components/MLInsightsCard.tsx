@@ -30,9 +30,14 @@ type Insights = {
   } | null
   sparkline: SparkPoint[]
   injury: {
+    /** Rule level per region (ordinal, not a probability). */
     risk: Record<string, number>
     threshold: number
     flagged: string[]
+    basis?: Record<string, string>
+    overallRisk?: number | null
+    relativeRisk?: number | null
+    overallElevated?: boolean
     disclaimer: string
     fromFallback: boolean
   }
@@ -208,20 +213,29 @@ export function MLInsightsCard() {
       <div>
         <div className="flex items-baseline justify-between gap-3 mb-3">
           <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-            Predicted strain risk
+            Injury risk from training load
           </h3>
           {data.injury.flagged.length > 0 && (
             <span className="text-xs font-medium text-rose-600 dark:text-rose-400">
-              {data.injury.flagged.map((g) => MUSCLE_LABEL[g] ?? g).join(", ")} above threshold
+              {data.injury.flagged.map((g) => MUSCLE_LABEL[g] ?? g).join(", ")} flagged
             </span>
           )}
         </div>
 
+        <p className="text-xs text-slate-600 dark:text-slate-300 mb-3">
+          {data.injury.overallRisk == null
+            ? "Overall risk unavailable — body areas below use rules only."
+            : data.injury.overallElevated
+              ? `Last 7 days: elevated (${(data.injury.relativeRisk ?? 0).toFixed(1)}× the average injury rate in the training data).`
+              : `Last 7 days: not elevated (${(data.injury.relativeRisk ?? 0).toFixed(1)}× the average injury rate in the training data).`}
+        </p>
+
         <div className="space-y-2">
           {risks.map(([group, score]) => {
             const flagged = score >= threshold
+            const level = flagged ? "Flagged" : score >= 0.5 ? "Watch" : "Low"
             return (
-              <div key={group} className="flex items-center gap-3">
+              <div key={group} className="flex items-center gap-3" title={data.injury.basis?.[group]}>
                 <span className="w-24 shrink-0 text-xs text-slate-600 dark:text-slate-300">
                   {MUSCLE_LABEL[group] ?? group}
                 </span>
@@ -232,13 +246,13 @@ export function MLInsightsCard() {
                   />
                 </div>
                 <span
-                  className={`w-10 shrink-0 text-right text-xs tabular-nums ${
+                  className={`w-14 shrink-0 text-right text-xs ${
                     flagged
                       ? "text-rose-600 dark:text-rose-400 font-semibold"
                       : "text-slate-500 dark:text-slate-400"
                   }`}
                 >
-                  {Math.round(score * 100)}%
+                  {level}
                 </span>
               </div>
             )

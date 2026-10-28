@@ -103,6 +103,7 @@ export default function DreamBodyPage() {
   const [photoError, setPhotoError] = useState("")
   const [showPhotoSection, setShowPhotoSection] = useState(false)
   const [applied, setApplied] = useState(false)
+  const [applyingToPlan, setApplyingToPlan] = useState(false)
   const formRef = useRef<HTMLDivElement>(null)
 
   // Auth guard + pre-fill from profile
@@ -172,16 +173,72 @@ export default function DreamBodyPage() {
     }
   }
 
-  const applyPhotoAnalysis = () => {
+  const applyPhotoAnalysis = async () => {
     if (!photoAnalysis) return
-    if (photoAnalysis.primaryGoal) setGoal(photoAnalysis.primaryGoal)
-    if (photoAnalysis.suggestedTargetBodyFat) setTargetBodyFat(String(photoAnalysis.suggestedTargetBodyFat))
-    setApplied(true)
-    setTimeout(() => setApplied(false), 3000)
-    // Scroll down to the form so user can see what changed
-    setTimeout(() => {
-      formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
-    }, 100)
+    setApplyingToPlan(true)
+    setPhotoError("")
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { router.replace("/login"); return }
+
+      const appliedGoal = photoAnalysis.primaryGoal || goal || "lose_fat"
+      const appliedTargetBF = photoAnalysis.suggestedTargetBodyFat ?? null
+      const currentWeightNum = parseFloat(currentWeight) || 70
+      const targetWeightNum = appliedGoal === "build_muscle"
+        ? currentWeightNum * 1.05
+        : appliedGoal === "maintain"
+        ? currentWeightNum
+        : currentWeightNum * 0.9
+
+      // 1. Generate a dream-body roadmap from photo insights + profile data
+      const dreamRes = await fetch("/api/dream-body", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({
+          currentWeight: currentWeightNum,
+          targetWeight: parseFloat(targetWeight) || +targetWeightNum.toFixed(1),
+          currentBodyFat: photoAnalysis.estimatedBodyFat ?? (currentBodyFat ? parseFloat(currentBodyFat) : null),
+          targetBodyFat: appliedTargetBF ?? (targetBodyFat ? parseFloat(targetBodyFat) : null),
+          heightCm: heightCm ? parseFloat(heightCm) : null,
+          age: age ? parseInt(age) : null,
+          gender,
+          activityLevel,
+          goal: appliedGoal,
+          timeframeWeeks,
+        }),
+      })
+      if (!dreamRes.ok) {
+        const e = await dreamRes.json().catch(() => ({}))
+        throw new Error(e.error || "Failed to generate roadmap")
+      }
+      const { roadmap: generatedRoadmap } = await dreamRes.json()
+
+      // 2. Save calorie + macro targets to profile
+      await supabase.from("profiles").update({
+        calorie_target: generatedRoadmap.dailyCalories,
+        protein_target: generatedRoadmap.macros.protein,
+        carbs_target: generatedRoadmap.macros.carbs,
+        fat_target: generatedRoadmap.macros.fat,
+      }).eq("id", session.user.id)
+
+      // 3. Generate & save a new workout plan
+      const planRes = await fetch("/api/generate-plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ userId: session.user.id }),
+      })
+      if (!planRes.ok) {
+        const e = await planRes.json().catch(() => ({}))
+        throw new Error(e.error || "Failed to generate workout plan")
+      }
+
+      setApplied(true)
+      setTimeout(() => router.push("/dashboard/plan"), 1000)
+    } catch (err: any) {
+      console.error("Apply to plan error:", err)
+      setPhotoError(err.message || "Failed to apply. Please try again.")
+      setApplyingToPlan(false)
+    }
   }
 
   const generate = async () => {
@@ -429,12 +486,15 @@ export default function DreamBodyPage() {
 
                         <button
                           onClick={applyPhotoAnalysis}
-                          className={`w-full py-2.5 rounded-xl text-white text-xs font-semibold transition flex items-center justify-center gap-2 ${applied ? "bg-green-500" : "bg-gradient-to-r from-purple-600 to-cyan-500 hover:opacity-90"}`}
+                          disabled={applyingToPlan || applied}
+                          className={`w-full py-2.5 rounded-xl text-white text-xs font-semibold transition flex items-center justify-center gap-2 disabled:opacity-70 ${applied ? "bg-green-500" : "bg-gradient-to-r from-purple-600 to-cyan-500 hover:opacity-90"}`}
                         >
                           {applied ? (
-                            <><svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg> Applied! Scroll down to see</>
+                            <><svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg> Plan applied! Redirecting…</>
+                          ) : applyingToPlan ? (
+                            <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Generating your plan…</>
                           ) : (
-                            "Apply to My Plan Form"
+                            "Apply to My Plan"
                           )}
                         </button>
                       </div>

@@ -4,14 +4,14 @@ import { useEffect, useMemo, useState } from "react"
 import { supabase } from "../../../lib/supabase/client"
 import { MET_VALUES, estimateExerciseDurationMinutes } from "../../../lib/calories"
 
-type ShapFeature = { feature: string; label: string; impact: number; value: number }
-
 type CalorieInsight = {
   calories: number
   source: "ml" | "fallback"
   modelVersion: string
   workoutType: string
-  shap: ShapFeature[]
+  method: "heart_rate" | "met_table"
+  expectedErrorKcalPerMin: number | null
+  methodReason: string | null
 }
 
 type Mode = "custom" | "assigned"
@@ -771,7 +771,10 @@ export default function WorkoutTab() {
         source: data.source === "ml" ? "ml" : "fallback",
         modelVersion: String(data.modelVersion ?? ""),
         workoutType: String(data.workoutType ?? ""),
-        shap: Array.isArray(data.shap) ? data.shap : [],
+        method: data.method === "heart_rate" ? "heart_rate" : "met_table",
+        expectedErrorKcalPerMin:
+          typeof data.expectedErrorKcalPerMin === "number" ? data.expectedErrorKcalPerMin : null,
+        methodReason: typeof data.methodReason === "string" ? data.methodReason : null,
       }
     } catch (err) {
       console.warn("Calorie model unavailable, using MET estimate:", err)
@@ -1178,66 +1181,14 @@ export default function WorkoutTab() {
         </div>
       )}
 
-      {calorieInsight && calorieInsight.source === "ml" && calorieInsight.shap.length > 0 && (
-        <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
-          <div className="flex items-baseline justify-between gap-3 mb-1">
-            <h3 className="font-semibold text-slate-800 dark:text-white">
-              Why {calorieInsight.calories} kcal?
-            </h3>
-            <span className="text-xs text-slate-400">{calorieInsight.workoutType}</span>
-          </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-            What pushed this estimate up or down, from the calorie model.
-          </p>
-
-          <div className="space-y-2">
-            {calorieInsight.shap.map((feature) => {
-              const widest = Math.max(
-                ...calorieInsight.shap.map((f) => Math.abs(f.impact)),
-                1
-              )
-              const width = (Math.abs(feature.impact) / widest) * 100
-              const positive = feature.impact >= 0
-
-              return (
-                <div key={feature.feature} className="flex items-center gap-3">
-                  <span className="w-36 shrink-0 text-xs text-slate-600 dark:text-slate-300">
-                    {feature.label}
-                  </span>
-                  <div className="flex-1 flex items-center">
-                    <div className="flex-1 flex justify-end">
-                      {!positive && (
-                        <div
-                          className="h-2.5 rounded-l-full bg-rose-400"
-                          style={{ width: `${width}%` }}
-                        />
-                      )}
-                    </div>
-                    <div className="w-px h-4 bg-slate-200 dark:bg-slate-600" />
-                    <div className="flex-1">
-                      {positive && (
-                        <div
-                          className="h-2.5 rounded-r-full bg-emerald-400"
-                          style={{ width: `${width}%` }}
-                        />
-                      )}
-                    </div>
-                  </div>
-                  <span
-                    className={`w-20 shrink-0 text-right text-xs font-medium tabular-nums ${
-                      positive
-                        ? "text-emerald-600 dark:text-emerald-400"
-                        : "text-rose-600 dark:text-rose-400"
-                    }`}
-                  >
-                    {positive ? "+" : ""}
-                    {Math.round(feature.impact)} kcal
-                  </span>
-                </div>
-              )
-            })}
-          </div>
-        </div>
+      {calorieInsight && (
+        <p className="px-1 text-xs text-slate-500 dark:text-slate-400">
+          {calorieInsight.method === "heart_rate"
+            ? `Calories estimated from heart rate — lab-validated, typical error ±${calorieInsight.expectedErrorKcalPerMin ?? "?"} kcal/min.`
+            : `Calories estimated from the MET table (not lab-validated)${
+                calorieInsight.methodReason ? `: ${calorieInsight.methodReason}` : ""
+              }.`}
+        </p>
       )}
 
       <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">

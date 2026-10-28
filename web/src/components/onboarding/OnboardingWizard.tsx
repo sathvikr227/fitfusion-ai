@@ -3,6 +3,21 @@
 import { useMemo, useState, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "../../lib/supabase/client"
+import { RANGES, firstRangeError, rangeError } from "../../lib/validation"
+
+/** Closest Injury Tracker body part for free text like "mild knee pain". */
+function bodyPartFromText(text: string): string {
+  const t = text.toLowerCase()
+  if (/knee/.test(t)) return "Knee"
+  if (/lower back|lumbar|back/.test(t)) return "Lower Back"
+  if (/shoulder/.test(t)) return "Shoulder"
+  if (/hamstring/.test(t)) return "Hamstring"
+  if (/ankle/.test(t)) return "Ankle"
+  if (/wrist/.test(t)) return "Wrist"
+  if (/hip/.test(t)) return "Hip"
+  if (/neck/.test(t)) return "Neck"
+  return "Other"
+}
 
 type FormData = {
   age: string
@@ -61,11 +76,24 @@ export default function OnboardingWizard() {
         setError("Please fill age and gender.")
         return false
       }
+      const ageError = rangeError("age", formData.age)
+      if (ageError) {
+        setError(ageError)
+        return false
+      }
     }
 
     if (step === 2) {
       if (!formData.height || !formData.weight) {
         setError("Please fill height and weight.")
+        return false
+      }
+      const bodyError = firstRangeError([
+        ["heightCm", formData.height],
+        ["weightKg", formData.weight],
+      ])
+      if (bodyError) {
+        setError(bodyError)
         return false
       }
     }
@@ -172,6 +200,29 @@ export default function OnboardingWizard() {
         return
       }
 
+      // Mirror the onboarding injury into the Injury Tracker so the tracker,
+      // Home's risk card and the replan all see it. Skipped if already there.
+      const injuryText = formData.injuries.trim()
+      if (injuryText && !["no", "none", "na", "n/a", "nil"].includes(injuryText.toLowerCase())) {
+        const { data: existingInjury } = await supabase
+          .from("injuries")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("name", injuryText)
+          .limit(1)
+        if (!existingInjury || existingInjury.length === 0) {
+          const { error: injuryError } = await supabase.from("injuries").insert({
+            user_id: user.id,
+            name: injuryText,
+            body_part: bodyPartFromText(injuryText),
+            severity: /severe/i.test(injuryText) ? "severe" : /moderate/i.test(injuryText) ? "moderate" : "mild",
+            status: "active",
+            notes: "Added from onboarding",
+          })
+          if (injuryError) console.error("Failed to add onboarding injury:", injuryError)
+        }
+      }
+
       const { data: existingLog, error: logCheckError } = await supabase
         .from("progress_logs")
         .select("id")
@@ -245,6 +296,8 @@ export default function OnboardingWizard() {
                   value={formData.age}
                   onChange={(value) => updateField("age", value)}
                   type="number"
+                  min={RANGES.age.min}
+                  max={RANGES.age.max}
                 />
 
                 <Select
@@ -269,6 +322,8 @@ export default function OnboardingWizard() {
                   value={formData.height}
                   onChange={(value) => updateField("height", value)}
                   type="number"
+                  min={RANGES.heightCm.min}
+                  max={RANGES.heightCm.max}
                 />
 
                 <Input
@@ -277,6 +332,8 @@ export default function OnboardingWizard() {
                   value={formData.weight}
                   onChange={(value) => updateField("weight", value)}
                   type="number"
+                  min={RANGES.weightKg.min}
+                  max={RANGES.weightKg.max}
                 />
               </div>
             </StepCard>
@@ -484,12 +541,16 @@ function Input({
   value,
   onChange,
   type = "text",
+  min,
+  max,
 }: {
   label: string
   placeholder: string
   value: string
   onChange: (value: string) => void
   type?: string
+  min?: number
+  max?: number
 }) {
   return (
     <div>
@@ -497,6 +558,8 @@ function Input({
       <input
         type={type}
         value={value}
+        min={min}
+        max={max}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
         className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"

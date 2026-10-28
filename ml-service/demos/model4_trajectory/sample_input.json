@@ -1,0 +1,10 @@
+{
+  "_label": "ILLUSTRATIVE INPUT, not a real user. A FitFusion member's last 4 running days (oldest first) as /api/adaptive-replan sends them: duration in hours, distance in km, days since the previous run, weekday with Monday = 0.",
+  "user_id": "demo-user",
+  "sessions": [
+    {"date": "2026-10-14", "duration": 0.5,   "distance_km": 5.0,  "gap_days": 3, "day_of_week": 2, "completion_rate": 1, "workout_type": "Cardio"},
+    {"date": "2026-10-17", "duration": 1.0,   "distance_km": 10.0, "gap_days": 3, "day_of_week": 5, "completion_rate": 1, "workout_type": "Cardio"},
+    {"date": "2026-10-21", "duration": 0.483, "distance_km": 5.0,  "gap_days": 4, "day_of_week": 1, "completion_rate": 1, "workout_type": "Cardio"},
+    {"date": "2026-10-25", "duration": 1.6,   "distance_km": 15.0, "gap_days": 4, "day_of_week": 5, "completion_rate": 1, "workout_type": "Cardio"}
+  ]
+}

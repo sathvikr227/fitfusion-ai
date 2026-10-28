@@ -1,7 +1,10 @@
 import { callMLService, type MLCallResult } from "./client"
+import { injuryRegionLevels } from "./injury-rules"
 import type {
   CalorieRequest,
   CalorieResponse,
+  ExerciseRequest,
+  ExerciseResponse,
   InjuryRequest,
   InjuryResponse,
   RLActionResponse,
@@ -15,7 +18,7 @@ import type {
 // Every wrapper passes a fallback. If the ML service is down, slow, misconfigured,
 // or returns something unusable, the rule-based path runs and the user sees no error.
 
-// ── 1. Calorie predictor ─────────────────────────────────────────────────────
+// ── 1. Session energy expenditure ────────────────────────────────────────────
 
 // MET per dataset workout class, mirroring ml-service/app/routers/calorie.py.
 // The app's richer per-exercise table stays in lib/calories.ts and is unchanged.
@@ -68,28 +71,58 @@ export function predictCalorie(req: CalorieRequest): Promise<MLCallResult<Calori
     const multiplier =
       req.intensity === "high" ? 1.15 : req.intensity === "low" ? 0.85 : 1.0
     const kcal = Math.round(met * req.weight_kg * hours * multiplier * 10) / 10
+    const minutes = hours * 60
     return {
       calories: kcal,
+      kcal_per_min: minutes > 0 ? Math.round((kcal / minutes) * 100) / 100 : 0,
+      method: "met_table",
+      estimator: "met",
+      validated: false,
+      expected_error_kcal_per_min: null,
+      reason: "ML service unavailable",
+      fallback_reason: null,
+      explanation: null,
+      warnings: [],
       baseline_met_calories: kcal,
       model_version: "fallback-met",
       workout_type: workoutType,
-      shap_top_features: [],
-      shap_base_value: null,
-      imputed: [],
       stub: true,
     }
   })
 }
 
-// ── 2. Hybrid recommender ────────────────────────────────────────────────────
+// ── 2. Meal recommender ──────────────────────────────────────────────────────
 
+// Fallback returns no recipes: the plan is then written without recipe
+// grounding, exactly as before this stage existed.
 export function recommend(req: RecommendRequest): Promise<MLCallResult<RecommendResponse>> {
-  return callMLService<RecommendRequest, RecommendResponse>("/recommend", req, () => ({
-    recommended_workouts: [],
-    recommended_diet_focus: null,
-    excluded_workouts: [],
+  return callMLService<RecommendRequest, RecommendResponse>("/recommend", req, (reason) => ({
+    meals: [],
     applied_restrictions: [],
-    neighbours_used: 0,
+    unsupported_restrictions: [],
+    reason: `ML service unavailable (${reason})`,
+    method: "none",
+    model_version: "fallback-empty",
+    stub: true,
+  }))
+}
+
+// ── 2b. Exercise recommender ─────────────────────────────────────────────────
+
+// Fallback returns no exercises: the plan is then written from the prompt's
+// own exercise knowledge, exactly as before this stage existed.
+export function recommendExercises(req: ExerciseRequest): Promise<MLCallResult<ExerciseResponse>> {
+  return callMLService<ExerciseRequest, ExerciseResponse>("/recommend/exercises", req, (reason) => ({
+    focus: req.focus,
+    goal: req.goal ?? "",
+    level: "",
+    allowed_equipment: [],
+    injury_groups_excluded: [],
+    excluded_counts: {},
+    candidates_after_filters: 0,
+    recommendations: [],
+    note: `ML service unavailable (${reason})`,
+    method: "none",
     model_version: "fallback-empty",
     stub: true,
   }))
@@ -99,19 +132,25 @@ export function recommend(req: RecommendRequest): Promise<MLCallResult<Recommend
 
 export function predictInjury(req: InjuryRequest): Promise<MLCallResult<InjuryResponse>> {
   return callMLService<InjuryRequest, InjuryResponse>("/predict/injury-risk", req, () => {
-    // Neutral, sub-threshold scores: with no model we must not invent risk, and
-    // must not silently clear a user who might have some.
-    const risk = { knee: 0.1, back: 0.1, shoulder: 0.1, hamstring: 0.1 }
+    // The service's own rules with no load model: recorded and loaded regions
+    // keep their levels, but nothing claims elevated training-load risk and
+    // nothing reaches the 0.7 flag, so a missing model never invents risk.
+    const { risk, basis } = injuryRegionLevels(req.prior_injuries ?? [], req.recent_exercises ?? [], false)
     return {
-      risk,
+      risk: risk as InjuryResponse["risk"],
       threshold: 0.7,
       flagged: [],
+      basis,
+      overall_risk: null,
+      relative_risk: null,
+      overall_threshold: null,
+      overall_elevated: false,
       features_used: {},
       imputed: [],
       source: "fallback",
-      model_version: "fallback-neutral",
+      model_version: "fallback-rules",
       disclaimer:
-        "Proxy injury-risk scores derived from biomechanical thresholds. Not a clinical diagnosis.",
+        "Informational injury-risk indicator, not a medical diagnosis. Body regions are flagged by fixed rules, not predicted.",
       stub: true,
     }
   })

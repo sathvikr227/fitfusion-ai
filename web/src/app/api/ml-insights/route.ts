@@ -52,17 +52,19 @@ export async function GET(req: NextRequest) {
       probs: Record<string, number>
       sessionsUsed: number
       modelVersion: string
+      reason: string | null
       fromFallback: boolean
     } | null = null
 
-    if (history.sessions.length > 0) {
-      const result = await predictTrajectory({ user_id: userId, sessions: history.sessions })
+    if (history.trajectorySessions.length > 0) {
+      const result = await predictTrajectory({ user_id: userId, sessions: history.trajectorySessions })
       trajectory = {
         label: result.data.label,
         score: result.data.trajectory_score,
         probs: result.data.probs,
         sessionsUsed: result.data.sessions_used,
         modelVersion: result.data.model_version,
+        reason: result.data.reason ?? null,
         fromFallback: result.fromFallback,
       }
       if (result.fromFallback) {
@@ -112,6 +114,10 @@ export async function GET(req: NextRequest) {
         risk: injuryResult.data.risk,
         threshold: injuryResult.data.threshold,
         flagged: injuryResult.data.flagged,
+        basis: injuryResult.data.basis,
+        overallRisk: injuryResult.data.overall_risk,
+        relativeRisk: injuryResult.data.relative_risk,
+        overallElevated: injuryResult.data.overall_elevated,
         disclaimer: injuryResult.data.disclaimer,
         modelVersion: injuryResult.data.model_version,
         fromFallback: injuryResult.fromFallback,

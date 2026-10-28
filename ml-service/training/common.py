@@ -6,7 +6,7 @@ stay reproducible and free of copy-pasted setup.
 
 Run any trainer from the `ml-service/` directory:
 
-    .venv/Scripts/python.exe -m training.train_calorie
+    .venv/Scripts/python.exe -m training.train_calorie_hr
 """
 
 from __future__ import annotations
@@ -36,13 +36,13 @@ DATA_DIR = Path(os.environ.get("FITFUSION_DATA_DIR", ML_SERVICE_ROOT / "data"))
 MODEL_DIR = Path(os.environ.get("MODEL_DIR", ML_SERVICE_ROOT / "models"))
 REPORT_DIR = MODEL_DIR / "reports"
 
-# Kaggle's public dataset endpoint serves these two without credentials.
+# Kaggle's public dataset endpoint serves this without credentials. Stages 1-2
+# use manually downloaded datasets instead (see training/README.md).
 KAGGLE_DATASETS = {
     "gym": (
         "valakhorasani/gym-members-exercise-dataset",
         "gym_members_exercise_tracking.csv",
     ),
-    "food": ("shrutisaxena/food-nutrition-dataset", "food.csv"),
 }
 
 RANDOM_SEED = 42
@@ -96,12 +96,6 @@ def load_gym_dataset() -> pd.DataFrame:
     if len(df) != before:
         print(f"[data] dropped {before - len(df)} rows containing nulls")
     print(f"[data] gym dataset: {df.shape[0]} rows × {df.shape[1]} cols")
-    return df
-
-
-def load_food_dataset() -> pd.DataFrame:
-    df = pd.read_csv(download_dataset("food"))
-    print(f"[data] food dataset: {df.shape[0]} rows × {df.shape[1]} cols")
     return df
 
 

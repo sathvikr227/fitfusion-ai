@@ -2,11 +2,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 const PUBLIC_API_PATHS = [
-  '/api/analyze-food',
-  '/api/analyze-food-text',
-  '/api/food-db',
-  '/api/help/workout',
-  '/api/help/recipe',
+  '/api/food-db',  // also called server-side by /api/analyze-food, without a user token
   '/api/seed-knowledge',
   '/api/share',  // public share stats — no auth needed for GET
   '/api/ml-health',  // dev probe for ML service round-trip; returns no user data
@@ -17,7 +13,7 @@ const PUBLIC_API_PATHS = [
 const rateLimitStore = new Map<string, { count: number; resetAt: number }>()
 
 // AI routes get 20 req/min per IP, other API routes get 60 req/min
-const AI_PATHS = ['/api/assistant', '/api/chat', '/api/dream-body', '/api/generate-plan', '/api/analyze-inspiration', '/api/adaptive-replan', '/api/voice-chat', '/api/weekly-report']
+const AI_PATHS = ['/api/assistant', '/api/chat', '/api/dream-body', '/api/generate-plan', '/api/analyze-inspiration', '/api/adaptive-replan', '/api/voice-chat', '/api/weekly-report', '/api/analyze-food', '/api/help']
 const AI_LIMIT = 20
 const DEFAULT_LIMIT = 60
 const WINDOW_MS = 60_000 // 1 minute
@@ -46,11 +42,7 @@ export function proxy(request: NextRequest) {
 
   // API route protection
   if (pathname.startsWith('/api/')) {
-    if (PUBLIC_API_PATHS.some(p => pathname.startsWith(p))) {
-      return NextResponse.next()
-    }
-
-    // Rate limiting
+    // Rate limiting (public paths included: they still hit paid or quota-limited APIs)
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
                 request.headers.get('x-real-ip') ??
                 'anonymous'
@@ -60,6 +52,10 @@ export function proxy(request: NextRequest) {
         { error: 'Too many requests. Please wait a moment and try again.' },
         { status: 429, headers: { 'Retry-After': '60', 'X-RateLimit-Remaining': '0' } }
       )
+    }
+
+    if (PUBLIC_API_PATHS.some(p => pathname.startsWith(p))) {
+      return NextResponse.next()
     }
 
     const authHeader = request.headers.get('authorization')

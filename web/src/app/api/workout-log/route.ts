@@ -11,11 +11,12 @@ import { normalizeWorkoutType, predictCalorie } from "../../../lib/ml-service"
 export const runtime = "nodejs"
 
 /**
- * Model 1 integration point.
+ * Stage 1 integration point — session energy expenditure.
  *
- * Given the exercises in a logged session, returns the XGBoost calorie estimate
- * plus the SHAP breakdown behind it. The client stores the returned number as
- * `workout_logs.total_calories`.
+ * For a cardio session with an average heart rate (plus the profile's age and
+ * sex) the ML service returns the calibrated Keytel estimate, validated against
+ * lab calorimetry. Otherwise it returns a MET estimate and says why in
+ * `methodReason`.
  *
  * If the ML service is unreachable the existing MET calculation runs instead and
  * `source` comes back as "fallback" — the caller always gets a usable number.
@@ -28,12 +29,6 @@ function getSupabase() {
     throw new Error("Supabase environment variables are missing")
   }
   return createClient(url, serviceRoleKey)
-}
-
-function parseHeightCm(raw: unknown): number | null {
-  const n = Number(raw)
-  if (!Number.isFinite(n) || n <= 0) return null
-  return n > 3 ? n : n * 100
 }
 
 export async function POST(req: NextRequest) {
@@ -62,22 +57,15 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Profile context the calorie model needs ───────────────────────────────
-    const [profileRes, weightRes, vitalsRes] = await Promise.all([
+    const [profileRes, weightRes] = await Promise.all([
       supabase
         .from("profiles")
-        .select("age, height, weight")
+        .select("age, gender, weight, height")
         .eq("id", user.id)
         .maybeSingle(),
       supabase
         .from("weight_logs")
         .select("weight")
-        .eq("user_id", user.id)
-        .order("date", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-      supabase
-        .from("vitals_logs")
-        .select("heart_rate")
         .eq("user_id", user.id)
         .order("date", { ascending: false })
         .limit(1)
@@ -98,9 +86,13 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const heightCm = parseHeightCm(profile?.height)
     const age = Number(profile?.age) || undefined
-    const restingBpm = Number(vitalsRes.data?.heart_rate) || undefined
+    const sex = typeof profile?.gender === "string" ? profile.gender : undefined
+    const avgHeartRate = Number(body?.avgHeartRate) || undefined
+    // profiles.height is cm; tolerate an older metres value.
+    const rawHeight = Number(profile?.height)
+    const heightCm =
+      rawHeight > 0 ? (rawHeight < 3 ? Math.round(rawHeight * 100) : rawHeight) : undefined
 
     const durationMin = estimateSessionDurationMinutes(exercises)
     const workoutType = normalizeWorkoutType(
@@ -119,8 +111,9 @@ export async function POST(req: NextRequest) {
     const result = await predictCalorie({
       weight_kg: bodyWeightKg,
       age,
-      height_cm: heightCm ?? undefined,
-      resting_bpm: restingBpm,
+      sex,
+      avg_hr: avgHeartRate,
+      height_cm: heightCm,
       duration_min: durationMin,
       workout_type: workoutType,
       intensity: body?.intensity ?? "moderate",
@@ -134,14 +127,20 @@ export async function POST(req: NextRequest) {
       calories: Math.round(result.data.calories),
       source: result.fromFallback ? "fallback" : "ml",
       fallbackReason: result.reason ?? null,
+      method: result.data.method,
+      estimator: result.data.estimator,
+      explanation: result.data.explanation,
+      estimatorFallbackReason: result.data.fallback_reason,
+      warnings: result.data.warnings,
+      validated: result.data.validated,
+      kcalPerMin: result.data.kcal_per_min,
+      expectedErrorKcalPerMin: result.data.expected_error_kcal_per_min,
+      methodReason: result.data.reason,
       modelVersion: result.data.model_version,
       workoutType: result.data.workout_type,
       durationMinutes: durationMin,
       metCalories,
       baselineMetCalories: result.data.baseline_met_calories,
-      shap: result.data.shap_top_features,
-      shapBaseValue: result.data.shap_base_value,
-      imputed: result.data.imputed,
     })
   } catch (err: any) {
     console.error("[workout-log] error:", err?.message ?? err)

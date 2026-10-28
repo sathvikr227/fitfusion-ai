@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import Groq from "groq-sdk"
 import { createClient } from "@supabase/supabase-js"
-import { GROQ_MODEL } from "../../../lib/groq-model"
+import { groqJson } from "../../../lib/groq-json"
 
 export const runtime = "nodejs"
 
@@ -68,15 +68,11 @@ Return ONLY valid JSON:
 
 Be realistic with estimates. If unsure about a specific item, make a reasonable educated guess.`
 
-    const completion = await groq.chat.completions.create({
-      model: GROQ_MODEL,
+    const raw = await groqJson(groq, {
       messages: [{ role: "user", content: prompt }],
       temperature: 0.3,
-      response_format: { type: "json_object" },
-      max_tokens: 400,
+      maxTokens: 1200,
     })
-
-    const raw = completion.choices[0]?.message?.content ?? ""
     const parsed = JSON.parse(extractJson(raw))
 
     const validMealTypes = ["breakfast", "lunch", "dinner", "snacks"]

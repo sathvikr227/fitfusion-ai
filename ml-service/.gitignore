@@ -19,3 +19,6 @@ data/
 
 # Training console output.
 rl_train.log
+
+# Locally generated deploy secrets (shared API key). Never commit.
+.deploy/

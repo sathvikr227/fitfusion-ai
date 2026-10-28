@@ -1,0 +1,99 @@
+
+────────────────────────────────────────────────────────────────────────
+  1. Why Model 4 was rebuilt
+────────────────────────────────────────────────────────────────────────
+  Old model: valakhorasani/gym-members-exercise-dataset (pseudo-sequences), accuracy 0.459.
+  Its 'sequences' were rows regrouped from a one-off survey, with a proxy completion rate
+  and a made-up weekday. It never saw a real person's sessions in order.
+  FitFusion's own history is seeded/test data (owner, 2026-10-28), so it is not used.
+  New model: real Strava logs, protocol fixed before training (PROTOCOL.md, commit a2de032).
+
+────────────────────────────────────────────────────────────────────────
+  2. The data and the label
+────────────────────────────────────────────────────────────────────────
+  9,259,153 run-days from 36,412 runners (2019-2020), 9,186,630 after cleaning.
+  1,091,424 windows of 8 consecutive sessions within 56 days.
+  Label: median 10 km-equivalent pace of sessions 5-8 vs 1-4. IMPROVE if more than 2.2% faster, REGRESS if more than 2.1% slower, else PLATEAU
+  (thresholds = tertiles of the training athletes only).
+    train 24,327 athletes  763,342 windows  {'REGRESS': 254447, 'PLATEAU': 254448, 'IMPROVE': 254447}
+    val    5,212 athletes  164,174 windows  {'REGRESS': 54721, 'PLATEAU': 54667, 'IMPROVE': 54786}
+    test   5,214 athletes  163,908 windows  {'REGRESS': 54513, 'PLATEAU': 54815, 'IMPROVE': 54580}
+
+────────────────────────────────────────────────────────────────────────
+  3. Labelled sample input → prediction
+────────────────────────────────────────────────────────────────────────
+  Input file: sample_input.json
+  ILLUSTRATIVE INPUT, not a real user. A FitFusion member's last 4 running days (oldest first) as /api/adaptive-replan sends them: duration in hours, distance in km, days since the previous run, weekday with Monday = 0.
+     #     km  hours   10k pace  gap d  day
+     1    5.0   0.50    6:15/km      3  Wed
+     2   10.0   1.00    6:00/km      3  Sat
+     3    5.0   0.48    6:03/km      4  Tue
+     4   15.0   1.60    6:15/km      4  Sat
+  Probabilities: REGRESS 0.348, PLATEAU 0.445, IMPROVE 0.207
+  Prediction: PLATEAU  (model served in the app: True)
+
+────────────────────────────────────────────────────────────────────────
+  4. Real held-out athletes (never used in training, tuning or thresholds)
+────────────────────────────────────────────────────────────────────────
+  Test windows: 163,908 from 5,214 athletes
+  Accuracy recomputed now: 0.4807   (report: 0.4807)
+
+  Athlete 10, first window — actual REGRESS (pace change +2.2%), predicted PLATEAU
+     #     km  hours   10k pace  gap d  day
+     1    3.8   0.35    5:51/km      2  Fri
+     2    6.7   0.66    6:05/km      3  Mon
+     3   10.5   1.05    5:58/km      1  Tue
+     4    6.1   0.59    5:59/km      1  Wed
+    probabilities: REGRESS 0.235, PLATEAU 0.487, IMPROVE 0.278
+
+  Athlete 23, first window — actual IMPROVE (pace change -4.6%), predicted IMPROVE
+     #     km  hours   10k pace  gap d  day
+     1    4.8   0.50    6:31/km     19  Sat
+     2    3.7   0.31    5:18/km     30  Mon
+     3    4.8   0.38    4:56/km      1  Tue
+     4    3.5   0.28    5:02/km      1  Wed
+    probabilities: REGRESS 0.297, PLATEAU 0.247, IMPROVE 0.455
+
+  Athlete 31, first window — actual PLATEAU (pace change -0.1%), predicted REGRESS
+     #     km  hours   10k pace  gap d  day
+     1    8.8   0.75    5:11/km     13  Wed
+     2    6.5   0.53    5:04/km     15  Thu
+     3    3.3   0.31    6:02/km      3  Sun
+     4    8.7   0.69    4:50/km     11  Thu
+    probabilities: REGRESS 0.433, PLATEAU 0.271, IMPROVE 0.296
+
+────────────────────────────────────────────────────────────────────────
+  5. Same request through the FastAPI endpoint
+────────────────────────────────────────────────────────────────────────
+  HTTP 200
+  {
+    "label": "PLATEAU",
+    "trajectory_score": 1,
+    "probs": {
+      "REGRESS": 0.3482,
+      "PLATEAU": 0.4449,
+      "IMPROVE": 0.2069
+    },
+    "sessions_used": 4,
+    "model_version": "trajectory-runs-transformer-v1",
+    "reason": null,
+    "stub": false
+  }
+
+────────────────────────────────────────────────────────────────────────
+  6. Evaluation evidence (models/reports/trajectory_runs.json)
+────────────────────────────────────────────────────────────────────────
+  model                  accuracy [95% CI]           macro-F1
+  Transformer            0.481 [0.478, 0.484]           0.480
+  Majority               0.334 [0.330, 0.339]           0.167
+  Last-delta rule        0.356 [0.353, 0.359]           0.354
+  Logistic regression    0.406 [0.403, 0.409]           0.405
+  Gradient boosting      0.464 [0.461, 0.467]           0.461
+  Transformer minus Majority               Δ +0.1463 [+0.1413, +0.1513]
+  Transformer minus Last-delta rule        Δ +0.1249 [+0.1212, +0.1284]
+  Transformer minus Logistic regression    Δ +0.0744 [+0.0711, +0.0780]
+  Transformer minus Gradient boosting      Δ +0.0170 [+0.0149, +0.0191]
+  Other seeds: {'0': {'best_val_macro_f1': 0.4827, 'test_accuracy': 0.4816}, '1': {'best_val_macro_f1': 0.4831, 'test_accuracy': 0.4806}, '2': {'best_val_macro_f1': 0.4824, 'test_accuracy': 0.4807}}
+  Decision: {'rule': "serve iff the lower bound of the transformer's test accuracy CI > majority-class accuracy", 'transformer_accuracy_ci_low': 0.4779, 'majority_accuracy': 0.3344, 'serve': True, 'baselines_significantly_better': [], 'slide_target_accuracy_over_0_65_met': False}
+
+[saved] C:\Users\Sathv\OneDrive\Desktop\fitfusion-ai-wb\ml-service\demos\model4_trajectory\outputs\demo_output.json

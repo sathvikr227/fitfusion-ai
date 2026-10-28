@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
+import { requireUser } from "../../../../lib/supabase/require-user";
 import Groq from "groq-sdk";
-import { GROQ_MODEL } from "../../../../lib/groq-model"
+import { groqJson } from "../../../../lib/groq-json"
 
 export const runtime = "nodejs"
 
@@ -52,15 +53,11 @@ Respond ONLY with valid JSON:
   "tips": ["tip 1", "tip 2", "tip 3"]
 }`;
 
-      const completion = await groq.chat.completions.create({
-        model: GROQ_MODEL,
+      const raw = await groqJson(groq, {
         messages: [{ role: "user", content: prompt }],
         temperature: 0.4,
-        response_format: { type: "json_object" },
-        max_tokens: 3000,
+        maxTokens: 3000,
       });
-
-      const raw = completion.choices[0]?.message?.content || "";
       const parsed = JSON.parse(extractJson(raw));
 
       return {
@@ -96,14 +93,11 @@ Respond ONLY with valid JSON:
   "tips": ["Tip 1", "Tip 2", "Tip 3"]
 }`;
 
-    const completion = await groq.chat.completions.create({
-      model: GROQ_MODEL,
+    const raw = await groqJson(groq, {
       messages: [{ role: "user", content: prompt }],
       temperature: 0.3,
-      max_tokens: 600,
+      maxTokens: 1500,
     });
-
-    const raw = completion.choices[0]?.message?.content || "";
     const parsed = JSON.parse(extractJson(raw));
 
     return {
@@ -784,6 +778,8 @@ async function handleQuery(query: string) {
 }
 
 export async function POST(req: Request) {
+  const user = await requireUser(req);
+  if (user instanceof NextResponse) return user;
   try {
     const body = await req.json().catch(() => ({}));
     const query = String(body?.query || body?.name || "").trim();
@@ -798,6 +794,8 @@ export async function POST(req: Request) {
 }
 
 export async function GET(req: Request) {
+  const user = await requireUser(req);
+  if (user instanceof NextResponse) return user;
   try {
     const { searchParams } = new URL(req.url);
     const query = String(

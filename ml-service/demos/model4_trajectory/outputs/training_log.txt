@@ -1,0 +1,60 @@
+
+========================================================================
+  Model 4 — running trajectory Transformer (Strava logs)
+========================================================================
+[data] {'athlete_days': 26617172, 'run_days': 9259153, 'athletes': 36412, 'run_days_after_cleaning': 9186630, 'athletes_after_cleaning': 36397, 'windows': 1091424, 'windows_before_span_filter': 1127942}
+[labels] q1 -0.0223  q2 +0.0211  (change in 10 km-equivalent pace, training athletes)
+[split] train: {'windows': 763342, 'athletes': 24327, 'class_counts': {'REGRESS': 254447, 'PLATEAU': 254448, 'IMPROVE': 254447}}
+[split] val: {'windows': 164174, 'athletes': 5212, 'class_counts': {'REGRESS': 54721, 'PLATEAU': 54667, 'IMPROVE': 54786}}
+[split] test: {'windows': 163908, 'athletes': 5214, 'class_counts': {'REGRESS': 54513, 'PLATEAU': 54815, 'IMPROVE': 54580}}
+
+========================================================================
+  Transformer — seed 42
+========================================================================
+    seed 42 epoch  1  loss 1.0428  val acc 0.4742  macro-F1 0.4682  (163s)
+    seed 42 epoch  2  loss 1.0294  val acc 0.4788  macro-F1 0.4792  (195s)
+    seed 42 epoch  3  loss 1.0270  val acc 0.4763  macro-F1 0.4758  (201s)
+    seed 42 epoch  4  loss 1.0253  val acc 0.4813  macro-F1 0.4809  (195s)
+    seed 42 epoch  5  loss 1.0246  val acc 0.4797  macro-F1 0.4795  (181s)
+    seed 42 epoch  6  loss 1.0237  val acc 0.4808  macro-F1 0.4812  (147s)
+    seed 42 epoch  7  loss 1.0232  val acc 0.4800  macro-F1 0.4798  (128s)
+    seed 42 epoch  8  loss 1.0224  val acc 0.4816  macro-F1 0.4796  (128s)
+    seed 42 epoch  9  loss 1.0220  val acc 0.4809  macro-F1 0.4800  (128s)
+    seed 42 epoch 10  loss 1.0217  val acc 0.4813  macro-F1 0.4797  (159s)
+    seed 42 epoch 11  loss 1.0211  val acc 0.4818  macro-F1 0.4812  (185s)
+    seed 42 epoch 12  loss 1.0211  val acc 0.4827  macro-F1 0.4821  (180s)
+    seed 42 epoch 13  loss 1.0209  val acc 0.4806  macro-F1 0.4772  (180s)
+    seed 42 epoch 14  loss 1.0206  val acc 0.4827  macro-F1 0.4819  (178s)
+    seed 42 epoch 15  loss 1.0204  val acc 0.4820  macro-F1 0.4799  (988s)
+    seed 42 epoch 16  loss 1.0203  val acc 0.4814  macro-F1 0.4807  (179s)
+    seed 42 epoch 17  loss 1.0200  val acc 0.4808  macro-F1 0.4791  (181s)
+    seed 42 epoch 18  loss 1.0199  val acc 0.4829  macro-F1 0.4815  (175s)
+    seed 42 epoch 19  loss 1.0199  val acc 0.4830  macro-F1 0.4818  (331s)
+    seed 42 epoch 20  loss 1.0196  val acc 0.4831  macro-F1 0.4814  (199s)
+[stability] training seed 0
+    seed 0: {'best_val_macro_f1': 0.4827, 'test_accuracy': 0.4816}
+[stability] training seed 1
+    seed 1: {'best_val_macro_f1': 0.4831, 'test_accuracy': 0.4806}
+[stability] training seed 2
+    seed 2: {'best_val_macro_f1': 0.4824, 'test_accuracy': 0.4807}
+
+========================================================================
+  Baselines
+========================================================================
+
+========================================================================
+  Test athletes — scored once
+========================================================================
+  Transformer          acc 0.4807 [0.4779, 0.4836]  macro-F1 0.4804 [0.4775, 0.4833]
+  Majority             acc 0.3344 [0.3299, 0.3388]  macro-F1 0.1671 [0.1654, 0.1687]
+  Last-delta rule      acc 0.3558 [0.3531, 0.3586]  macro-F1 0.3541 [0.3512, 0.3569]
+  Logistic regression  acc 0.4063 [0.4032, 0.4092]  macro-F1 0.4050 [0.4017, 0.408]
+  Gradient boosting    acc 0.4637 [0.4607, 0.4667]  macro-F1 0.4609 [0.4578, 0.4638]
+  Transformer − Majority             Δacc {'difference': 0.1463, 'ci95': [0.1413, 0.1513]}
+  Transformer − Last-delta rule      Δacc {'difference': 0.1249, 'ci95': [0.1212, 0.1284]}
+  Transformer − Logistic regression  Δacc {'difference': 0.0744, 'ci95': [0.0711, 0.078]}
+  Transformer − Gradient boosting    Δacc {'difference': 0.017, 'ci95': [0.0149, 0.0191]}
+
+[decision] {'rule': "serve iff the lower bound of the transformer's test accuracy CI > majority-class accuracy", 'transformer_accuracy_ci_low': 0.4779, 'majority_accuracy': 0.3344, 'serve': True, 'baselines_significantly_better': [], 'slide_target_accuracy_over_0_65_met': False}
+[artifact] wrote C:\Users\Sathv\OneDrive\Desktop\fitfusion-ai-wb\ml-service\models\trajectory_runs.pt and trajectory_runs_meta.json
+[report] wrote C:\Users\Sathv\OneDrive\Desktop\fitfusion-ai-wb\ml-service\models\reports\trajectory_runs.json

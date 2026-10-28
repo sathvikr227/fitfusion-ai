@@ -36,6 +36,27 @@ const MET: Record<string, number> = {
   HIIT: 10.0, "Stair Climber": 9.0, Other: 5.0,
 }
 
+// Steady aerobic activities, where average heart rate tracks energy use. The
+// heart-rate estimate was validated on cycling and treadmill walking/running;
+// interval work and "Other" keep the MET estimate.
+const HEART_RATE_ACTIVITIES = new Set([
+  "Running", "Walking", "Cycling", "Swimming", "Rowing", "Elliptical", "Hiking", "Stair Climber",
+])
+
+type EnergyEstimate = {
+  calories: number
+  method: "heart_rate" | "met_table"
+  estimator: "xgboost" | "keytel" | "met"
+  expectedErrorKcalPerMin: number | null
+  reason: string | null
+  /** SHAP contributions in kcal/min, largest first (XGBoost only). */
+  factors: Array<{ name: string; kcalPerMin: number }>
+}
+
+const FACTOR_LABELS: Record<string, string> = {
+  hr: "Heart rate", age: "Age", is_female: "Sex", height_cm: "Height", weight_kg: "Weight",
+}
+
 const ACTIVITY_EMOJI: Record<string, string> = {
   Running: "🏃", Walking: "🚶", Cycling: "🚴", Swimming: "🏊",
   "Jump Rope": "🪢", Rowing: "🚣", Elliptical: "⚙️", Hiking: "🥾",
@@ -81,6 +102,7 @@ export default function CardioTab() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [status, setStatus] = useState("")
+  const [factors, setFactors] = useState<EnergyEstimate["factors"]>([])
 
   // Form state
   const [date, setDate] = useState(todayStr())
@@ -156,21 +178,71 @@ export default function CardioTab() {
     setLoading(false)
   }
 
+  /**
+   * Asks /api/workout-log for the heart-rate estimate. Returns null on any
+   * failure so saving never depends on the ML service; the MET value stands.
+   */
+  const fetchHeartRateEstimate = async (
+    minutes: number,
+    avgHeartRate: number
+  ): Promise<EnergyEstimate | null> => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+      if (!token) return null
+
+      const res = await fetch("/api/workout-log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          exercises: [{ name: activity, duration: minutes }],
+          workoutType: HEART_RATE_ACTIVITIES.has(activity) ? "Cardio" : activity,
+          avgHeartRate,
+          weightKg,
+        }),
+      })
+      if (!res.ok) return null
+      const data = await res.json()
+      if (!Number.isFinite(Number(data?.calories))) return null
+      return {
+        calories: Math.round(Number(data.calories)),
+        method: data.method === "heart_rate" ? "heart_rate" : "met_table",
+        estimator: data.estimator === "xgboost" || data.estimator === "keytel" ? data.estimator : "met",
+        factors: Object.entries((data.explanation?.contributions ?? {}) as Record<string, number>)
+          .map(([name, kcalPerMin]) => ({ name, kcalPerMin: Number(kcalPerMin) }))
+          .filter((f) => Number.isFinite(f.kcalPerMin))
+          .sort((a, b) => Math.abs(b.kcalPerMin) - Math.abs(a.kcalPerMin)),
+        expectedErrorKcalPerMin:
+          typeof data.expectedErrorKcalPerMin === "number" ? data.expectedErrorKcalPerMin : null,
+        reason: typeof data.methodReason === "string" ? data.methodReason : null,
+      }
+    } catch (err) {
+      console.warn("Heart-rate calorie estimate unavailable, using MET:", err)
+      return null
+    }
+  }
+
   const saveCardio = async () => {
     if (!userId) { setStatus("Please log in first."); return }
     const dur = parseFloat(duration)
     if (!isFinite(dur) || dur <= 0) { setStatus("Please enter a valid duration."); return }
     setSaving(true)
     setStatus("")
+    setFactors([])
     const dist = parseFloat(distance)
     const hr = parseFloat(heartRate)
+
+    const estimate = isFinite(hr) && hr > 0 ? await fetchHeartRateEstimate(dur, hr) : null
+    const useHeartRate = estimate?.method === "heart_rate"
+    const caloriesToSave = useHeartRate ? estimate.calories : calories
+
     const { error } = await supabase.from("cardio_logs").insert({
       user_id: userId,
       date,
       activity,
       duration_minutes: dur,
       distance_km: isFinite(dist) && dist > 0 ? dist : null,
-      calories_burned: calories,
+      calories_burned: caloriesToSave,
       avg_heart_rate: isFinite(hr) && hr > 0 ? hr : null,
       notes: notes || null,
     })
@@ -188,7 +260,18 @@ export default function CardioTab() {
     setNotes("")
     setCalories(null)
     await loadData()
-    setStatus("Cardio session saved successfully.")
+    if (useHeartRate) {
+      const by = estimate.estimator === "xgboost" ? "the XGBoost model" : "the Keytel heart-rate equation"
+      setStatus(
+        `Cardio session saved. ${caloriesToSave} kcal estimated by ${by} from your heart rate ` +
+          `(lab-validated, typical error ±${estimate.expectedErrorKcalPerMin ?? "?"} kcal/min).`
+      )
+      setFactors(estimate.factors)
+    } else if (estimate?.reason) {
+      setStatus(`Cardio session saved. ${caloriesToSave ?? 0} kcal from the MET table — ${estimate.reason}.`)
+    } else {
+      setStatus("Cardio session saved successfully.")
+    }
   }
 
   // Weekly stats
@@ -286,7 +369,13 @@ export default function CardioTab() {
               <p className="text-2xl font-semibold text-purple-600">
                 {calories !== null ? `${calories} kcal` : "—"}
               </p>
-              <p className="text-xs text-slate-400 mt-0.5">Based on {weightKg} kg body weight</p>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {parseFloat(heartRate) > 0 && HEART_RATE_ACTIVITIES.has(activity)
+                  ? "MET preview · refined from your heart rate on save"
+                  : HEART_RATE_ACTIVITIES.has(activity)
+                    ? `MET estimate for ${weightKg} kg · add avg heart rate for a lab-validated estimate`
+                    : `MET estimate for ${weightKg} kg`}
+              </p>
             </div>
           </div>
 
@@ -314,6 +403,19 @@ export default function CardioTab() {
       {status && (
         <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 text-blue-700 dark:text-blue-300 px-4 py-3 rounded-xl">
           {status}
+          {factors.length > 0 && (
+            <div className="mt-2 text-sm">
+              <p className="font-medium">Why this estimate (SHAP, kcal/min vs the average session):</p>
+              <ul className="mt-1 space-y-0.5">
+                {factors.map((f) => (
+                  <li key={f.name}>
+                    {FACTOR_LABELS[f.name] ?? f.name}: {f.kcalPerMin >= 0 ? "+" : ""}
+                    {f.kcalPerMin.toFixed(2)}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       )}
 

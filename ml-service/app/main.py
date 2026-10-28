@@ -5,7 +5,7 @@ from fastapi import FastAPI
 
 from .config import settings
 from .model_registry import registry
-from .routers import calorie, injury, recommend, rl_action, trajectory
+from .routers import calorie, exercise, injury, recommend, rl_action, trajectory
 from .schemas import HealthResponse
 
 logging.basicConfig(level=settings.LOG_LEVEL.upper())
@@ -35,8 +35,8 @@ app = FastAPI(
     title="FitFusion ML Service",
     version="1.0.0",
     description=(
-        "5-model intelligence layer for FitFusion AI: XGBoost+SHAP calorie "
-        "predictor, hybrid recommender, multi-label injury risk, Transformer "
+        "Intelligence layer for FitFusion AI: calibrated heart-rate energy "
+        "estimate, hybrid recommender, multi-label injury risk, Transformer "
         "trajectory, and a PPO adaptive-replan agent."
     ),
     lifespan=lifespan,
@@ -62,6 +62,7 @@ def health() -> HealthResponse:
 
 app.include_router(calorie.router)
 app.include_router(recommend.router)
+app.include_router(exercise.router)
 app.include_router(injury.router)
 app.include_router(trajectory.router)
 app.include_router(rl_action.router)

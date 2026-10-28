@@ -1,0 +1,40 @@
+{
+  "model": "exercise_recommender",
+  "trained_at": "2026-10-28T01:06:35+00:00",
+  "python": "3.12.10",
+  "dataset": "free-exercise-db (yuhonas), Unlicense / public domain",
+  "source_commit": "f00c92c7dcf1216a928a52c3706c7ce8e2f71ed5 2026-09-27T02:26:41Z",
+  "exercises": 876,
+  "method": "content-based cosine similarity over one-hot muscle/equipment/level/category/mechanic/force features; hard filters first; max 2 per primary muscle",
+  "relevance": "rule-defined from the dataset's own labels (primary muscle in the session's targets; category preferred by the goal). Not user preference: no interaction data exists.",
+  "results": {
+    "queries": 4200,
+    "constraint_satisfaction_at_5": 1.0,
+    "target_precision_at_5": 1.0,
+    "target_precision_at_5_random_within_filters": 1.0,
+    "goal_alignment_at_5": 0.8892,
+    "goal_alignment_at_5_random_within_filters": 0.7743,
+    "queries_with_full_5": 3610,
+    "short_list_queries": 590,
+    "short_lists_by_style_focus": {
+      "calisthenics/pull": 100,
+      "calisthenics/push": 60,
+      "yoga/push": 60,
+      "yoga/pull": 60,
+      "running/push": 60,
+      "running/pull": 60,
+      "gym/push": 20,
+      "gym/core": 20,
+      "strength_training/push": 20,
+      "strength_training/core": 20
+    },
+    "catalog_coverage": 0.2272,
+    "sensitivity_one_field_changed": {
+      "style": 0.8636,
+      "goal": 0.6026,
+      "activity": 0.5657,
+      "focus": 0.9992,
+      "injuries": 0.5869
+    }
+  }
+}

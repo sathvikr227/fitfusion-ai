@@ -1,246 +1,211 @@
 """FitFusionEnv — the simulated user the PPO agent trains against (Model 5).
 
-Lives under `app/` rather than `training/` so the service, the tests, and the
-trainer all share one definition of the environment and its state layout.
+Rebuilt 2026-10-28 to demos/model5_rl/PROTOCOL.md. Lives under `app/` so the
+service, the tests and the trainer share one definition of the state, the
+safety mask and the baseline rule.
 
-State (5 dims, all normalised to [0, 1], exactly as the reference guide lists):
-
+State (5 dims in [0, 1], as the slides specify):
     [completion_rate, sleep_avg/10, injury_flag, trajectory_score/2, min(streak,14)/14]
+Actions: 0 REDUCE, 1 MAINTAIN, 2 INCREASE (planned load ×0.85 / ×1 / ×1.15).
+One step = one simulated week; one episode = one simulated user (≤ 26 weeks).
 
-Actions: 0 = REDUCE, 1 = MAINTAIN, 2 = INCREASE (plan intensity ∓15%).
+Real-data parts (models/rl_calibration.json, from training/calibrate_rl_env.py):
+  * weekly fitness change vs load ratio (Strava logs),
+  * injury relative risk vs acute:chronic ratio and the baseline weekly risk (runners),
+  * weekly sleep mean / spread / persistence (SoccerMon).
+Assumed parts (no real data; stress-tested): adherence response, capacity growth,
+injury duration, churn.
 
-Reward, per the guide:
-    +1.0  next-week completion rate improves
-    -2.0  an injury event occurs
-    -0.5  the user churns (completion < 0.2 for two consecutive weeks)
-     0.0  otherwise
-
-Dynamics note. A naive simulator makes REDUCE dominant: cutting the plan always
-raises the share of sessions completed, so "+1 when completion improves" would
-train a degenerate always-REDUCE policy. This environment models training
-adaptation instead — a latent `ability` that grows under productive overload and
-decays under chronic undertraining. Reducing forever therefore erodes the very
-ability that produces future completion, which gives the agent a real optimum to
-find rather than a trivial one.
-
-Default parameters are calibrated from the live FitFusion pilot export
-(`training/export_pilot_data.py`); the trainer passes the measured values in.
+Reward: 100·Δfitness − 3·injury onset − 20·churn (see CHURN_PENALTY). Completion earns nothing by itself.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+import json
+from dataclasses import dataclass, field, replace
+from pathlib import Path
 
 import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 
-# Pilot-derived fallbacks, used only when the trainer supplies nothing.
-DEFAULT_MEAN_COMPLETION = 0.857
-DEFAULT_STD_COMPLETION = 0.246
-DEFAULT_INJURY_RATE = 0.105
+REDUCE, MAINTAIN, INCREASE = 0, 1, 2
+LOAD_STEP = (0.85, 1.0, 1.15)
+LOAD_MIN, LOAD_MAX = 0.4, 2.5
+SLEEP_FLOOR_FOR_INCREASE = 5.5
+# Raised from the pre-registered 5 (RESULTS.md, deviation 2): at 5, ending the episode by
+# churning every user avoided more injury cost than it lost, so "always INCREASE" scored best.
+CHURN_PENALTY = 20.0
+# Model 4's label thresholds, applied to the simulated 4-week fitness change.
+IMPROVE_THRESHOLD, REGRESS_THRESHOLD = 0.0223, 0.0211
 
-WEEKS_PER_EPISODE = 12
-CHURN_THRESHOLD = 0.2
-INTENSITY_MIN = 0.55
-INTENSITY_MAX = 1.60
+
+def safe_action(action: int, observation) -> int:
+    """Hard safety mask: never INCREASE while injured or with < 5.5 h average sleep."""
+    action = int(action)
+    injured = float(observation[2]) >= 0.5
+    short_sleep = float(observation[1]) * 10.0 < SLEEP_FLOOR_FOR_INCREASE
+    if action == INCREASE and (injured or short_sleep):
+        return MAINTAIN
+    return action
+
+
+def rule_based_action(observation) -> int:
+    """The thresholds FitFusion shipped before the agent, with the safety mask."""
+    completion = float(observation[0])
+    action = REDUCE if completion < 0.60 else INCREASE if completion > 0.85 else MAINTAIN
+    return safe_action(action, observation)
 
 
 @dataclass
-class EnvConfig:
-    """Calibration knobs, all sourced from pilot data where one exists."""
+class Calibration:
+    """Real-data curves. The neutral default (flat curves) is for tests only."""
 
-    mean_completion: float = DEFAULT_MEAN_COMPLETION
-    std_completion: float = DEFAULT_STD_COMPLETION
-    injury_rate: float = DEFAULT_INJURY_RATE
-    weeks_per_episode: int = WEEKS_PER_EPISODE
+    gain_edges: list[float] = field(default_factory=lambda: [0.0])
+    gain_weekly: list[float] = field(default_factory=lambda: [0.0])
+    rr_edges: list[float] = field(default_factory=lambda: [0.0])
+    rr_values: list[float] = field(default_factory=lambda: [1.0])
+    base_weekly_injury: float = 0.05
+    sleep_mean: float = 7.5
+    sleep_sd: float = 0.7
+    sleep_rho: float = 0.5
+    source: str = "neutral default (tests only)"
 
-    # Training-response model.
-    overload_low: float = 0.95   # below this, the week was too easy
-    overload_high: float = 1.25  # above this, the week was too hard
-    ability_gain: float = 0.020  # weekly ability gain in the productive band
-    ability_decay: float = 0.015 # weekly loss when chronically undertrained
-    overreach_decay: float = 0.010
+    @classmethod
+    def from_json(cls, path: str | Path) -> "Calibration":
+        c = json.loads(Path(path).read_text(encoding="utf-8"))
+        gain = [b for b in c["adaptation"]["bins"] if b["n"] >= c.get("min_bin_n", 200)]
+        risk = [b for b in c["injury"]["bins"] if b.get("relative_risk") is not None]
+        return cls(
+            gain_edges=[b["lo"] for b in gain], gain_weekly=[b["weekly_gain"] for b in gain],
+            rr_edges=[b["lo"] for b in risk], rr_values=[b["relative_risk"] for b in risk],
+            base_weekly_injury=float(c["injury"]["baseline_weekly_probability"]),
+            sleep_mean=float(c["sleep"]["mean"]), sleep_sd=float(c["sleep"]["sd"]),
+            sleep_rho=float(c["sleep"]["lag1_autocorrelation"]), source=str(path),
+        )
 
-    # Injury hazard terms.
-    injury_overreach_weight: float = 0.10
-    injury_sleep_weight: float = 0.05
-    injury_streak_weight: float = 0.03
+    @staticmethod
+    def _lookup(edges: list[float], values: list[float], x: float) -> float:
+        index = int(np.searchsorted(edges, x, side="right")) - 1
+        return float(values[max(0, min(index, len(values) - 1))])
 
-    completion_noise: float = 0.07
-    sleep_noise: float = 0.6
-    fatigue_penalty: float = 0.60
-    sleep_influence: float = 0.15
-    injury_penalty: float = 0.25
+    def weekly_gain(self, load_ratio: float) -> float:
+        return self._lookup(self.gain_edges, self.gain_weekly, load_ratio)
 
-    rng_seed: int | None = None
-    _unused: dict = field(default_factory=dict, repr=False)
+    def relative_risk(self, acwr: float) -> float:
+        return self._lookup(self.rr_edges, self.rr_values, acwr)
+
+
+@dataclass
+class Assumptions:
+    """No real data exists for these; the stressed scenarios scale each by U(0.75, 1.25)."""
+
+    adherence: float = 0.85          # completion at a sustainable load, good sleep, no injury
+    overload_drop: float = 0.6       # completion lost per unit of load above capacity
+    sleep_effect: float = 0.04       # completion change per hour of sleep vs 7 h
+    noise: float = 0.07              # week-to-week completion noise (sd)
+    injury_weeks: float = 2.0        # mean injury duration in weeks
+    capacity_per_fitness: float = 5.0  # sustainable load grows 5% per 1% pace improvement
+    weeks: int = 26
+
+    def stressed(self, rng: np.random.Generator) -> "Assumptions":
+        scale = lambda: float(rng.uniform(0.75, 1.25))  # noqa: E731
+        return replace(self, adherence=min(0.98, self.adherence * scale()),
+                       overload_drop=self.overload_drop * scale(), sleep_effect=self.sleep_effect * scale(),
+                       noise=self.noise * scale(), injury_weeks=self.injury_weeks * scale(),
+                       capacity_per_fitness=self.capacity_per_fitness * scale())
 
 
 class FitFusionEnv(gym.Env):
-    """One episode = one simulated user coached over `weeks_per_episode` weeks."""
+    """One episode = one simulated user coached week by week."""
 
     metadata = {"render_modes": []}
 
-    def __init__(self, config: EnvConfig | None = None, include_trajectory: bool = True):
+    def __init__(self, calibration: Calibration | None = None, assumptions: Assumptions | None = None,
+                 stress: bool = False, include_trajectory: bool = True):
         super().__init__()
-        self.config = config or EnvConfig()
-        # `include_trajectory=False` powers the ablation the guide asks for:
-        # the dimension stays in the observation but is zeroed out.
+        self.calibration = calibration or Calibration()
+        self.base_assumptions = assumptions or Assumptions()
+        self.stress = stress
         self.include_trajectory = include_trajectory
-
         self.observation_space = spaces.Box(low=0.0, high=1.0, shape=(5,), dtype=np.float32)
         self.action_space = spaces.Discrete(3)
+        self._rng = np.random.default_rng()
+        self.reset()
 
-        self._rng = np.random.default_rng(self.config.rng_seed)
-        self._reset_internals()
-
-    # ── internals ─────────────────────────────────────────────────────────────
-    def _reset_internals(self) -> None:
-        cfg = self.config
-        self.ability = float(
-            np.clip(self._rng.normal(cfg.mean_completion, cfg.std_completion), 0.15, 1.0)
-        )
-        self.intensity = 1.0
-        self.sleep_avg = float(np.clip(self._rng.normal(7.0, 1.0), 3.5, 10.0))
-        self.injury_flag = 0.0
-        self.streak = float(self._rng.integers(0, 8))
-        self.completion = float(np.clip(self.ability + self._rng.normal(0, 0.05), 0.0, 1.0))
-        self.prev_completion = self.completion
-        self.trajectory = 1  # PLATEAU
-        self.low_weeks = 0
-        self.week = 0
-        self.injury_events = 0
-        self.churn_events = 0
-
-    def _observation(self) -> np.ndarray:
-        trajectory_norm = (self.trajectory / 2.0) if self.include_trajectory else 0.0
-        return np.array(
-            [
-                np.clip(self.completion, 0.0, 1.0),
-                np.clip(self.sleep_avg / 10.0, 0.0, 1.0),
-                float(self.injury_flag),
-                trajectory_norm,
-                min(self.streak, 14.0) / 14.0,
-            ],
-            dtype=np.float32,
-        )
-
-    def _challenge(self) -> float:
-        """Assigned load relative to what the user can currently sustain."""
-        return self.intensity / max(self.ability, 0.15)
-
-    # ── gym API ───────────────────────────────────────────────────────────────
     def reset(self, *, seed: int | None = None, options: dict | None = None):
+        super().reset(seed=seed)
         if seed is not None:
             self._rng = np.random.default_rng(seed)
-            super().reset(seed=seed)
-        self._reset_internals()
+        rng, cal = self._rng, self.calibration
+        self.a = self.base_assumptions.stressed(rng) if self.stress else self.base_assumptions
+        self.fitness = 0.0
+        self.fitness_history = [0.0] * 4
+        self.load = 1.0
+        self.done_loads = [self.a.adherence] * 4
+        self.sleep = float(np.clip(rng.normal(cal.sleep_mean, cal.sleep_sd), 3.0, 11.0))
+        self.injured_weeks = 0
+        self.completion = self.a.adherence
+        self.streak = 0
+        self.trajectory = 1
+        self.low_weeks = 0
+        self.week = 0
+        self.injuries = 0
         return self._observation(), {}
 
+    def _observation(self) -> np.ndarray:
+        trajectory = self.trajectory / 2.0 if self.include_trajectory else 0.0
+        return np.array([np.clip(self.completion, 0, 1), np.clip(self.sleep / 10.0, 0, 1),
+                         1.0 if self.injured_weeks > 0 else 0.0, trajectory,
+                         min(self.streak, 14) / 14.0], dtype=np.float32)
+
     def step(self, action: int):
-        cfg = self.config
-        action = int(action)
+        rng, cal, a = self._rng, self.calibration, self.a
+        applied = safe_action(action, self._observation())
+        self.load = float(np.clip(self.load * LOAD_STEP[applied], LOAD_MIN, LOAD_MAX))
 
-        # 1. Apply the intensity decision (0 → −15%, 1 → 0%, 2 → +15%).
-        delta = (-0.15, 0.0, 0.15)[action]
-        self.intensity = float(
-            np.clip(self.intensity * (1.0 + delta), INTENSITY_MIN, INTENSITY_MAX)
-        )
+        # Sleep: AR(1) around the SoccerMon mean.
+        self.sleep = float(np.clip(cal.sleep_mean + cal.sleep_rho * (self.sleep - cal.sleep_mean)
+                                   + np.sqrt(1 - cal.sleep_rho ** 2) * cal.sleep_sd * rng.normal(), 3.0, 11.0))
 
-        # 2. Sleep drifts week to week, independent of the agent.
-        self.sleep_avg = float(
-            np.clip(self.sleep_avg + self._rng.normal(0, cfg.sleep_noise), 3.5, 10.0)
-        )
-
-        challenge = self._challenge()
-
-        # 3. Training adaptation: ability responds to how well the load is pitched.
-        if cfg.overload_low <= challenge <= cfg.overload_high:
-            self.ability += cfg.ability_gain
-        elif challenge < cfg.overload_low - 0.10:
-            self.ability -= cfg.ability_decay
-        elif challenge > cfg.overload_high + 0.15:
-            self.ability -= cfg.overreach_decay
-        self.ability = float(np.clip(self.ability, 0.15, 1.0))
-
-        # 4. Injury hazard rises with overreach, poor sleep, and long streaks.
-        hazard = (
-            cfg.injury_rate * 0.25
-            + cfg.injury_overreach_weight * max(0.0, challenge - cfg.overload_high)
-            + cfg.injury_sleep_weight * max(0.0, (6.5 - self.sleep_avg) / 2.0)
-            + cfg.injury_streak_weight * (min(self.streak, 14.0) / 14.0)
-        )
-        if self.injury_flag:
-            hazard *= 1.5
-        injury_event = float(self._rng.random() < np.clip(hazard, 0.0, 0.9))
-        if injury_event:
-            self.injury_events += 1
-            self.injury_flag = 1.0
-        elif self.injury_flag and self._rng.random() < 0.4:
-            self.injury_flag = 0.0  # recovered
-
-        # 5. Completion for the week that follows.
-        fatigue = max(0.0, self.intensity - 1.0)
-        sleep_factor = (self.sleep_avg - 5.0) / 3.0
-        completion = (
-            self.ability * (1.0 - cfg.fatigue_penalty * fatigue)
-            + cfg.sleep_influence * (sleep_factor - 0.5)
-            - cfg.injury_penalty * self.injury_flag
-            + self._rng.normal(0.0, cfg.completion_noise)
-        )
-        self.prev_completion = self.completion
+        injured = self.injured_weeks > 0
+        capacity = 1.0 + a.capacity_per_fitness * max(self.fitness, -0.15)
+        completion = (a.adherence - a.overload_drop * max(0.0, self.load / capacity - 1.0)
+                      - 0.5 * injured + a.sleep_effect * (self.sleep - 7.0) + rng.normal(0, a.noise))
         self.completion = float(np.clip(completion, 0.0, 1.0))
 
-        # 6. Streak and churn bookkeeping.
-        if self.completion >= 0.5:
-            self.streak += 1
-        else:
-            self.streak = 0.0
+        done_load = self.load * self.completion
+        chronic4 = float(np.mean(self.done_loads[-4:]))
+        load_ratio = done_load / chronic4 if chronic4 > 1e-6 else 1.0
+        acwr_base = float(np.mean([done_load, *self.done_loads[-2:]]))
+        acwr = done_load / acwr_base if acwr_base > 1e-6 else 1.0
+        self.done_loads.append(done_load)
 
-        churn_event = 0.0
-        if self.completion < CHURN_THRESHOLD:
+        gain = cal.weekly_gain(load_ratio)
+        self.fitness += gain
+        self.fitness_history.append(self.fitness)
+
+        onset = 0.0
+        if injured:
+            self.injured_weeks -= 1
+        elif rng.random() < min(0.9, cal.base_weekly_injury * cal.relative_risk(acwr)):
+            onset = 1.0
+            self.injuries += 1
+            self.injured_weeks = int(rng.geometric(1.0 / max(a.injury_weeks, 1.0)))
+
+        self.streak = self.streak + 1 if self.completion >= 0.5 else 0
+        churn = 0.0
+        if self.completion < 0.2:
             self.low_weeks += 1
-            if self.low_weeks >= 2:
-                churn_event = 1.0
-                self.churn_events += 1
+            churn = float(self.low_weeks >= 2)
         else:
             self.low_weeks = 0
 
-        # 7. Trajectory label the Transformer would emit for this user.
-        change = self.completion - self.prev_completion
-        self.trajectory = 2 if change > 0.05 else (0 if change < -0.05 else 1)
+        change = self.fitness - self.fitness_history[-5]
+        self.trajectory = 2 if change > IMPROVE_THRESHOLD else 0 if change < -REGRESS_THRESHOLD else 1
 
-        # 8. Reward, exactly as documented.
-        reward = 0.0
-        if self.completion > self.prev_completion:
-            reward += 1.0
-        reward -= 2.0 * injury_event
-        reward -= 0.5 * churn_event
-
+        reward = 100.0 * gain - 3.0 * onset - CHURN_PENALTY * churn
         self.week += 1
-        terminated = bool(churn_event)
-        truncated = self.week >= cfg.weeks_per_episode
-
-        info = {
-            "injury_event": injury_event,
-            "churn_event": churn_event,
-            "ability": self.ability,
-            "intensity": self.intensity,
-            "challenge": challenge,
-        }
-        return self._observation(), float(reward), terminated, truncated, info
-
-
-def rule_based_action(observation: np.ndarray) -> int:
-    """The thresholds FitFusion ships today, used as the RL comparison baseline.
-
-    Mirrors `/api/adaptive-replan`: under 60% completion reduce, over 85%
-    increase, otherwise hold.
-    """
-    completion = float(observation[0])
-    if completion < 0.60:
-        return 0  # REDUCE
-    if completion > 0.85:
-        return 2  # INCREASE
-    return 1  # MAINTAIN
+        info = {"applied_action": applied, "gain": gain, "injury_onset": onset, "churn": churn,
+                "load": self.load, "load_ratio": load_ratio, "acwr": acwr, "fitness": self.fitness}
+        return self._observation(), float(reward), bool(churn), self.week >= a.weeks, info

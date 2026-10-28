@@ -1,3 +1,10 @@
+"""RETIRED 2026-10-28 — kept only as the record of the old design.
+
+It trained against the old FitFusionEnv (completion-rise reward, seeded pilot
+calibration). It no longer runs against app/rl_env.py. See training/train_rl_ppo.py and
+demos/model5_rl/RESULTS.md.
+"""
+
 """Model 5 — PPO adaptive replan agent (stable-baselines3).
 
 Trains PPO('MlpPolicy') on FitFusionEnv for 100,000 timesteps with the

@@ -1,49 +1,68 @@
-"""Model 1 — POST /predict/calories (XGBoost + SHAP).
+"""Stage 1 — POST /predict/calories (session energy expenditure).
 
-`/predict/calorie` is kept as an alias so callers written against the Step 1
-skeleton keep working.
+Estimators, tried in order for each request:
+
+  xgboost   XGBoost heart-rate model trained on Malaga treadmill calorimetry
+            (models/calorie_hr_model.pkl), linearly calibrated on the WEEE lab
+            protocol (models/calorie_energy.json), with a per-feature SHAP
+            breakdown. Needs heart rate, age, sex and height.
+  keytel    Keytel et al. (2005) HR equation with its own WEEE calibration.
+            Used when height is missing or the model artifact is unavailable.
+  met       MET × weight × hours. Used when there is no heart rate, the
+            session is not cardio, age or sex is unknown, the HR is outside
+            the validated range, or the calibration is not loaded.
+
+Both heart-rate estimators report `method: "heart_rate"` and are validated for
+cardio sessions inside the validated HR range. On held-out WEEE participants
+calibrated XGBoost and calibrated Keytel tie (MAE 1.27 vs 1.29 kcal/min,
+p = 0.16, training/calibrate_calorie_hr.py); XGBoost is served because the
+project specifies an explainable XGBoost predictor.
+
+`/predict/calorie` is kept as an alias for callers written against Step 1.
 """
 
 from __future__ import annotations
 
 import logging
 
-import numpy as np
 from fastapi import APIRouter, Depends
 
 from ..auth import require_bearer
-from ..features import (
-    CALORIE_FEATURE_LABELS,
-    CALORIE_FEATURES,
-    COL_AGE,
-    COL_BMI,
-    COL_DURATION,
-    COL_RESTING_BPM,
-    COL_WEIGHT,
-    COL_WORKOUT_TYPE,
-    FALLBACK_AGE,
-    FALLBACK_BMI,
-    FALLBACK_RESTING_BPM,
-    WORKOUT_TYPE_MAP,
-)
+from ..calorie_model import CalorieModelError, predict_with_explanation
+from ..energy import keytel_kcal_per_min
 from ..model_registry import ModelRegistry, get_registry
-from ..schemas import CalorieRequest, CalorieResponse, ShapFeature
+from ..schemas import CalorieExplanation, CalorieRequest, CalorieResponse
 
 log = logging.getLogger("ml-service.calorie")
 router = APIRouter(prefix="/predict", tags=["calorie"])
 
-# MET per dataset workout class — the rule the model replaces, still reported
-# alongside every prediction so the two can be compared in the UI.
+# MET per workout class — the estimate used whenever the HR method cannot run.
 MET_BY_TYPE = {"Cardio": 7.5, "Strength": 5.0, "Yoga": 2.5, "HIIT": 8.0}
 INTENSITY_MULTIPLIER = {"low": 0.85, "moderate": 1.0, "high": 1.15}
-
-TOP_SHAP_FEATURES = 5
 
 
 def met_calories(req: CalorieRequest) -> float:
     met = MET_BY_TYPE.get(req.workout_type or "Strength", 5.0)
     kcal = met * req.weight_kg * (req.duration_hours or 0.0)
     return round(kcal * INTENSITY_MULTIPLIER[req.intensity], 1)
+
+
+def _met_response(req: CalorieRequest, reason: str, version: str, stub: bool) -> CalorieResponse:
+    kcal = met_calories(req)
+    minutes = req.duration_min or 0.0
+    return CalorieResponse(
+        calories=kcal,
+        kcal_per_min=round(kcal / minutes, 2) if minutes > 0 else 0.0,
+        method="met_table",
+        estimator="met",
+        validated=False,
+        expected_error_kcal_per_min=None,
+        reason=reason,
+        baseline_met_calories=kcal,
+        model_version=version,
+        workout_type=req.workout_type or "Strength",
+        stub=stub,
+    )
 
 
 @router.post("/calories", response_model=CalorieResponse)
@@ -53,72 +72,84 @@ def predict_calories(
     _: None = Depends(require_bearer),
     reg: ModelRegistry = Depends(get_registry),
 ) -> CalorieResponse:
-    baseline = met_calories(req)
-
-    if reg.calorie is None:
-        log.warning("calorie model unavailable (%s) — serving MET estimate",
+    energy = reg.calorie
+    if energy is None:
+        log.warning("energy calibration unavailable (%s) — serving MET estimate",
                     reg.errors.get("calorie", "not loaded"))
-        return CalorieResponse(
-            calories=baseline,
-            baseline_met_calories=baseline,
-            model_version="fallback-met",
-            workout_type=req.workout_type or "Strength",
-            imputed=[],
-            stub=True,
+        return _met_response(req, "calibration not loaded", "fallback-met", stub=True)
+
+    version = energy.get("model_version", "energy-keytel-cal-v1")
+    low, high = energy["validated_hr_range_bpm"]
+
+    if req.avg_hr is None:
+        return _met_response(req, "no average heart rate supplied", version, stub=False)
+    if req.workout_type not in energy.get("validated_workout_types", ["Cardio"]):
+        return _met_response(
+            req, f"heart-rate method is validated for cardio only, not {req.workout_type}",
+            version, stub=False,
+        )
+    if req.age is None or req.sex is None:
+        return _met_response(req, "age and sex are needed for the heart-rate method",
+                             version, stub=False)
+    if not low <= req.avg_hr <= high:
+        return _met_response(
+            req, f"average heart rate {req.avg_hr:g} bpm is outside the validated "
+                 f"range {low:g}-{high:g} bpm", version, stub=False,
         )
 
-    bundle = reg.calorie
-    defaults = bundle.get("imputation_defaults", {})
-    imputed: list[str] = []
+    minutes = req.duration_min or 0.0
 
-    def take(value: float | None, column: str, hard_default: float) -> float:
-        if value is not None:
-            return float(value)
-        imputed.append(column)
-        return float(defaults.get(column, hard_default))
-
-    values = {
-        COL_AGE: take(req.age, COL_AGE, FALLBACK_AGE),
-        COL_WEIGHT: float(req.weight_kg),
-        COL_BMI: take(req.bmi, COL_BMI, FALLBACK_BMI),
-        COL_RESTING_BPM: take(req.resting_bpm, COL_RESTING_BPM, FALLBACK_RESTING_BPM),
-        COL_DURATION: float(req.duration_hours or 0.0),
-        COL_WORKOUT_TYPE: float(WORKOUT_TYPE_MAP[req.workout_type or "Strength"]),
-    }
-
-    row = np.array([[values[name] for name in CALORIE_FEATURES]], dtype=float)
-    scaled = bundle["scaler"].transform(row)
-    prediction = float(bundle["model"].predict(scaled)[0])
-
-    shap_features: list[ShapFeature] = []
-    base_value = bundle.get("expected_value")
-    if reg.calorie_explainer is not None:
+    # ── XGBoost (primary) ──────────────────────────────────────────────────────
+    fallback_reason: str | None = None
+    if reg.calorie_model is None:
+        fallback_reason = reg.errors.get("calorie_model", "XGBoost model not served")
+    elif req.height_cm is None:
+        fallback_reason = "height is needed for the XGBoost model"
+    else:
         try:
-            shap_values = reg.calorie_explainer.shap_values(scaled)[0]
-            ranked = sorted(
-                zip(CALORIE_FEATURES, shap_values),
-                key=lambda kv: abs(kv[1]),
-                reverse=True,
-            )[:TOP_SHAP_FEATURES]
-            shap_features = [
-                ShapFeature(
-                    feature=name,
-                    label=CALORIE_FEATURE_LABELS.get(name, name),
-                    impact=round(float(impact), 1),
-                    value=round(values[name], 2),
-                )
-                for name, impact in ranked
-            ]
-        except Exception:  # noqa: BLE001 - explanation is optional, prediction is not
-            log.exception("SHAP explanation failed; returning prediction without it")
+            pred = predict_with_explanation(
+                reg.calorie_model, energy,
+                age=req.age, is_female=req.sex == "female", height_cm=req.height_cm,
+                weight_kg=req.weight_kg, hr=req.avg_hr,
+            )
+            return CalorieResponse(
+                calories=round(pred.kcal_per_min * minutes, 1),
+                kcal_per_min=round(pred.kcal_per_min, 2),
+                method="heart_rate",
+                estimator="xgboost",
+                validated=True,
+                expected_error_kcal_per_min=round(float(energy["model_expected_mae_kcal_per_min"]), 2),
+                explanation=CalorieExplanation(
+                    base_kcal_per_min=pred.base_kcal_per_min,
+                    contributions=pred.contributions,
+                    inputs=pred.inputs,
+                    raw_model_kcal_per_min=pred.raw_model_kcal_per_min,
+                ),
+                warnings=pred.warnings,
+                baseline_met_calories=met_calories(req),
+                model_version=f"{version}+{reg.calorie_model.get('model_version', 'xgb')}",
+                workout_type=req.workout_type or "Cardio",
+                stub=False,
+            )
+        except CalorieModelError as exc:
+            log.warning("XGBoost calorie inference failed, using Keytel: %s", exc)
+            fallback_reason = str(exc)
+
+    # ── Keytel fallback ────────────────────────────────────────────────────────
+    raw = float(keytel_kcal_per_min(req.avg_hr, req.weight_kg, req.age, req.sex == "female"))
+    per_min = max(0.0, energy["intercept"] + energy["slope"] * raw)
 
     return CalorieResponse(
-        calories=round(max(prediction, 0.0), 1),
-        baseline_met_calories=baseline,
-        model_version=bundle.get("model_version", "calorie-xgb-v1"),
-        workout_type=req.workout_type or "Strength",
-        shap_top_features=shap_features,
-        shap_base_value=round(float(base_value), 1) if base_value is not None else None,
-        imputed=imputed,
+        calories=round(per_min * minutes, 1),
+        kcal_per_min=round(per_min, 2),
+        method="heart_rate",
+        estimator="keytel",
+        validated=True,
+        expected_error_kcal_per_min=round(float(energy["expected_mae_kcal_per_min"]), 2),
+        reason=None,
+        fallback_reason=fallback_reason,
+        baseline_met_calories=met_calories(req),
+        model_version=version,
+        workout_type=req.workout_type or "Cardio",
         stub=False,
     )

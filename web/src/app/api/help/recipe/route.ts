@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
+import { requireUser } from "../../../../lib/supabase/require-user"
 import Groq from "groq-sdk"
-import { GROQ_MODEL } from "../../../../lib/groq-model"
+import { groqJson } from "../../../../lib/groq-json"
 
 export const runtime = "nodejs"
 
@@ -19,6 +20,8 @@ function extractJson(text: string): string {
 }
 
 export async function POST(req: Request) {
+  const user = await requireUser(req)
+  if (user instanceof NextResponse) return user
   let query = ""
   try {
     const body = await req.json()
@@ -41,15 +44,11 @@ Respond ONLY with valid JSON in this exact format:
   "calories_estimate": "approximate calories per serving"
 }`
 
-    const completion = await groq.chat.completions.create({
-      model: GROQ_MODEL,
+    const raw = await groqJson(groq, {
       messages: [{ role: "user", content: prompt }],
       temperature: 0.4,
-      response_format: { type: "json_object" },
-      max_tokens: 600,
+      maxTokens: 1500,
     })
-
-    const raw = completion.choices[0]?.message?.content || ""
     const jsonStr = extractJson(raw)
     const recipe = JSON.parse(jsonStr)
 

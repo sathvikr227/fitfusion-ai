@@ -11,8 +11,9 @@ the rule it replaced, flags `"stub": true`, and `/healthz` reports why.
 | Method | Path | Model | Auth |
 |---|---|---|---|
 | GET  | `/healthz` | liveness + per-model load status | none |
-| POST | `/predict/calories` | 1 — XGBoost + SHAP calorie predictor | bearer |
-| POST | `/recommend` | 2 — hybrid CF + content recommender | bearer |
+| POST | `/predict/calories` | 1 — energy expenditure: calibrated XGBoost HR model + SHAP; Keytel, then MET fallback | bearer |
+| POST | `/recommend` | 2 — meal recommendations: hybrid (popularity + ALS + ingredient content) within dietary filters + calorie bands | bearer |
+| POST | `/recommend/exercises` | 2 — exercise recommendations: content-based cosine after equipment/injury/level/muscle filters | bearer |
 | POST | `/predict/injury-risk` | 3 — multi-label injury risk | bearer |
 | POST | `/predict/trajectory` | 4 — Transformer progression | bearer |
 | POST | `/rl/action` | 5 — PPO adaptive replan agent | bearer |
@@ -98,8 +99,9 @@ Confirm with `GET /healthz` — `models_loaded` lists what is actually live.
 
 | Endpoint | Fallback |
 |---|---|
-| `/predict/calories` | MET formula (the rule the model replaces) |
-| `/recommend` | empty seed; the plan prompt is left unchanged |
+| `/predict/calories` | MET formula |
+| `/recommend` | no recipes; the plan is written from the calorie target alone |
+| `/recommend/exercises` | no exercises; the plan uses the LLM's own exercise choices (injury stripping still applies) |
 | `/predict/injury-risk` | sleep/frequency/BMI heuristic, sub-threshold |
 | `/predict/trajectory` | completion-rate slope |
 | `/rl/action` | the original three completion-rate thresholds |

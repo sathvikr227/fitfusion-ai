@@ -116,40 +116,31 @@ def encode_workout_type(raw: str | None) -> int:
     return WORKOUT_TYPE_MAP[normalize_workout_type(raw)]
 
 
-# ── Model 1: calorie predictor ────────────────────────────────────────────────
-# Doc: Age, Weight (kg), BMI, Resting BPM, Session Duration (hours), Workout Type.
-CALORIE_FEATURES: list[str] = [
-    COL_AGE,
-    COL_WEIGHT,
-    COL_BMI,
-    COL_RESTING_BPM,
-    COL_DURATION,
-    COL_WORKOUT_TYPE,
-]
-
-# Human-readable labels for SHAP output shown in the UI.
-CALORIE_FEATURE_LABELS: dict[str, str] = {
-    COL_AGE: "Age",
-    COL_WEIGHT: "Body weight",
-    COL_BMI: "BMI",
-    COL_RESTING_BPM: "Resting heart rate",
-    COL_DURATION: "Session duration",
-    COL_WORKOUT_TYPE: "Workout type",
-}
-
-# ── Model 2: hybrid recommender ───────────────────────────────────────────────
-# Doc: user feature vector = [Age, BMI, Workout_Frequency, Experience_Level].
-RECOMMENDER_FEATURES: list[str] = [COL_AGE, COL_BMI, COL_FREQUENCY, COL_EXPERIENCE]
-
-# Food dataset columns (shrutisaxena/food-nutrition-dataset).
-FOOD_COL_CATEGORY = "Category"
-FOOD_COL_DESCRIPTION = "Description"
-FOOD_COL_KCAL = "Data.Kilocalories"
-FOOD_COL_PROTEIN = "Data.Protein"
-FOOD_COL_CARBS = "Data.Carbohydrate"
-FOOD_COL_FAT = "Data.Fat.Total Lipid"
+# ── Stage 1: energy expenditure ───────────────────────────────────────────────
+# Inputs and equations live in app/energy.py.
 
 # ── Model 3: injury risk ──────────────────────────────────────────────────────
+# Maps free-text profile injury notes onto the muscle groups the injury stage
+# works with. FitFusion stores prose ("lower back pain") plus a structured
+# body_part from the injuries table.
+INJURY_ALIASES: dict[str, list[str]] = {
+    "knee": ["knee", "patell", "acl", "mcl", "meniscus"],
+    "back": ["back", "spine", "lumbar", "disc", "sciatic"],
+    "shoulder": ["shoulder", "rotator", "deltoid", "clavicle", "ac joint"],
+    "hamstring": ["hamstring", "thigh", "quad", "groin"],
+}
+
+
+def canonical_injuries(raw: list[str]) -> list[str]:
+    found: list[str] = []
+    for entry in raw:
+        text = str(entry or "").lower()
+        for group, keywords in INJURY_ALIASES.items():
+            if group not in found and any(kw in text for kw in keywords):
+                found.append(group)
+    return found
+
+
 # Doc: [Age, BMI, Resting_BPM, Session_Duration, Workout_Frequency, Experience_Level].
 INJURY_FEATURES: list[str] = [
     COL_AGE,
@@ -189,10 +180,22 @@ INJURY_MUSCLE_KEYWORDS: dict[str, list[str]] = {
 INJURY_RISK_THRESHOLD = 0.7
 
 
+def keyword_pattern(keyword: str) -> re.Pattern:
+    """Word-start match that tolerates a missing or hyphenated gap:
+    "pull up" matches "Pullups" and "Pull-Up", while "run" does not match "crunch"."""
+    words = re.split(r"[\s-]+", keyword.strip().lower())
+    return re.compile(r"\b" + r"[\s-]?".join(map(re.escape, words)))
+
+
+INJURY_PATTERNS: dict[str, list[re.Pattern]] = {
+    group: [keyword_pattern(k) for k in keywords] for group, keywords in INJURY_MUSCLE_KEYWORDS.items()
+}
+
+
 def exercise_targets_muscle_group(exercise_name: str, group: str) -> bool:
     """True when an exercise loads the muscle group flagged as at-risk."""
-    text = re.sub(r"[^a-z0-9 ]+", " ", str(exercise_name or "").lower())
-    return any(kw in text for kw in INJURY_MUSCLE_KEYWORDS.get(group, []))
+    text = str(exercise_name or "").lower()
+    return any(p.search(text) for p in INJURY_PATTERNS.get(group, []))
 
 
 # ── Model 4: transformer trajectory ───────────────────────────────────────────

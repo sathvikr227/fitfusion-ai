@@ -1,3 +1,10 @@
+"""RETIRED 2026-10-28 — kept only as the record of the old design.
+
+It trained on pseudo-sequences regrouped from cross-sectional Gym Members rows.
+The served Model 4 is training/train_trajectory_runs.py; see
+demos/model4_trajectory/RESULTS.md.
+"""
+
 """Model 4 — Transformer sequence progression predictor (PyTorch).
 
 Architecture is exactly as specified in the reference guide:

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { Moon, Zap, Loader2 } from "lucide-react"
 import { supabase } from "../../../lib/supabase/client"
+import { rangeError } from "../../../lib/validation"
 import {
   LineChart,
   Line,
@@ -86,6 +87,11 @@ export default function SleepTab() {
     if (!userId) return
     if (!sleepHours || isNaN(Number(sleepHours))) {
       setError("Enter valid sleep hours.")
+      return
+    }
+    const hoursError = rangeError("sleepHours", sleepHours)
+    if (hoursError) {
+      setError(hoursError)
       return
     }
     setSaving(true)

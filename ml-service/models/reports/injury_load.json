@@ -1,0 +1,675 @@
+{
+  "model": "injury_load",
+  "trained_at": "2026-10-28T03:55:26+00:00",
+  "python": "3.12.10",
+  "artifact": "injury_load_model.pkl",
+  "model_version": "injury-load-xgb-v1",
+  "protocol": "demos/model3_injury/PROTOCOL.md (committed 1340716 before training)",
+  "dataset": {
+    "title": "Replication Data for: Injury Prediction In Competitive Runners With Machine Learning",
+    "doi": "10.34894/UWU9PV",
+    "version": 2,
+    "licence": "CC0-1.0",
+    "file": "day_approach_maskedID_timeseries.csv",
+    "sha256": "9c06ecefae9caa4ca831c08c7ebe4d25b0b01e8aa285df526a4e6791c673b6e8",
+    "funnel": {
+      "rows": 42766,
+      "athletes": 74,
+      "injury_days": 583,
+      "prevalence": 0.01363,
+      "athletes_with_injury": 63,
+      "min_days_between_injuries_same_athlete": 22,
+      "missing_values": 0
+    }
+  },
+  "label": "injury on the event day (binary, no body part); features = the 7 preceding days",
+  "feature_sets": {
+    "APP": [
+      "sessions_d7",
+      "sessions_d6",
+      "sessions_d5",
+      "sessions_d4",
+      "sessions_d3",
+      "sessions_d2",
+      "sessions_d1",
+      "total_km_d7",
+      "total_km_d6",
+      "total_km_d5",
+      "total_km_d4",
+      "total_km_d3",
+      "total_km_d2",
+      "total_km_d1",
+      "strength_d7",
+      "strength_d6",
+      "strength_d5",
+      "strength_d4",
+      "strength_d3",
+      "strength_d2",
+      "strength_d1",
+      "alt_hours_d7",
+      "alt_hours_d6",
+      "alt_hours_d5",
+      "alt_hours_d4",
+      "alt_hours_d3",
+      "alt_hours_d2",
+      "alt_hours_d1",
+      "sessions_7d",
+      "total_km_7d",
+      "strength_7d",
+      "alt_hours_7d",
+      "rest_days_7d"
+    ],
+    "FULL": [
+      "sessions_d7",
+      "sessions_d6",
+      "sessions_d5",
+      "sessions_d4",
+      "sessions_d3",
+      "sessions_d2",
+      "sessions_d1",
+      "total_km_d7",
+      "total_km_d6",
+      "total_km_d5",
+      "total_km_d4",
+      "total_km_d3",
+      "total_km_d2",
+      "total_km_d1",
+      "km_z34_d7",
+      "km_z34_d6",
+      "km_z34_d5",
+      "km_z34_d4",
+      "km_z34_d3",
+      "km_z34_d2",
+      "km_z34_d1",
+      "km_z5_d7",
+      "km_z5_d6",
+      "km_z5_d5",
+      "km_z5_d4",
+      "km_z5_d3",
+      "km_z5_d2",
+      "km_z5_d1",
+      "km_sprint_d7",
+      "km_sprint_d6",
+      "km_sprint_d5",
+      "km_sprint_d4",
+      "km_sprint_d3",
+      "km_sprint_d2",
+      "km_sprint_d1",
+      "strength_d7",
+      "strength_d6",
+      "strength_d5",
+      "strength_d4",
+      "strength_d3",
+      "strength_d2",
+      "strength_d1",
+      "alt_hours_d7",
+      "alt_hours_d6",
+      "alt_hours_d5",
+      "alt_hours_d4",
+      "alt_hours_d3",
+      "alt_hours_d2",
+      "alt_hours_d1",
+      "exertion_d7",
+      "exertion_d6",
+      "exertion_d5",
+      "exertion_d4",
+      "exertion_d3",
+      "exertion_d2",
+      "exertion_d1",
+      "success_d7",
+      "success_d6",
+      "success_d5",
+      "success_d4",
+      "success_d3",
+      "success_d2",
+      "success_d1",
+      "recovery_d7",
+      "recovery_d6",
+      "recovery_d5",
+      "recovery_d4",
+      "recovery_d3",
+      "recovery_d2",
+      "recovery_d1",
+      "sessions_7d",
+      "total_km_7d",
+      "km_z34_7d",
+      "km_z5_7d",
+      "km_sprint_7d",
+      "strength_7d",
+      "alt_hours_7d",
+      "rest_days_7d"
+    ]
+  },
+  "split": {
+    "development": {
+      "rows": 34218,
+      "athletes": 60,
+      "injuries": 465
+    },
+    "test": {
+      "rows": 8548,
+      "athletes": 14,
+      "injuries": 118,
+      "athlete_ids": [
+        1,
+        5,
+        13,
+        14,
+        18,
+        29,
+        32,
+        38,
+        47,
+        48,
+        53,
+        54,
+        62,
+        65
+      ]
+    }
+  },
+  "selection": {
+    "APP": {
+      "chosen": {
+        "max_depth": 3,
+        "n_estimators": 200
+      },
+      "grid": [
+        {
+          "max_depth": 2,
+          "n_estimators": 200,
+          "mean_auc": 0.6008,
+          "fold_aucs": [
+            0.596,
+            0.6507,
+            0.5906,
+            0.6425,
+            0.5243
+          ]
+        },
+        {
+          "max_depth": 2,
+          "n_estimators": 400,
+          "mean_auc": 0.5937,
+          "fold_aucs": [
+            0.5738,
+            0.6447,
+            0.5806,
+            0.6408,
+            0.5284
+          ]
+        },
+        {
+          "max_depth": 3,
+          "n_estimators": 200,
+          "mean_auc": 0.6014,
+          "fold_aucs": [
+            0.5956,
+            0.6419,
+            0.5831,
+            0.6474,
+            0.539
+          ]
+        },
+        {
+          "max_depth": 3,
+          "n_estimators": 400,
+          "mean_auc": 0.5914,
+          "fold_aucs": [
+            0.581,
+            0.6307,
+            0.5623,
+            0.643,
+            0.54
+          ]
+        },
+        {
+          "max_depth": 4,
+          "n_estimators": 200,
+          "mean_auc": 0.5947,
+          "fold_aucs": [
+            0.5805,
+            0.6337,
+            0.5685,
+            0.6443,
+            0.5464
+          ]
+        },
+        {
+          "max_depth": 4,
+          "n_estimators": 400,
+          "mean_auc": 0.5794,
+          "fold_aucs": [
+            0.5655,
+            0.6137,
+            0.5433,
+            0.6357,
+            0.5386
+          ]
+        }
+      ],
+      "platt": {
+        "a": 0.4633092699147551,
+        "b": -4.16349465521758
+      }
+    },
+    "FULL": {
+      "chosen": {
+        "max_depth": 2,
+        "n_estimators": 200
+      },
+      "grid": [
+        {
+          "max_depth": 2,
+          "n_estimators": 200,
+          "mean_auc": 0.6221,
+          "fold_aucs": [
+            0.6479,
+            0.6681,
+            0.5884,
+            0.6683,
+            0.5376
+          ]
+        },
+        {
+          "max_depth": 2,
+          "n_estimators": 400,
+          "mean_auc": 0.6111,
+          "fold_aucs": [
+            0.6285,
+            0.6526,
+            0.5932,
+            0.645,
+            0.5362
+          ]
+        },
+        {
+          "max_depth": 3,
+          "n_estimators": 200,
+          "mean_auc": 0.6186,
+          "fold_aucs": [
+            0.6336,
+            0.6599,
+            0.5999,
+            0.6496,
+            0.5498
+          ]
+        },
+        {
+          "max_depth": 3,
+          "n_estimators": 400,
+          "mean_auc": 0.6011,
+          "fold_aucs": [
+            0.6138,
+            0.6286,
+            0.5952,
+            0.6201,
+            0.5478
+          ]
+        },
+        {
+          "max_depth": 4,
+          "n_estimators": 200,
+          "mean_auc": 0.6086,
+          "fold_aucs": [
+            0.6021,
+            0.6475,
+            0.6026,
+            0.6454,
+            0.5456
+          ]
+        },
+        {
+          "max_depth": 4,
+          "n_estimators": 400,
+          "mean_auc": 0.5854,
+          "fold_aucs": [
+            0.5715,
+            0.6149,
+            0.5926,
+            0.6087,
+            0.5392
+          ]
+        }
+      ],
+      "platt": {
+        "a": 0.6637842805829682,
+        "b": -4.173080718001919
+      }
+    }
+  },
+  "development_oof": {
+    "APP": {
+      "xgb_oof_roc_auc": 0.598,
+      "xgb_oof_at_threshold": {
+        "threshold": 0.01686,
+        "precision": 0.0209,
+        "recall": 0.3763,
+        "f1": 0.0395,
+        "flag_rate": 0.2453,
+        "confusion_matrix": [
+          [
+            25536,
+            8217
+          ],
+          [
+            290,
+            175
+          ]
+        ]
+      },
+      "logreg_oof_roc_auc": 0.5656,
+      "logreg_oof_at_threshold": {
+        "threshold": 0.62679,
+        "precision": 0.0196,
+        "recall": 0.1613,
+        "f1": 0.0349,
+        "flag_rate": 0.1118,
+        "confusion_matrix": [
+          [
+            30001,
+            3752
+          ],
+          [
+            390,
+            75
+          ]
+        ]
+      }
+    },
+    "FULL": {
+      "xgb_oof_roc_auc": 0.621,
+      "xgb_oof_at_threshold": {
+        "threshold": 0.01543,
+        "precision": 0.0208,
+        "recall": 0.514,
+        "f1": 0.04,
+        "flag_rate": 0.3353,
+        "confusion_matrix": [
+          [
+            22520,
+            11233
+          ],
+          [
+            226,
+            239
+          ]
+        ]
+      },
+      "logreg_oof_roc_auc": 0.611,
+      "logreg_oof_at_threshold": {
+        "threshold": 0.53605,
+        "precision": 0.0203,
+        "recall": 0.471,
+        "f1": 0.039,
+        "flag_rate": 0.3148,
+        "confusion_matrix": [
+          [
+            23200,
+            10553
+          ],
+          [
+            246,
+            219
+          ]
+        ]
+      }
+    }
+  },
+  "test": {
+    "XGB-APP": {
+      "roc_auc": 0.5885,
+      "pr_auc": 0.022,
+      "at_threshold": {
+        "threshold": 0.01686,
+        "precision": 0.0225,
+        "recall": 0.3644,
+        "f1": 0.0423,
+        "flag_rate": 0.2239,
+        "confusion_matrix": [
+          [
+            6559,
+            1871
+          ],
+          [
+            75,
+            43
+          ]
+        ]
+      },
+      "brier": 0.0136,
+      "ci95": {
+        "roc_auc": [
+          0.4823,
+          0.667
+        ],
+        "pr_auc": [
+          0.0099,
+          0.0446
+        ],
+        "f1": [
+          0.0179,
+          0.078
+        ]
+      }
+    },
+    "LogReg-APP": {
+      "roc_auc": 0.6686,
+      "pr_auc": 0.0307,
+      "at_threshold": {
+        "threshold": 0.62679,
+        "precision": 0.053,
+        "recall": 0.1949,
+        "f1": 0.0833,
+        "flag_rate": 0.0508,
+        "confusion_matrix": [
+          [
+            8019,
+            411
+          ],
+          [
+            95,
+            23
+          ]
+        ]
+      },
+      "ci95": {
+        "roc_auc": [
+          0.5631,
+          0.7469
+        ],
+        "pr_auc": [
+          0.0131,
+          0.0573
+        ],
+        "f1": [
+          0.0327,
+          0.1287
+        ]
+      }
+    },
+    "Rule-APP": {
+      "roc_auc": 0.6045,
+      "pr_auc": 0.0183,
+      "ci95": {
+        "roc_auc": [
+          0.5344,
+          0.6736
+        ],
+        "pr_auc": [
+          0.01,
+          0.0399
+        ]
+      }
+    },
+    "XGB-FULL": {
+      "roc_auc": 0.6018,
+      "pr_auc": 0.0219,
+      "at_threshold": {
+        "threshold": 0.01543,
+        "precision": 0.0211,
+        "recall": 0.4831,
+        "f1": 0.0404,
+        "flag_rate": 0.316,
+        "confusion_matrix": [
+          [
+            5786,
+            2644
+          ],
+          [
+            61,
+            57
+          ]
+        ]
+      },
+      "brier": 0.01359,
+      "ci95": {
+        "roc_auc": [
+          0.5131,
+          0.6951
+        ],
+        "pr_auc": [
+          0.0124,
+          0.0459
+        ],
+        "f1": [
+          0.0178,
+          0.0842
+        ]
+      }
+    },
+    "LogReg-FULL": {
+      "roc_auc": 0.671,
+      "pr_auc": 0.0293,
+      "at_threshold": {
+        "threshold": 0.53605,
+        "precision": 0.0261,
+        "recall": 0.4576,
+        "f1": 0.0495,
+        "flag_rate": 0.2417,
+        "confusion_matrix": [
+          [
+            6418,
+            2012
+          ],
+          [
+            64,
+            54
+          ]
+        ]
+      },
+      "ci95": {
+        "roc_auc": [
+          0.5986,
+          0.7292
+        ],
+        "pr_auc": [
+          0.0159,
+          0.0653
+        ],
+        "f1": [
+          0.0261,
+          0.0842
+        ]
+      }
+    },
+    "Rule-FULL": {
+      "roc_auc": 0.5186,
+      "pr_auc": 0.014,
+      "ci95": {
+        "roc_auc": [
+          0.4572,
+          0.63
+        ],
+        "pr_auc": [
+          0.0101,
+          0.029
+        ]
+      }
+    },
+    "Prevalence": {
+      "roc_auc": 0.5,
+      "pr_auc": 0.0138,
+      "always_positive_f1": 0.0272
+    }
+  },
+  "auc_differences": {
+    "XGB-APP minus LogReg-APP": {
+      "difference": -0.08,
+      "ci95": [
+        -0.1305,
+        -0.0101
+      ]
+    },
+    "XGB-APP minus Rule-APP": {
+      "difference": -0.016,
+      "ci95": [
+        -0.1278,
+        0.0841
+      ]
+    },
+    "XGB-FULL minus XGB-APP": {
+      "difference": 0.0133,
+      "ci95": [
+        -0.0225,
+        0.0551
+      ]
+    },
+    "XGB-FULL minus LogReg-FULL": {
+      "difference": -0.0692,
+      "ci95": [
+        -0.1247,
+        0.0028
+      ]
+    }
+  },
+  "decision": {
+    "rule": "serve XGB-APP iff the lower bound of its test ROC-AUC 95% CI > 0.50",
+    "xgb_app_roc_auc_ci_low": 0.4823,
+    "serve": false,
+    "logreg_significantly_better": true,
+    "slide_target_f1_over_0_75_met": false
+  },
+  "shap_mean_abs_test": {
+    "strength_7d": 0.19622,
+    "total_km_d6": 0.16183,
+    "total_km_7d": 0.13336,
+    "total_km_d3": 0.11512,
+    "total_km_d4": 0.10527,
+    "total_km_d7": 0.0813,
+    "total_km_d2": 0.06875,
+    "rest_days_7d": 0.06196,
+    "total_km_d1": 0.05958,
+    "sessions_7d": 0.04526,
+    "total_km_d5": 0.04034,
+    "alt_hours_7d": 0.03799,
+    "sessions_d7": 0.03312,
+    "alt_hours_d7": 0.02294,
+    "alt_hours_d2": 0.02236,
+    "strength_d5": 0.01296,
+    "alt_hours_d6": 0.01219,
+    "sessions_d3": 0.01164,
+    "alt_hours_d1": 0.01117,
+    "alt_hours_d3": 0.01041,
+    "alt_hours_d5": 0.00949,
+    "sessions_d6": 0.00834,
+    "alt_hours_d4": 0.00738,
+    "strength_d6": 0.00492,
+    "sessions_d2": 0.00476,
+    "sessions_d1": 0.00405,
+    "sessions_d4": 0.00389,
+    "sessions_d5": 0.00341,
+    "strength_d4": 0.00319,
+    "strength_d7": 0.00298,
+    "strength_d2": 0.00246,
+    "strength_d3": 0.00134,
+    "strength_d1": 0.0
+  },
+  "figures": {
+    "curves": "injury_load_roc_pr.png",
+    "confusion": "injury_load_confusion.png",
+    "shap": "injury_load_shap.png",
+    "calibration": "injury_load_calibration.png"
+  },
+  "published_reference": "L\u00f6vdal et al. 2021 report AUC 0.724 (day approach) with their own protocol (bagged XGBoost, all 10 variables); not directly comparable."
+}

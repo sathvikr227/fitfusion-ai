@@ -1,0 +1,89 @@
+========================================================================
+  FitFusion Model 1 — calibrated XGBoost energy-expenditure model + SHAP
+========================================================================
+
+────────────────────────────────────────────────────────────────────────
+  1. Trained artifacts loaded from disk
+────────────────────────────────────────────────────────────────────────
+  model        calorie_hr_model.pkl  sha256 f06a86aecf730445…  (XGBRegressor, 600 trees, version calorie-hr-v1)
+  calibration  calorie_energy.json  sha256 cfd7eb94dd88cd6d…  (energy-xgb-cal-v2)
+  features     ['age', 'is_female', 'height_cm', 'weight_kg', 'hr']
+  calibration  kcal/min = 0.3075 + 0.6185 × XGBoost output
+
+────────────────────────────────────────────────────────────────────────
+  2. Input (sample_input.json) — EXAMPLE INPUT, not a real user: the QA test profile (21 y, male, 175 cm, 72 kg) on a 30-minute run at an average 150 bpm
+────────────────────────────────────────────────────────────────────────
+  age           21
+  sex           male
+  height_cm     175
+  weight_kg     72
+  avg_hr        150
+  duration_min  30
+
+────────────────────────────────────────────────────────────────────────
+  3. Prediction
+────────────────────────────────────────────────────────────────────────
+  XGBoost raw output            12.074 kcal/min
+  after WEEE calibration         7.776 kcal/min
+  session (30 min)              233.3 kcal
+  expected error (held-out)    ±1.2734 kcal/min (≈ ±38 kcal for this session)
+  for comparison: calibrated Keytel 235.6 kcal, MET table 270.0 kcal
+
+────────────────────────────────────────────────────────────────────────
+  4. SHAP explanation (kcal/min, after calibration)
+────────────────────────────────────────────────────────────────────────
+  baseline (average training prediction)   +6.113
+  Average heart rate (bpm)                 +1.550   (input 150)
+  Female (1 yes, 0 no)                     +0.192   (input 0)
+  Age (years)                              -0.191   (input 21)
+  Weight (kg)                              +0.064   (input 72)
+  Height (cm)                              +0.048   (input 175)
+  sum = prediction                         +7.776   (model said 7.776)
+  shap library agrees: max difference 0.00002 kcal/min
+  saved C:\Users\Sathv\OneDrive\Desktop\fitfusion-ai-wb\ml-service\demos\model1_calorie\outputs\shap_waterfall_sample.png
+
+────────────────────────────────────────────────────────────────────────
+  5. Same request through the FastAPI endpoint POST /predict/calories
+────────────────────────────────────────────────────────────────────────
+  HTTP 200
+  {
+    "calories": 233.3,
+    "kcal_per_min": 7.78,
+    "method": "heart_rate",
+    "estimator": "xgboost",
+    "validated": true,
+    "expected_error_kcal_per_min": 1.27,
+    "reason": null,
+    "fallback_reason": null,
+    "explanation": {
+      "base_kcal_per_min": 6.1133,
+      "contributions": {
+        "age": -0.1913,
+        "is_female": 0.1922,
+        "height_cm": 0.0475,
+        "weight_kg": 0.0641,
+        "hr": 1.5497
+      },
+      "inputs": {
+        "age": 21.0,
+        "is_female": 0.0,
+        "height_cm": 175.0,
+        "weight_kg": 72.0,
+        "hr": 150.0
+      },
+      "raw_model_kcal_per_min": 12.074
+    },
+    "warnings": [],
+    "baseline_met_calories": 270.0,
+    "model_version": "energy-xgb-cal-v2+calorie-hr-v1",
+    "workout_type": "Cardio",
+    "stub": false
+  }
+
+────────────────────────────────────────────────────────────────────────
+  6. Evaluation evidence (from models/reports, produced by the training scripts)
+────────────────────────────────────────────────────────────────────────
+  Malaga 5-fold CV by person:  XGBoost MAE 1.5029 kcal/min, R² 0.7702   | Keytel 2.1608
+  WEEE external test (16 people, uncalibrated): XGBoost 2.8827  Keytel 3.9108  MET table 3.8964 kcal/min
+  WEEE leave-one-person-out, calibrated: XGBoost 1.2734  Keytel 1.2943  MET 1.6926 kcal/min  (XGBoost vs Keytel Wilcoxon p = 0.1591)
+  Gym Members comparison (slide design, 20% test): MAE 86.02 kcal (target < 25: NOT met); labels explained R² 0.9908 by a Keytel-form formula

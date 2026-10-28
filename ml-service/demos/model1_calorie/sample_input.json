@@ -1,0 +1,10 @@
+{
+  "_label": "EXAMPLE INPUT, not a real user: the QA test profile (21 y, male, 175 cm, 72 kg) on a 30-minute run at an average 150 bpm",
+  "age": 21,
+  "sex": "male",
+  "height_cm": 175,
+  "weight_kg": 72,
+  "avg_hr": 150,
+  "duration_min": 30,
+  "exercise": "Running"
+}

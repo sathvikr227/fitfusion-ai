@@ -208,11 +208,13 @@ create table if not exists vitals_logs (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   date date not null,
-  systolic numeric,
-  diastolic numeric,
-  resting_heart_rate numeric,
-  blood_sugar_mg_dl numeric,
-  oxygen_saturation numeric,
+  -- Column names match the live table and what the vitals page writes.
+  systolic integer,
+  diastolic integer,
+  heart_rate integer,
+  blood_sugar numeric,
+  spo2 numeric,
+  body_temp numeric,
   notes text,
   created_at timestamptz default now(),
   unique(user_id, date)

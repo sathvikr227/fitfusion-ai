@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import type { ReactNode } from "react"
-import { supabase } from "../../../lib/supabase/client"
+import { supabase, authHeaders } from "../../../lib/supabase/client"
 import {
   Camera,
   CheckCircle2,
@@ -586,6 +586,7 @@ export default function DietTab() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...(await authHeaders()),
         },
         body: JSON.stringify({
           food: food.trim(),
@@ -636,7 +637,7 @@ export default function DietTab() {
 
           const res = await fetch("/api/analyze-food", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", ...(await authHeaders()) },
             body: JSON.stringify({
               image,
               mealType,

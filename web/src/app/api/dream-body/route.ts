@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import Groq from "groq-sdk"
 import { createClient } from "@supabase/supabase-js"
-import { GROQ_MODEL } from "../../../lib/groq-model"
+import { groqJson } from "../../../lib/groq-json"
 
 export const runtime = "nodejs"
 
@@ -99,15 +99,11 @@ Respond ONLY with valid JSON matching this exact schema:
   "warnings": ["warning1"] (only if goal is aggressive or unrealistic — omit otherwise)
 }`
 
-    const completion = await groq.chat.completions.create({
-      model: GROQ_MODEL,
+    const raw = await groqJson(groq, {
       messages: [{ role: "user", content: prompt }],
       temperature: 0.4,
-      response_format: { type: "json_object" },
-      max_tokens: 1200,
+      maxTokens: 2000,
     })
-
-    const raw = completion.choices[0]?.message?.content || ""
     if (!raw.trim()) {
       throw new Error("Groq returned an empty response")
     }

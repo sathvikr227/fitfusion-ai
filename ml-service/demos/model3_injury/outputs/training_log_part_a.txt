@@ -1,0 +1,48 @@
+
+========================================================================
+  Model 3 Part A — training-load injury risk (competitive runners)
+========================================================================
+[data] {'rows': 42766, 'athletes': 74, 'injury_days': 583, 'prevalence': 0.01363, 'athletes_with_injury': 63, 'min_days_between_injuries_same_athlete': 22, 'missing_values': 0}
+[split] {'rows': 34218, 'athletes': 60, 'injuries': 465} | test {'rows': 8548, 'athletes': 14, 'injuries': 118}
+
+========================================================================
+  Feature set APP (33 features) — model selection on development athletes
+========================================================================
+    depth 2 trees 200: mean fold AUC 0.6008
+    depth 2 trees 400: mean fold AUC 0.5937
+    depth 3 trees 200: mean fold AUC 0.6014
+    depth 3 trees 400: mean fold AUC 0.5914
+    depth 4 trees 200: mean fold AUC 0.5947
+    depth 4 trees 400: mean fold AUC 0.5794
+  chosen {'max_depth': 3, 'n_estimators': 200}; Platt a=0.4633 b=-4.1635; OOF-F1 threshold 0.01686
+
+========================================================================
+  Feature set FULL (78 features) — model selection on development athletes
+========================================================================
+    depth 2 trees 200: mean fold AUC 0.6221
+    depth 2 trees 400: mean fold AUC 0.6111
+    depth 3 trees 200: mean fold AUC 0.6186
+    depth 3 trees 400: mean fold AUC 0.6011
+    depth 4 trees 200: mean fold AUC 0.6086
+    depth 4 trees 400: mean fold AUC 0.5854
+  chosen {'max_depth': 2, 'n_estimators': 200}; Platt a=0.6638 b=-4.1731; OOF-F1 threshold 0.01543
+
+========================================================================
+  Held-out test athletes — scored once
+========================================================================
+  XGB-APP      ROC-AUC 0.5885 [0.482, 0.667]  PR-AUC 0.0220  P 0.022 R 0.364 F1 0.042 flag 0.224
+  LogReg-APP   ROC-AUC 0.6686 [0.563, 0.747]  PR-AUC 0.0307  P 0.053 R 0.195 F1 0.083 flag 0.051
+  Rule-APP     ROC-AUC 0.6045 [0.534, 0.674]  PR-AUC 0.0183
+  XGB-FULL     ROC-AUC 0.6018 [0.513, 0.695]  PR-AUC 0.0219  P 0.021 R 0.483 F1 0.040 flag 0.316
+  LogReg-FULL  ROC-AUC 0.6710 [0.599, 0.729]  PR-AUC 0.0293  P 0.026 R 0.458 F1 0.050 flag 0.242
+  Rule-FULL    ROC-AUC 0.5186 [0.457, 0.630]  PR-AUC 0.0140
+  Prevalence   ROC-AUC 0.5000  PR-AUC 0.0138
+  XGB-APP minus LogReg-APP     ΔAUC -0.0800 [95% CI -0.1305, -0.0101]
+  XGB-APP minus Rule-APP       ΔAUC -0.0160 [95% CI -0.1278, +0.0841]
+  XGB-FULL minus XGB-APP       ΔAUC +0.0133 [95% CI -0.0225, +0.0551]
+  XGB-FULL minus LogReg-FULL   ΔAUC -0.0692 [95% CI -0.1247, +0.0028]
+
+[decision] {'rule': 'serve XGB-APP iff the lower bound of its test ROC-AUC 95% CI > 0.50', 'xgb_app_roc_auc_ci_low': 0.4823, 'serve': False, 'logreg_significantly_better': True, 'slide_target_f1_over_0_75_met': False}
+[artifact] wrote C:\Users\Sathv\OneDrive\Desktop\fitfusion-ai-wb\ml-service\models\injury_load_model.pkl
+[report] wrote C:\Users\Sathv\OneDrive\Desktop\fitfusion-ai-wb\ml-service\models\reports\injury_load.json
+exit 0

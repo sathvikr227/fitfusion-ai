@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { supabase } from "../../../lib/supabase/client"
+import { RANGES, rangeError } from "../../../lib/validation"
 
 type WeightLog = {
   id: string
@@ -34,6 +35,7 @@ export default function WeightTab() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [statusMessage, setStatusMessage] = useState("")
+  const [statusIsError, setStatusIsError] = useState(false)
 
   const latestWeight = useMemo(() => {
     if (logs.length === 0) return null
@@ -101,10 +103,13 @@ export default function WeightTab() {
     }
 
     const weightValue = toNumber(weight)
-    if (!weightValue || weightValue <= 0) {
-      setStatusMessage("Please enter a valid weight.")
+    const weightError = !weightValue ? "Please enter a valid weight." : rangeError("weightKg", weightValue)
+    if (weightError) {
+      setStatusIsError(true)
+      setStatusMessage(weightError)
       return
     }
+    setStatusIsError(false)
 
     setSaving(true)
     setStatusMessage("")
@@ -118,7 +123,8 @@ export default function WeightTab() {
 
     if (error) {
       console.error("Error saving weight:", error.message)
-      setStatusMessage("Could not save weight. Check your weight_logs table columns or RLS policy.")
+      setStatusIsError(true)
+      setStatusMessage("Could not save your weight. Please try again.")
       return
     }
 
@@ -140,11 +146,12 @@ export default function WeightTab() {
 
         <input
           type="number"
+          min={RANGES.weightKg.min}
+          max={RANGES.weightKg.max}
           placeholder="Enter weight"
           value={weight}
           onChange={(e) => setWeight(e.target.value)}
           className="w-full border border-slate-200 px-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-purple-500"
-          min="0"
           step="0.1"
         />
 
@@ -158,7 +165,14 @@ export default function WeightTab() {
       </div>
 
       {statusMessage && (
-        <div className="bg-blue-50 border border-blue-100 text-blue-700 px-4 py-3 rounded-xl">
+        <div
+          role={statusIsError ? "alert" : "status"}
+          className={
+            statusIsError
+              ? "bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-xl dark:bg-rose-900/30 dark:border-rose-800 dark:text-rose-300"
+              : "bg-blue-50 border border-blue-100 text-blue-700 px-4 py-3 rounded-xl"
+          }
+        >
           {statusMessage}
         </div>
       )}

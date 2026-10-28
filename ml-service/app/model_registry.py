@@ -19,14 +19,16 @@ from .config import settings
 
 log = logging.getLogger("ml-service.registry")
 
-CALORIE_ARTIFACT = "calorie_model.pkl"
-REC_SCALER_ARTIFACT = "rec_scaler.pkl"
-REC_MATRIX_ARTIFACT = "user_matrix.pkl"
-REC_FOOD_ARTIFACT = "food_index.pkl"
-INJURY_ARTIFACT = "injury_risk_model.pkl"
-TRAJECTORY_ARTIFACT = "transformer_model.pt"
-TRAJECTORY_META_ARTIFACT = "transformer_meta.json"
-RL_ARTIFACT = "fitfusion_rl_agent.zip"
+CALORIE_ARTIFACT = "calorie_energy.json"
+CALORIE_MODEL_ARTIFACT = "calorie_hr_model.pkl"
+MEAL_CATALOG_ARTIFACT = "meal_catalog.pkl"
+EXERCISE_INDEX_ARTIFACT = "exercise_index.pkl"
+MEAL_HYBRID_ARTIFACT = "meal_hybrid_serving.pkl"
+INJURY_ARTIFACT = "injury_load_model.pkl"
+TRAJECTORY_ARTIFACT = "trajectory_runs.pt"
+TRAJECTORY_META_ARTIFACT = "trajectory_runs_meta.json"
+RL_ARTIFACT = "rl_ppo_agent.zip"
+RL_META_ARTIFACT = "rl_ppo_meta.json"
 
 
 class ModelRegistry:
@@ -38,12 +40,15 @@ class ModelRegistry:
         self._loaded = False
 
         self.calorie: dict[str, Any] | None = None
-        self.calorie_explainer: Any | None = None
+        self.calorie_model: dict[str, Any] | None = None
         self.recommender: dict[str, Any] | None = None
+        self.exercise_index: dict[str, Any] | None = None
+        self.meal_hybrid: dict[str, Any] | None = None
         self.injury: dict[str, Any] | None = None
         self.trajectory_model: Any | None = None
         self.trajectory_meta: dict[str, Any] | None = None
         self.rl_agent: Any | None = None
+        self.rl_meta: dict[str, Any] | None = None
 
         self.errors: dict[str, str] = {}
 
@@ -54,6 +59,8 @@ class ModelRegistry:
                 return
             self._load_calorie()
             self._load_recommender()
+            self._load_exercise_index()
+            self._load_meal_hybrid()
             self._load_injury()
             self._load_trajectory()
             self._load_rl()
@@ -69,53 +76,94 @@ class ModelRegistry:
             self.errors["calorie"] = f"{CALORIE_ARTIFACT} not found"
             return
         try:
-            import joblib
-            import shap
-
-            bundle = joblib.load(path)
-            self.calorie = bundle
-            # TreeExplainer is exact for gradient-boosted trees and cheap to build
-            # from an already-fitted booster, so it is constructed once here.
-            self.calorie_explainer = shap.TreeExplainer(bundle["model"])
-            log.info("loaded calorie model (%s)", bundle.get("model_version"))
+            energy = json.loads(path.read_text(encoding="utf-8"))
+            for key in ("intercept", "slope", "validated_hr_range_bpm", "expected_mae_kcal_per_min"):
+                if key not in energy:
+                    raise KeyError(f"{CALORIE_ARTIFACT} is missing '{key}'")
+            self.calorie = energy
+            log.info("loaded energy calibration (%s)", energy.get("model_version"))
         except Exception as exc:  # noqa: BLE001
             self.errors["calorie"] = str(exc)
             log.exception("failed to load %s", CALORIE_ARTIFACT)
+            return
 
-    def _load_recommender(self) -> None:
-        scaler_path = self._path(REC_SCALER_ARTIFACT)
-        matrix_path = self._path(REC_MATRIX_ARTIFACT)
-        food_path = self._path(REC_FOOD_ARTIFACT)
-        missing = [p.name for p in (scaler_path, matrix_path, food_path) if not p.exists()]
-        if missing:
-            self.errors["recommender"] = f"missing artifacts: {', '.join(missing)}"
+        # The XGBoost model is optional: without it the calibrated Keytel
+        # equation in the same JSON still serves heart-rate sessions.
+        if self.calorie.get("served_estimator") != "xgboost":
+            return
+        model_path = self._path(self.calorie.get("model_artifact", CALORIE_MODEL_ARTIFACT))
+        if not model_path.exists():
+            self.errors["calorie_model"] = f"{model_path.name} not found"
             return
         try:
             import joblib
 
-            scaler_bundle = joblib.load(scaler_path)
-            matrix_bundle = joblib.load(matrix_path)
-            food_bundle = joblib.load(food_path)
-            self.recommender = {
-                "scaler": scaler_bundle["scaler"],
-                "feature_names": scaler_bundle["feature_names"],
-                "model_version": scaler_bundle.get("model_version", "recommender-hybrid-v1"),
-                "matrix": matrix_bundle["matrix"],
-                "workout_types": matrix_bundle["workout_types"],
-                "top_k_neighbours": matrix_bundle.get("top_k_neighbours", 10),
-                "food_index": food_bundle["index"],
-                "restriction_blocklist": food_bundle["restriction_blocklist"],
-                "restriction_allowlist": food_bundle.get("restriction_allowlist", {}),
-                "injury_workout_blocklist": food_bundle["injury_workout_blocklist"],
-            }
-            log.info(
-                "loaded recommender (%d users, %d foods)",
-                len(self.recommender["workout_types"]),
-                len(self.recommender["food_index"]),
-            )
+            from .calorie_model import check_bundle
+
+            bundle = joblib.load(model_path)
+            check_bundle(bundle)
+            self.calorie_model = bundle
+            log.info("loaded calorie XGBoost model (%s)", bundle.get("model_version"))
+        except Exception as exc:  # noqa: BLE001
+            self.errors["calorie_model"] = str(exc)
+            log.exception("failed to load %s", model_path.name)
+
+    def _load_recommender(self) -> None:
+        path = self._path(MEAL_CATALOG_ARTIFACT)
+        if not path.exists():
+            self.errors["recommender"] = f"{MEAL_CATALOG_ARTIFACT} not found"
+            return
+        try:
+            import joblib
+
+            bundle = joblib.load(path)
+            if "catalog" not in bundle:
+                raise KeyError(f"{MEAL_CATALOG_ARTIFACT} has no 'catalog'")
+            self.recommender = bundle
+            log.info("loaded meal catalog (%d recipes, %s)", len(bundle["catalog"]), bundle.get("method"))
         except Exception as exc:  # noqa: BLE001
             self.errors["recommender"] = str(exc)
-            log.exception("failed to load recommender artifacts")
+            log.exception("failed to load %s", MEAL_CATALOG_ARTIFACT)
+
+    def _load_meal_hybrid(self) -> None:
+        # Optional: without it /recommend ranks by popularity, as before.
+        path = self._path(MEAL_HYBRID_ARTIFACT)
+        if not path.exists():
+            self.errors["recommender_hybrid"] = f"{MEAL_HYBRID_ARTIFACT} not found"
+            return
+        try:
+            import joblib
+
+            bundle = joblib.load(path)
+            n = len(bundle["ids"])
+            for key in ("factors", "tfidf", "popularity", "recommendable", "has_factor"):
+                if bundle[key].shape[0] != n:
+                    raise ValueError(f"{MEAL_HYBRID_ARTIFACT}: '{key}' has {bundle[key].shape[0]} rows, ids has {n}")
+            self.meal_hybrid = bundle
+            log.info("loaded meal hybrid (%d recipes, weights %s)", n, bundle.get("weights"))
+        except Exception as exc:  # noqa: BLE001
+            self.errors["recommender_hybrid"] = str(exc)
+            log.exception("failed to load %s", MEAL_HYBRID_ARTIFACT)
+
+    def _load_exercise_index(self) -> None:
+        path = self._path(EXERCISE_INDEX_ARTIFACT)
+        if not path.exists():
+            self.errors["exercise_recommender"] = f"{EXERCISE_INDEX_ARTIFACT} not found"
+            return
+        try:
+            import joblib
+
+            bundle = joblib.load(path)
+            for key in ("exercises", "columns", "matrix"):
+                if key not in bundle:
+                    raise KeyError(f"{EXERCISE_INDEX_ARTIFACT} has no '{key}'")
+            if bundle["matrix"].shape != (len(bundle["exercises"]), len(bundle["columns"])):
+                raise ValueError(f"{EXERCISE_INDEX_ARTIFACT} matrix shape does not match its exercises")
+            self.exercise_index = bundle
+            log.info("loaded exercise index (%d exercises)", len(bundle["exercises"]))
+        except Exception as exc:  # noqa: BLE001
+            self.errors["exercise_recommender"] = str(exc)
+            log.exception("failed to load %s", EXERCISE_INDEX_ARTIFACT)
 
     def _load_injury(self) -> None:
         path = self._path(INJURY_ARTIFACT)
@@ -125,8 +173,16 @@ class ModelRegistry:
         try:
             import joblib
 
-            self.injury = joblib.load(path)
-            log.info("loaded injury model (%s)", self.injury.get("model_version"))
+            from .injury_load import APP_FEATURES
+
+            bundle = joblib.load(path)
+            for key in ("model", "features", "platt_a", "platt_b", "threshold", "prevalence", "serve"):
+                if key not in bundle:
+                    raise KeyError(f"{INJURY_ARTIFACT} is missing '{key}'")
+            if list(bundle["features"]) != APP_FEATURES:
+                raise ValueError(f"{INJURY_ARTIFACT} features do not match app.injury_load.APP_FEATURES")
+            self.injury = bundle
+            log.info("loaded injury model (%s, serve=%s)", bundle.get("model_version"), bundle["serve"])
         except Exception as exc:  # noqa: BLE001
             self.errors["injury"] = str(exc)
             log.exception("failed to load %s", INJURY_ARTIFACT)
@@ -142,10 +198,15 @@ class ModelRegistry:
         try:
             import torch
 
-            from .trajectory_model import WorkoutTransformer
+            from .trajectory_runs import SESSION_FEATURES, RunTransformer
 
             meta = json.loads(meta_path.read_text(encoding="utf-8"))
-            model = WorkoutTransformer()
+            for key in ("feature_mean", "feature_std", "serve", "classes"):
+                if key not in meta:
+                    raise KeyError(f"{TRAJECTORY_META_ARTIFACT} is missing '{key}'")
+            if meta.get("features") != SESSION_FEATURES:
+                raise ValueError(f"{TRAJECTORY_META_ARTIFACT} features do not match app.trajectory_runs")
+            model = RunTransformer()
             model.load_state_dict(torch.load(path, map_location="cpu", weights_only=True))
             model.eval()
             self.trajectory_model = model
@@ -163,8 +224,12 @@ class ModelRegistry:
         try:
             from stable_baselines3 import PPO
 
+            meta_path = self._path(RL_META_ARTIFACT)
+            if not meta_path.exists():
+                raise FileNotFoundError(f"{RL_META_ARTIFACT} not found")
+            self.rl_meta = json.loads(meta_path.read_text(encoding="utf-8"))
             self.rl_agent = PPO.load(str(path), device="cpu")
-            log.info("loaded PPO agent")
+            log.info("loaded PPO agent (%s, serve=%s)", self.rl_meta.get("model_version"), self.rl_meta.get("serve"))
         except Exception as exc:  # noqa: BLE001
             self.errors["rl"] = str(exc)
             log.exception("failed to load %s", RL_ARTIFACT)
@@ -173,7 +238,10 @@ class ModelRegistry:
     def status(self) -> dict[str, bool]:
         return {
             "calorie": self.calorie is not None,
+            "calorie_xgboost": self.calorie_model is not None,
             "recommender": self.recommender is not None,
+            "recommender_hybrid": self.meal_hybrid is not None,
+            "exercise_recommender": self.exercise_index is not None,
             "injury": self.injury is not None,
             "trajectory": self.trajectory_model is not None,
             "rl": self.rl_agent is not None,

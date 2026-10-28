@@ -1,0 +1,9 @@
+{
+  "_label": "ILLUSTRATIVE INPUT, not a real user. The RL state /api/adaptive-replan builds for one week: completion of planned exercises, average sleep, injury flag, Model 4's trajectory (0 REGRESS, 1 PLATEAU, 2 IMPROVE) and the current streak of training days.",
+  "user_id": "demo-user",
+  "completion_rate": 0.92,
+  "sleep_avg": 7.6,
+  "injury_flag": 0,
+  "trajectory_score": 2,
+  "streak": 9
+}

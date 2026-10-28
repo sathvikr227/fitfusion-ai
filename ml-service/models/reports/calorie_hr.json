@@ -1,0 +1,1495 @@
+{
+  "model": "calorie_hr",
+  "trained_at": "2026-10-27T15:41:17+00:00",
+  "python": "3.12.10",
+  "artifact": "calorie_hr_model.pkl",
+  "figure": "calorie_hr_bland_altman.png",
+  "output": "kcal_per_min",
+  "inputs": [
+    "age",
+    "is_female",
+    "height_cm",
+    "weight_kg",
+    "hr"
+  ],
+  "training_data": {
+    "dataset": "PhysioNet treadmill-exercise-cardioresp v1.0.1 (University of Malaga)",
+    "licence": "CC BY-NC-SA 4.0",
+    "label": "Weir equation from breath-by-breath VO2 and VCO2",
+    "funnel": [
+      {
+        "step": "raw breath-by-breath rows",
+        "rows": 575087,
+        "tests": 992,
+        "people": 857
+      },
+      {
+        "step": "HR 40-220 bpm, VO2 and VCO2 present",
+        "rows": 569128,
+        "tests": 981,
+        "people": 846
+      },
+      {
+        "step": "after first 60 s (analyser settling)",
+        "rows": 549376,
+        "tests": 981,
+        "people": 846
+      },
+      {
+        "step": "exercise phase only (recovery walk removed)",
+        "rows": 427664,
+        "tests": 981,
+        "people": 846
+      },
+      {
+        "step": "sub-maximal, RER <= 1.0",
+        "rows": 279822,
+        "tests": 980,
+        "people": 845
+      },
+      {
+        "step": "60-s windows with >= 10 samples",
+        "rows": 10186,
+        "tests": 973,
+        "people": 840
+      }
+    ],
+    "windows": 10186,
+    "people": 840,
+    "range_p1_p99": {
+      "age": [
+        14.1,
+        54.8
+      ],
+      "height_cm": [
+        156.0,
+        195.0
+      ],
+      "weight_kg": [
+        48.8,
+        104.0
+      ],
+      "hr": [
+        71.8,
+        189.0
+      ],
+      "kcal_per_min": [
+        3.3986,
+        20.5464
+      ]
+    }
+  },
+  "test_data": {
+    "dataset": "WEEE, Zenodo 10.5281/zenodo.6420886",
+    "licence": "CC BY 4.0",
+    "label": "VO2 x 5.0 kcal/L (VO2 Master has no VCO2; median 2.7% from Weir on Malaga)",
+    "exercise_segments": 40,
+    "participants": 16,
+    "excluded_segments": [
+      {
+        "participant": "P02",
+        "activity": "Cycle1",
+        "exclusion_reason": "exercise HR 61 bpm below own sitting HR 63 bpm"
+      },
+      {
+        "participant": "P02",
+        "activity": "Run2",
+        "exclusion_reason": "VO2 coverage 73% < 80%"
+      },
+      {
+        "participant": "P03",
+        "activity": "Stand",
+        "exclusion_reason": "VO2 coverage 77% < 80%"
+      },
+      {
+        "participant": "P03",
+        "activity": "Run2",
+        "exclusion_reason": "VO2 coverage 0% < 80%"
+      },
+      {
+        "participant": "P04",
+        "activity": "Run1",
+        "exclusion_reason": "researcher-noted event inside segment: \"Interruption at 18:41\""
+      },
+      {
+        "participant": "P04",
+        "activity": "Run2",
+        "exclusion_reason": "VO2 coverage 0% < 80%"
+      },
+      {
+        "participant": "P05",
+        "activity": "Run2",
+        "exclusion_reason": "VO2 coverage 0% < 80%"
+      },
+      {
+        "participant": "P06",
+        "activity": "Run2",
+        "exclusion_reason": "VO2 coverage 31% < 80%"
+      },
+      {
+        "participant": "P07",
+        "activity": "Run1",
+        "exclusion_reason": "exercise HR 44 bpm < 50"
+      },
+      {
+        "participant": "P07",
+        "activity": "Run2",
+        "exclusion_reason": "VO2 coverage 0% < 80%"
+      },
+      {
+        "participant": "P08",
+        "activity": "Run2",
+        "exclusion_reason": "VO2 coverage 0% < 80%"
+      },
+      {
+        "participant": "P09",
+        "activity": "Run1",
+        "exclusion_reason": "VO2 coverage 42% < 80%"
+      },
+      {
+        "participant": "P09",
+        "activity": "Run2",
+        "exclusion_reason": "VO2 coverage 0% < 80%"
+      },
+      {
+        "participant": "P10",
+        "activity": "Sit",
+        "exclusion_reason": "VO2 coverage 0% < 80%"
+      },
+      {
+        "participant": "P10",
+        "activity": "Stand",
+        "exclusion_reason": "VO2 coverage 0% < 80%"
+      },
+      {
+        "participant": "P10",
+        "activity": "Run2",
+        "exclusion_reason": "VO2 coverage 0% < 80%"
+      },
+      {
+        "participant": "P11",
+        "activity": "Run1",
+        "exclusion_reason": "exercise HR 113 bpm below own sitting HR 115 bpm"
+      },
+      {
+        "participant": "P11",
+        "activity": "Run2",
+        "exclusion_reason": "VO2 coverage 0% < 80%"
+      },
+      {
+        "participant": "P12",
+        "activity": "Run2",
+        "exclusion_reason": "VO2 coverage 62% < 80%"
+      },
+      {
+        "participant": "P13",
+        "activity": "Cycle1",
+        "exclusion_reason": "exercise HR 115 bpm below own sitting HR 122 bpm"
+      },
+      {
+        "participant": "P13",
+        "activity": "Run2",
+        "exclusion_reason": "VO2 coverage 0% < 80%"
+      },
+      {
+        "participant": "P14",
+        "activity": "Sit",
+        "exclusion_reason": "participant excluded: Cycle1-Run2 start times are identical placeholders (11:05:00, before the session began)"
+      },
+      {
+        "participant": "P14",
+        "activity": "Stand",
+        "exclusion_reason": "participant excluded: Cycle1-Run2 start times are identical placeholders (11:05:00, before the session began)"
+      },
+      {
+        "participant": "P14",
+        "activity": "Cycle1",
+        "exclusion_reason": "participant excluded: Cycle1-Run2 start times are identical placeholders (11:05:00, before the session began)"
+      },
+      {
+        "participant": "P14",
+        "activity": "Cycle2",
+        "exclusion_reason": "participant excluded: Cycle1-Run2 start times are identical placeholders (11:05:00, before the session began)"
+      },
+      {
+        "participant": "P14",
+        "activity": "Run1",
+        "exclusion_reason": "participant excluded: Cycle1-Run2 start times are identical placeholders (11:05:00, before the session began)"
+      },
+      {
+        "participant": "P14",
+        "activity": "Run2",
+        "exclusion_reason": "participant excluded: Cycle1-Run2 start times are identical placeholders (11:05:00, before the session began)"
+      },
+      {
+        "participant": "P15",
+        "activity": "Run1",
+        "exclusion_reason": "VO2 coverage 12% < 80%"
+      },
+      {
+        "participant": "P15",
+        "activity": "Run2",
+        "exclusion_reason": "VO2 coverage 0% < 80%"
+      },
+      {
+        "participant": "P16",
+        "activity": "Cycle2",
+        "exclusion_reason": "VO2 coverage 29% < 80%"
+      },
+      {
+        "participant": "P16",
+        "activity": "Run1",
+        "exclusion_reason": "VO2 coverage 0% < 80%"
+      },
+      {
+        "participant": "P16",
+        "activity": "Run2",
+        "exclusion_reason": "VO2 coverage 0% < 80%"
+      },
+      {
+        "participant": "P17",
+        "activity": "Run2",
+        "exclusion_reason": "VO2 coverage 0% < 80%"
+      }
+    ]
+  },
+  "cross_validation": {
+    "folds": 5,
+    "grouped_by": "person",
+    "results": {
+      "ridge": {
+        "mae": 1.5523,
+        "rmse": 2.0183,
+        "mape_pct": 18.8705,
+        "bias": 0.0023,
+        "loa_low": -3.9535,
+        "loa_high": 3.9581,
+        "r2": 0.7681,
+        "n": 10186
+      },
+      "xgb_depth2": {
+        "mae": 1.5029,
+        "rmse": 2.0092,
+        "mape_pct": 17.6674,
+        "bias": -0.0092,
+        "loa_low": -3.9472,
+        "loa_high": 3.9288,
+        "r2": 0.7702,
+        "n": 10186
+      },
+      "xgb_depth3": {
+        "mae": 1.5159,
+        "rmse": 2.0236,
+        "mape_pct": 17.8011,
+        "bias": -0.0084,
+        "loa_low": -3.9748,
+        "loa_high": 3.9579,
+        "r2": 0.7669,
+        "n": 10186
+      },
+      "xgb_depth4": {
+        "mae": 1.5541,
+        "rmse": 2.0688,
+        "mape_pct": 18.3342,
+        "bias": -0.0054,
+        "loa_low": -4.0603,
+        "loa_high": 4.0495,
+        "r2": 0.7564,
+        "n": 10186
+      },
+      "keytel_2005": {
+        "mae": 2.1608,
+        "rmse": 2.7403,
+        "mape_pct": 27.6419,
+        "bias": 1.4301,
+        "loa_low": -3.1514,
+        "loa_high": 6.0116,
+        "r2": 0.5726,
+        "n": 10186
+      },
+      "fitfusion_met_table": {
+        "mae": 1.7452,
+        "rmse": 2.3435,
+        "mape_pct": 19.1307,
+        "bias": -1.0148,
+        "loa_low": -5.1551,
+        "loa_high": 3.1254,
+        "r2": 0.6874,
+        "n": 10186
+      }
+    },
+    "selected": "xgb_depth2"
+  },
+  "ablation_without_hr": {
+    "mae": 3.4124,
+    "rmse": 4.0111,
+    "mape_pct": 44.2868,
+    "bias": -0.0,
+    "loa_low": -7.8618,
+    "loa_high": 7.8618,
+    "r2": 0.0842,
+    "n": 10186
+  },
+  "external_test": {
+    "exercise": {
+      "model_1": {
+        "mae": 2.8827,
+        "rmse": 3.2114,
+        "mape_pct": 70.6559,
+        "bias": 2.6304,
+        "loa_low": -0.9806,
+        "loa_high": 6.2414,
+        "r2": -1.0513,
+        "n": 40
+      },
+      "keytel_2005": {
+        "mae": 3.9108,
+        "rmse": 4.3169,
+        "mape_pct": 94.1844,
+        "bias": 3.8233,
+        "loa_low": -0.1058,
+        "loa_high": 7.7523,
+        "r2": -2.7066,
+        "n": 40
+      },
+      "fitfusion_met_table": {
+        "mae": 3.8964,
+        "rmse": 4.4717,
+        "mape_pct": 112.8637,
+        "bias": 2.5933,
+        "loa_low": -4.547,
+        "loa_high": 9.7336,
+        "r2": -2.9772,
+        "n": 40
+      },
+      "researcher_met": {
+        "mae": 10.1166,
+        "rmse": 11.4605,
+        "mape_pct": 264.4323,
+        "bias": 10.0604,
+        "loa_low": -0.6986,
+        "loa_high": 20.8194,
+        "r2": -25.1236,
+        "n": 40
+      }
+    },
+    "rest_out_of_training_range": {
+      "model_1": {
+        "mae": 3.9194,
+        "rmse": 4.0132,
+        "mape_pct": 366.855,
+        "bias": 3.9194,
+        "loa_low": 2.2288,
+        "loa_high": 5.6101,
+        "r2": -403.2422,
+        "n": 29
+      },
+      "keytel_2005": {
+        "mae": 3.4542,
+        "rmse": 3.9926,
+        "mape_pct": 317.5244,
+        "bias": 3.3039,
+        "loa_low": -1.0898,
+        "loa_high": 7.6976,
+        "r2": -399.0996,
+        "n": 29
+      },
+      "fitfusion_met_table": {
+        "mae": 5.0153,
+        "rmse": 5.0927,
+        "mape_pct": 471.3404,
+        "bias": 5.0153,
+        "loa_low": 3.2817,
+        "loa_high": 6.7489,
+        "r2": -649.9497,
+        "n": 29
+      },
+      "researcher_met": {
+        "mae": 0.2594,
+        "rmse": 0.3491,
+        "mape_pct": 25.7639,
+        "bias": 0.2394,
+        "loa_low": -0.2586,
+        "loa_high": 0.7375,
+        "r2": -2.0595,
+        "n": 29
+      }
+    },
+    "per_activity_mae": {
+      "Cycle1": {
+        "model_1": 2.6228,
+        "keytel_2005": 3.3794,
+        "fitfusion_met_table": 5.299,
+        "researcher_met": 10.8758,
+        "n": 14
+      },
+      "Cycle2": {
+        "model_1": 2.716,
+        "keytel_2005": 3.8635,
+        "fitfusion_met_table": 3.7406,
+        "researcher_met": 13.644,
+        "n": 15
+      },
+      "Run1": {
+        "model_1": 3.2898,
+        "keytel_2005": 4.606,
+        "fitfusion_met_table": 2.1753,
+        "researcher_met": 4.3899,
+        "n": 10
+      },
+      "Run2": {
+        "model_1": 4.9498,
+        "keytel_2005": 5.1081,
+        "fitfusion_met_table": 3.8067,
+        "researcher_met": 3.8417,
+        "n": 1
+      }
+    },
+    "per_sex_mae": {
+      "male": {
+        "model_1": 2.9249,
+        "keytel_2005": 4.0667,
+        "fitfusion_met_table": 4.0509,
+        "researcher_met": 11.0972,
+        "n": 28,
+        "participants": 12
+      },
+      "female": {
+        "model_1": 2.7841,
+        "keytel_2005": 3.5472,
+        "fitfusion_met_table": 3.536,
+        "researcher_met": 7.8284,
+        "n": 12,
+        "participants": 4
+      }
+    },
+    "paired_vs_keytel": {
+      "participants": 16,
+      "model_mae": 2.7817,
+      "baseline_mae": 3.8822,
+      "mae_difference": -1.1005,
+      "bootstrap_95ci": [
+        -1.4921,
+        -0.6876
+      ],
+      "wilcoxon_p": 0.0002,
+      "participants_where_model_better": 15
+    },
+    "paired_vs_fitfusion_met": {
+      "participants": 16,
+      "model_mae": 2.7817,
+      "baseline_mae": 3.8625,
+      "mae_difference": -1.0808,
+      "bootstrap_95ci": [
+        -1.6682,
+        -0.4345
+      ],
+      "wilcoxon_p": 0.0063,
+      "participants_where_model_better": 14
+    },
+    "paired_vs_researcher_met": {
+      "participants": 16,
+      "model_mae": 2.7817,
+      "baseline_mae": 10.3278,
+      "mae_difference": -7.5461,
+      "bootstrap_95ci": [
+        -9.0294,
+        -6.0796
+      ],
+      "wilcoxon_p": 0.0,
+      "participants_where_model_better": 16
+    },
+    "session_error_kcal": {
+      "minutes": 30,
+      "model_1": 86.4803,
+      "keytel_2005": 117.3251,
+      "fitfusion_met_table": 116.8921,
+      "researcher_met": 303.4973
+    },
+    "segments": [
+      {
+        "participant": "P01",
+        "activity": "Sit",
+        "is_exercise": false,
+        "is_female": 1,
+        "age": 29.0,
+        "weight_kg": 70.6,
+        "hr": 87.7,
+        "kcal_per_min": 1.091,
+        "pred_model": 4.0603,
+        "pred_keytel": 2.8792,
+        "pred_app_met": 5.8833,
+        "pred_researcher_met": 1.1767
+      },
+      {
+        "participant": "P01",
+        "activity": "Stand",
+        "is_exercise": false,
+        "is_female": 1,
+        "age": 29.0,
+        "weight_kg": 70.6,
+        "hr": 91.0,
+        "kcal_per_min": 1.321,
+        "pred_model": 4.1369,
+        "pred_keytel": 3.2319,
+        "pred_app_met": 5.8833,
+        "pred_researcher_met": 1.412
+      },
+      {
+        "participant": "P01",
+        "activity": "Cycle1",
+        "is_exercise": true,
+        "is_female": 1,
+        "age": 29.0,
+        "weight_kg": 70.6,
+        "hr": 108.1,
+        "kcal_per_min": 2.555,
+        "pred_model": 5.0512,
+        "pred_keytel": 5.0596,
+        "pred_app_met": 8.2367,
+        "pred_researcher_met": 11.7667
+      },
+      {
+        "participant": "P01",
+        "activity": "Cycle2",
+        "is_exercise": true,
+        "is_female": 1,
+        "age": 29.0,
+        "weight_kg": 70.6,
+        "hr": 129.3,
+        "kcal_per_min": 3.676,
+        "pred_model": 7.2082,
+        "pred_keytel": 7.3255,
+        "pred_app_met": 8.2367,
+        "pred_researcher_met": 18.8267
+      },
+      {
+        "participant": "P01",
+        "activity": "Run1",
+        "is_exercise": true,
+        "is_female": 1,
+        "age": 29.0,
+        "weight_kg": 70.6,
+        "hr": 169.2,
+        "kcal_per_min": 6.419,
+        "pred_model": 11.7071,
+        "pred_keytel": 11.5902,
+        "pred_app_met": 4.1183,
+        "pred_researcher_met": 5.295
+      },
+      {
+        "participant": "P01",
+        "activity": "Run2",
+        "is_exercise": true,
+        "is_female": 1,
+        "age": 29.0,
+        "weight_kg": 70.6,
+        "hr": 182.7,
+        "kcal_per_min": 7.925,
+        "pred_model": 12.8748,
+        "pred_keytel": 13.0331,
+        "pred_app_met": 4.1183,
+        "pred_researcher_met": 11.7667
+      },
+      {
+        "participant": "P02",
+        "activity": "Sit",
+        "is_exercise": false,
+        "is_female": 0,
+        "age": 26.0,
+        "weight_kg": 77.0,
+        "hr": 63.0,
+        "kcal_per_min": 0.9,
+        "pred_model": 4.7069,
+        "pred_keytel": 1.2432,
+        "pred_app_met": 6.4167,
+        "pred_researcher_met": 1.2833
+      },
+      {
+        "participant": "P02",
+        "activity": "Stand",
+        "is_exercise": false,
+        "is_female": 0,
+        "age": 26.0,
+        "weight_kg": 77.0,
+        "hr": 66.7,
+        "kcal_per_min": 0.982,
+        "pred_model": 4.7069,
+        "pred_keytel": 1.8011,
+        "pred_app_met": 6.4167,
+        "pred_researcher_met": 1.54
+      },
+      {
+        "participant": "P02",
+        "activity": "Cycle2",
+        "is_exercise": true,
+        "is_female": 0,
+        "age": 26.0,
+        "weight_kg": 77.0,
+        "hr": 86.5,
+        "kcal_per_min": 5.959,
+        "pred_model": 4.988,
+        "pred_keytel": 4.7867,
+        "pred_app_met": 8.9833,
+        "pred_researcher_met": 15.4
+      },
+      {
+        "participant": "P02",
+        "activity": "Run1",
+        "is_exercise": true,
+        "is_female": 0,
+        "age": 26.0,
+        "weight_kg": 77.0,
+        "hr": 105.8,
+        "kcal_per_min": 8.276,
+        "pred_model": 6.0048,
+        "pred_keytel": 7.697,
+        "pred_app_met": 4.4917,
+        "pred_researcher_met": 10.2667
+      },
+      {
+        "participant": "P03",
+        "activity": "Sit",
+        "is_exercise": false,
+        "is_female": 1,
+        "age": 26.0,
+        "weight_kg": 61.0,
+        "hr": 93.5,
+        "kcal_per_min": 1.002,
+        "pred_model": 3.9273,
+        "pred_keytel": 3.7358,
+        "pred_app_met": 5.0833,
+        "pred_researcher_met": 1.0167
+      },
+      {
+        "participant": "P03",
+        "activity": "Cycle1",
+        "is_exercise": true,
+        "is_female": 1,
+        "age": 26.0,
+        "weight_kg": 61.0,
+        "hr": 102.6,
+        "kcal_per_min": 2.031,
+        "pred_model": 4.3802,
+        "pred_keytel": 4.7085,
+        "pred_app_met": 7.1167,
+        "pred_researcher_met": 12.2
+      },
+      {
+        "participant": "P03",
+        "activity": "Cycle2",
+        "is_exercise": true,
+        "is_female": 1,
+        "age": 26.0,
+        "weight_kg": 61.0,
+        "hr": 127.5,
+        "kcal_per_min": 3.554,
+        "pred_model": 6.3461,
+        "pred_keytel": 7.3699,
+        "pred_app_met": 7.1167,
+        "pred_researcher_met": 16.2667
+      },
+      {
+        "participant": "P03",
+        "activity": "Run1",
+        "is_exercise": true,
+        "is_female": 1,
+        "age": 26.0,
+        "weight_kg": 61.0,
+        "hr": 147.4,
+        "kcal_per_min": 4.537,
+        "pred_model": 8.103,
+        "pred_keytel": 9.4968,
+        "pred_app_met": 3.5583,
+        "pred_researcher_met": 10.1667
+      },
+      {
+        "participant": "P04",
+        "activity": "Sit",
+        "is_exercise": false,
+        "is_female": 0,
+        "age": 27.0,
+        "weight_kg": 81.5,
+        "hr": 72.7,
+        "kcal_per_min": 0.95,
+        "pred_model": 5.1231,
+        "pred_keytel": 2.9679,
+        "pred_app_met": 6.7917,
+        "pred_researcher_met": 1.3583
+      },
+      {
+        "participant": "P04",
+        "activity": "Stand",
+        "is_exercise": false,
+        "is_female": 0,
+        "age": 27.0,
+        "weight_kg": 81.5,
+        "hr": 80.6,
+        "kcal_per_min": 1.497,
+        "pred_model": 5.1769,
+        "pred_keytel": 4.1591,
+        "pred_app_met": 6.7917,
+        "pred_researcher_met": 1.63
+      },
+      {
+        "participant": "P04",
+        "activity": "Cycle1",
+        "is_exercise": true,
+        "is_female": 0,
+        "age": 27.0,
+        "weight_kg": 81.5,
+        "hr": 93.1,
+        "kcal_per_min": 2.868,
+        "pred_model": 5.532,
+        "pred_keytel": 6.044,
+        "pred_app_met": 9.5083,
+        "pred_researcher_met": 13.5833
+      },
+      {
+        "participant": "P04",
+        "activity": "Cycle2",
+        "is_exercise": true,
+        "is_female": 0,
+        "age": 27.0,
+        "weight_kg": 81.5,
+        "hr": 119.6,
+        "kcal_per_min": 4.216,
+        "pred_model": 8.1003,
+        "pred_keytel": 10.0399,
+        "pred_app_met": 9.5083,
+        "pred_researcher_met": 21.7333
+      },
+      {
+        "participant": "P05",
+        "activity": "Sit",
+        "is_exercise": false,
+        "is_female": 1,
+        "age": 33.0,
+        "weight_kg": 66.0,
+        "hr": 83.5,
+        "kcal_per_min": 0.983,
+        "pred_model": 3.4296,
+        "pred_keytel": 2.6399,
+        "pred_app_met": 5.5,
+        "pred_researcher_met": 1.1
+      },
+      {
+        "participant": "P05",
+        "activity": "Stand",
+        "is_exercise": false,
+        "is_female": 1,
+        "age": 33.0,
+        "weight_kg": 66.0,
+        "hr": 90.2,
+        "kcal_per_min": 1.238,
+        "pred_model": 3.5526,
+        "pred_keytel": 3.356,
+        "pred_app_met": 5.5,
+        "pred_researcher_met": 1.32
+      },
+      {
+        "participant": "P05",
+        "activity": "Cycle1",
+        "is_exercise": true,
+        "is_female": 1,
+        "age": 33.0,
+        "weight_kg": 66.0,
+        "hr": 114.3,
+        "kcal_per_min": 3.698,
+        "pred_model": 5.3384,
+        "pred_keytel": 5.9319,
+        "pred_app_met": 7.7,
+        "pred_researcher_met": 11.0
+      },
+      {
+        "participant": "P05",
+        "activity": "Cycle2",
+        "is_exercise": true,
+        "is_female": 1,
+        "age": 33.0,
+        "weight_kg": 66.0,
+        "hr": 115.8,
+        "kcal_per_min": 4.045,
+        "pred_model": 5.3836,
+        "pred_keytel": 6.0922,
+        "pred_app_met": 7.7,
+        "pred_researcher_met": 17.6
+      },
+      {
+        "participant": "P05",
+        "activity": "Run1",
+        "is_exercise": true,
+        "is_female": 1,
+        "age": 33.0,
+        "weight_kg": 66.0,
+        "hr": 151.3,
+        "kcal_per_min": 7.544,
+        "pred_model": 8.5092,
+        "pred_keytel": 9.8866,
+        "pred_app_met": 3.85,
+        "pred_researcher_met": 8.8
+      },
+      {
+        "participant": "P06",
+        "activity": "Sit",
+        "is_exercise": false,
+        "is_female": 0,
+        "age": 40.0,
+        "weight_kg": 99.7,
+        "hr": 77.4,
+        "kcal_per_min": 0.841,
+        "pred_model": 5.582,
+        "pred_keytel": 5.168,
+        "pred_app_met": 8.3083,
+        "pred_researcher_met": 1.6617
+      },
+      {
+        "participant": "P06",
+        "activity": "Stand",
+        "is_exercise": false,
+        "is_female": 0,
+        "age": 40.0,
+        "weight_kg": 99.7,
+        "hr": 83.8,
+        "kcal_per_min": 0.902,
+        "pred_model": 5.9144,
+        "pred_keytel": 6.1331,
+        "pred_app_met": 8.3083,
+        "pred_researcher_met": 1.994
+      },
+      {
+        "participant": "P06",
+        "activity": "Cycle1",
+        "is_exercise": true,
+        "is_female": 0,
+        "age": 40.0,
+        "weight_kg": 99.7,
+        "hr": 83.5,
+        "kcal_per_min": 1.647,
+        "pred_model": 5.9144,
+        "pred_keytel": 6.0879,
+        "pred_app_met": 11.6317,
+        "pred_researcher_met": 16.6167
+      },
+      {
+        "participant": "P06",
+        "activity": "Cycle2",
+        "is_exercise": true,
+        "is_female": 0,
+        "age": 40.0,
+        "weight_kg": 99.7,
+        "hr": 106.0,
+        "kcal_per_min": 3.041,
+        "pred_model": 7.4818,
+        "pred_keytel": 9.4806,
+        "pred_app_met": 11.6317,
+        "pred_researcher_met": 26.5867
+      },
+      {
+        "participant": "P06",
+        "activity": "Run1",
+        "is_exercise": true,
+        "is_female": 0,
+        "age": 40.0,
+        "weight_kg": 99.7,
+        "hr": 125.6,
+        "kcal_per_min": 4.443,
+        "pred_model": 10.0889,
+        "pred_keytel": 12.4361,
+        "pred_app_met": 5.8158,
+        "pred_researcher_met": 13.2933
+      },
+      {
+        "participant": "P07",
+        "activity": "Sit",
+        "is_exercise": false,
+        "is_female": 0,
+        "age": 34.0,
+        "weight_kg": 71.0,
+        "hr": 81.0,
+        "kcal_per_min": 0.992,
+        "pred_model": 4.5703,
+        "pred_keytel": 4.058,
+        "pred_app_met": 5.9167,
+        "pred_researcher_met": 1.1833
+      },
+      {
+        "participant": "P07",
+        "activity": "Stand",
+        "is_exercise": false,
+        "is_female": 0,
+        "age": 34.0,
+        "weight_kg": 71.0,
+        "hr": 86.3,
+        "kcal_per_min": 1.266,
+        "pred_model": 4.8309,
+        "pred_keytel": 4.8572,
+        "pred_app_met": 5.9167,
+        "pred_researcher_met": 1.42
+      },
+      {
+        "participant": "P07",
+        "activity": "Cycle1",
+        "is_exercise": true,
+        "is_female": 0,
+        "age": 34.0,
+        "weight_kg": 71.0,
+        "hr": 97.8,
+        "kcal_per_min": 2.97,
+        "pred_model": 5.63,
+        "pred_keytel": 6.5912,
+        "pred_app_met": 8.2833,
+        "pred_researcher_met": 14.2
+      },
+      {
+        "participant": "P07",
+        "activity": "Cycle2",
+        "is_exercise": true,
+        "is_female": 0,
+        "age": 34.0,
+        "weight_kg": 71.0,
+        "hr": 101.6,
+        "kcal_per_min": 3.886,
+        "pred_model": 5.63,
+        "pred_keytel": 7.1642,
+        "pred_app_met": 8.2833,
+        "pred_researcher_met": 18.9333
+      },
+      {
+        "participant": "P08",
+        "activity": "Sit",
+        "is_exercise": false,
+        "is_female": 0,
+        "age": 33.0,
+        "weight_kg": 85.6,
+        "hr": 90.5,
+        "kcal_per_min": 1.336,
+        "pred_model": 5.8879,
+        "pred_keytel": 6.136,
+        "pred_app_met": 7.1333,
+        "pred_researcher_met": 1.4267
+      },
+      {
+        "participant": "P08",
+        "activity": "Stand",
+        "is_exercise": false,
+        "is_female": 0,
+        "age": 33.0,
+        "weight_kg": 85.6,
+        "hr": 96.4,
+        "kcal_per_min": 1.265,
+        "pred_model": 6.2575,
+        "pred_keytel": 7.0256,
+        "pred_app_met": 7.1333,
+        "pred_researcher_met": 1.712
+      },
+      {
+        "participant": "P08",
+        "activity": "Cycle1",
+        "is_exercise": true,
+        "is_female": 0,
+        "age": 33.0,
+        "weight_kg": 85.6,
+        "hr": 94.0,
+        "kcal_per_min": 2.296,
+        "pred_model": 6.148,
+        "pred_keytel": 6.6637,
+        "pred_app_met": 9.9867,
+        "pred_researcher_met": 5.7067
+      },
+      {
+        "participant": "P08",
+        "activity": "Cycle2",
+        "is_exercise": true,
+        "is_female": 0,
+        "age": 33.0,
+        "weight_kg": 85.6,
+        "hr": 105.4,
+        "kcal_per_min": 3.57,
+        "pred_model": 7.1366,
+        "pred_keytel": 8.3827,
+        "pred_app_met": 9.9867,
+        "pred_researcher_met": 17.12
+      },
+      {
+        "participant": "P08",
+        "activity": "Run1",
+        "is_exercise": true,
+        "is_female": 0,
+        "age": 33.0,
+        "weight_kg": 85.6,
+        "hr": 137.7,
+        "kcal_per_min": 7.841,
+        "pred_model": 12.0976,
+        "pred_keytel": 13.2532,
+        "pred_app_met": 4.9933,
+        "pred_researcher_met": 11.4133
+      },
+      {
+        "participant": "P09",
+        "activity": "Sit",
+        "is_exercise": false,
+        "is_female": 0,
+        "age": 27.0,
+        "weight_kg": 76.0,
+        "hr": 86.2,
+        "kcal_per_min": 1.103,
+        "pred_model": 5.1435,
+        "pred_keytel": 4.7422,
+        "pred_app_met": 6.3333,
+        "pred_researcher_met": 1.2667
+      },
+      {
+        "participant": "P09",
+        "activity": "Stand",
+        "is_exercise": false,
+        "is_female": 0,
+        "age": 27.0,
+        "weight_kg": 76.0,
+        "hr": 93.8,
+        "kcal_per_min": 1.183,
+        "pred_model": 5.4514,
+        "pred_keytel": 5.8882,
+        "pred_app_met": 6.3333,
+        "pred_researcher_met": 1.52
+      },
+      {
+        "participant": "P09",
+        "activity": "Cycle1",
+        "is_exercise": true,
+        "is_female": 0,
+        "age": 27.0,
+        "weight_kg": 76.0,
+        "hr": 93.8,
+        "kcal_per_min": 3.661,
+        "pred_model": 5.4514,
+        "pred_keytel": 5.8882,
+        "pred_app_met": 8.8667,
+        "pred_researcher_met": 12.6667
+      },
+      {
+        "participant": "P09",
+        "activity": "Cycle2",
+        "is_exercise": true,
+        "is_female": 0,
+        "age": 27.0,
+        "weight_kg": 76.0,
+        "hr": 136.9,
+        "kcal_per_min": 7.36,
+        "pred_model": 10.746,
+        "pred_keytel": 12.3872,
+        "pred_app_met": 8.8667,
+        "pred_researcher_met": 20.2667
+      },
+      {
+        "participant": "P10",
+        "activity": "Cycle1",
+        "is_exercise": true,
+        "is_female": 0,
+        "age": 41.0,
+        "weight_kg": 87.0,
+        "hr": 115.6,
+        "kcal_per_min": 3.372,
+        "pred_model": 8.2789,
+        "pred_keytel": 10.373,
+        "pred_app_met": 10.15,
+        "pred_researcher_met": 23.2
+      },
+      {
+        "participant": "P10",
+        "activity": "Cycle2",
+        "is_exercise": true,
+        "is_female": 0,
+        "age": 41.0,
+        "weight_kg": 87.0,
+        "hr": 94.0,
+        "kcal_per_min": 4.2,
+        "pred_model": 6.0337,
+        "pred_keytel": 7.1159,
+        "pred_app_met": 10.15,
+        "pred_researcher_met": 23.2
+      },
+      {
+        "participant": "P10",
+        "activity": "Run1",
+        "is_exercise": true,
+        "is_female": 0,
+        "age": 41.0,
+        "weight_kg": 87.0,
+        "hr": 137.7,
+        "kcal_per_min": 6.319,
+        "pred_model": 11.9796,
+        "pred_keytel": 13.7054,
+        "pred_app_met": 5.075,
+        "pred_researcher_met": 11.6
+      },
+      {
+        "participant": "P11",
+        "activity": "Sit",
+        "is_exercise": false,
+        "is_female": 1,
+        "age": 33.0,
+        "weight_kg": 53.3,
+        "hr": 115.2,
+        "kcal_per_min": 0.785,
+        "pred_model": 4.9489,
+        "pred_keytel": 6.4114,
+        "pred_app_met": 4.4417,
+        "pred_researcher_met": 0.8883
+      },
+      {
+        "participant": "P11",
+        "activity": "Stand",
+        "is_exercise": false,
+        "is_female": 1,
+        "age": 33.0,
+        "weight_kg": 53.3,
+        "hr": 110.1,
+        "kcal_per_min": 0.929,
+        "pred_model": 4.4275,
+        "pred_keytel": 5.8663,
+        "pred_app_met": 4.4417,
+        "pred_researcher_met": 1.066
+      },
+      {
+        "participant": "P11",
+        "activity": "Cycle1",
+        "is_exercise": true,
+        "is_female": 1,
+        "age": 33.0,
+        "weight_kg": 53.3,
+        "hr": 128.0,
+        "kcal_per_min": 2.584,
+        "pred_model": 5.9215,
+        "pred_keytel": 7.7795,
+        "pred_app_met": 6.2183,
+        "pred_researcher_met": 7.1067
+      },
+      {
+        "participant": "P11",
+        "activity": "Cycle2",
+        "is_exercise": true,
+        "is_female": 1,
+        "age": 33.0,
+        "weight_kg": 53.3,
+        "hr": 126.4,
+        "kcal_per_min": 4.748,
+        "pred_model": 5.902,
+        "pred_keytel": 7.6085,
+        "pred_app_met": 6.2183,
+        "pred_researcher_met": 14.2133
+      },
+      {
+        "participant": "P12",
+        "activity": "Sit",
+        "is_exercise": false,
+        "is_female": 0,
+        "age": 27.0,
+        "weight_kg": 63.6,
+        "hr": 54.6,
+        "kcal_per_min": 0.743,
+        "pred_model": 4.3329,
+        "pred_keytel": -0.6119,
+        "pred_app_met": 5.3,
+        "pred_researcher_met": 1.06
+      },
+      {
+        "participant": "P12",
+        "activity": "Stand",
+        "is_exercise": false,
+        "is_female": 0,
+        "age": 27.0,
+        "weight_kg": 63.6,
+        "hr": 59.8,
+        "kcal_per_min": 0.996,
+        "pred_model": 4.3329,
+        "pred_keytel": 0.1722,
+        "pred_app_met": 5.3,
+        "pred_researcher_met": 1.272
+      },
+      {
+        "participant": "P12",
+        "activity": "Cycle1",
+        "is_exercise": true,
+        "is_female": 0,
+        "age": 27.0,
+        "weight_kg": 63.6,
+        "hr": 85.9,
+        "kcal_per_min": 3.274,
+        "pred_model": 4.6139,
+        "pred_keytel": 4.1078,
+        "pred_app_met": 7.42,
+        "pred_researcher_met": 16.96
+      },
+      {
+        "participant": "P12",
+        "activity": "Cycle2",
+        "is_exercise": true,
+        "is_female": 0,
+        "age": 27.0,
+        "weight_kg": 63.6,
+        "hr": 128.0,
+        "kcal_per_min": 9.692,
+        "pred_model": 7.8891,
+        "pred_keytel": 10.456,
+        "pred_app_met": 7.42,
+        "pred_researcher_met": 16.96
+      },
+      {
+        "participant": "P12",
+        "activity": "Run1",
+        "is_exercise": true,
+        "is_female": 0,
+        "age": 27.0,
+        "weight_kg": 63.6,
+        "hr": 111.4,
+        "kcal_per_min": 5.816,
+        "pred_model": 6.1992,
+        "pred_keytel": 7.9529,
+        "pred_app_met": 7.42,
+        "pred_researcher_met": 12.19
+      },
+      {
+        "participant": "P13",
+        "activity": "Sit",
+        "is_exercise": false,
+        "is_female": 0,
+        "age": 23.0,
+        "weight_kg": 71.8,
+        "hr": 122.4,
+        "kcal_per_min": 1.109,
+        "pred_model": 7.2246,
+        "pred_keytel": 9.8084,
+        "pred_app_met": 5.9833,
+        "pred_researcher_met": 1.1967
+      },
+      {
+        "participant": "P13",
+        "activity": "Stand",
+        "is_exercise": false,
+        "is_female": 0,
+        "age": 23.0,
+        "weight_kg": 71.8,
+        "hr": 117.9,
+        "kcal_per_min": 1.207,
+        "pred_model": 6.7647,
+        "pred_keytel": 9.1298,
+        "pred_app_met": 5.9833,
+        "pred_researcher_met": 1.436
+      },
+      {
+        "participant": "P13",
+        "activity": "Cycle2",
+        "is_exercise": true,
+        "is_female": 0,
+        "age": 23.0,
+        "weight_kg": 71.8,
+        "hr": 128.3,
+        "kcal_per_min": 4.835,
+        "pred_model": 7.7442,
+        "pred_keytel": 10.698,
+        "pred_app_met": 8.3767,
+        "pred_researcher_met": 19.1467
+      },
+      {
+        "participant": "P13",
+        "activity": "Run1",
+        "is_exercise": true,
+        "is_female": 0,
+        "age": 23.0,
+        "weight_kg": 71.8,
+        "hr": 130.6,
+        "kcal_per_min": 6.902,
+        "pred_model": 8.2804,
+        "pred_keytel": 11.0448,
+        "pred_app_met": 4.1883,
+        "pred_researcher_met": 9.5733
+      },
+      {
+        "participant": "P15",
+        "activity": "Sit",
+        "is_exercise": false,
+        "is_female": 0,
+        "age": 24.0,
+        "weight_kg": 67.7,
+        "hr": 89.0,
+        "kcal_per_min": 1.025,
+        "pred_model": 5.4106,
+        "pred_keytel": 4.6254,
+        "pred_app_met": 5.6417,
+        "pred_researcher_met": 1.1283
+      },
+      {
+        "participant": "P15",
+        "activity": "Stand",
+        "is_exercise": false,
+        "is_female": 0,
+        "age": 24.0,
+        "weight_kg": 67.7,
+        "hr": 103.3,
+        "kcal_per_min": 1.587,
+        "pred_model": 6.332,
+        "pred_keytel": 6.7817,
+        "pred_app_met": 5.6417,
+        "pred_researcher_met": 1.354
+      },
+      {
+        "participant": "P15",
+        "activity": "Cycle1",
+        "is_exercise": true,
+        "is_female": 0,
+        "age": 24.0,
+        "weight_kg": 67.7,
+        "hr": 120.2,
+        "kcal_per_min": 6.889,
+        "pred_model": 8.3884,
+        "pred_keytel": 9.33,
+        "pred_app_met": 7.8983,
+        "pred_researcher_met": 13.54
+      },
+      {
+        "participant": "P15",
+        "activity": "Cycle2",
+        "is_exercise": true,
+        "is_female": 0,
+        "age": 24.0,
+        "weight_kg": 67.7,
+        "hr": 155.1,
+        "kcal_per_min": 9.106,
+        "pred_model": 14.2225,
+        "pred_keytel": 14.5926,
+        "pred_app_met": 7.8983,
+        "pred_researcher_met": 18.0533
+      },
+      {
+        "participant": "P16",
+        "activity": "Sit",
+        "is_exercise": false,
+        "is_female": 0,
+        "age": 34.0,
+        "weight_kg": 73.1,
+        "hr": 76.3,
+        "kcal_per_min": 1.275,
+        "pred_model": 4.5528,
+        "pred_keytel": 3.4491,
+        "pred_app_met": 6.0917,
+        "pred_researcher_met": 1.2183
+      },
+      {
+        "participant": "P16",
+        "activity": "Stand",
+        "is_exercise": false,
+        "is_female": 0,
+        "age": 34.0,
+        "weight_kg": 73.1,
+        "hr": 81.7,
+        "kcal_per_min": 1.295,
+        "pred_model": 4.7421,
+        "pred_keytel": 4.2633,
+        "pred_app_met": 6.0917,
+        "pred_researcher_met": 1.462
+      },
+      {
+        "participant": "P16",
+        "activity": "Cycle1",
+        "is_exercise": true,
+        "is_female": 0,
+        "age": 34.0,
+        "weight_kg": 73.1,
+        "hr": 107.7,
+        "kcal_per_min": 3.898,
+        "pred_model": 6.3468,
+        "pred_keytel": 8.1838,
+        "pred_app_met": 8.5283,
+        "pred_researcher_met": 19.4933
+      },
+      {
+        "participant": "P17",
+        "activity": "Sit",
+        "is_exercise": false,
+        "is_female": 0,
+        "age": 33.0,
+        "weight_kg": 77.2,
+        "hr": 71.5,
+        "kcal_per_min": 1.042,
+        "pred_model": 4.9109,
+        "pred_keytel": 2.8719,
+        "pred_app_met": 6.4333,
+        "pred_researcher_met": 1.2867
+      },
+      {
+        "participant": "P17",
+        "activity": "Stand",
+        "is_exercise": false,
+        "is_female": 0,
+        "age": 33.0,
+        "weight_kg": 77.2,
+        "hr": 85.7,
+        "kcal_per_min": 1.145,
+        "pred_model": 5.2154,
+        "pred_keytel": 5.0131,
+        "pred_app_met": 6.4333,
+        "pred_researcher_met": 1.544
+      },
+      {
+        "participant": "P17",
+        "activity": "Cycle1",
+        "is_exercise": true,
+        "is_female": 0,
+        "age": 33.0,
+        "weight_kg": 77.2,
+        "hr": 98.4,
+        "kcal_per_min": 4.622,
+        "pred_model": 6.0892,
+        "pred_keytel": 6.9281,
+        "pred_app_met": 9.0067,
+        "pred_researcher_met": 20.5867
+      },
+      {
+        "participant": "P17",
+        "activity": "Cycle2",
+        "is_exercise": true,
+        "is_female": 0,
+        "age": 33.0,
+        "weight_kg": 77.2,
+        "hr": 134.3,
+        "kcal_per_min": 8.345,
+        "pred_model": 10.6129,
+        "pred_keytel": 12.3414,
+        "pred_app_met": 9.0067,
+        "pred_researcher_met": 20.5867
+      },
+      {
+        "participant": "P17",
+        "activity": "Run1",
+        "is_exercise": true,
+        "is_female": 0,
+        "age": 33.0,
+        "weight_kg": 77.2,
+        "hr": 159.6,
+        "kcal_per_min": 10.22,
+        "pred_model": 13.703,
+        "pred_keytel": 16.1564,
+        "pred_app_met": 9.0067,
+        "pred_researcher_met": 17.37
+      }
+    ]
+  },
+  "decision": {
+    "rule_1_beats_keytel_mae": true,
+    "rule_2_beats_fitfusion_met_significantly": true,
+    "keytel_improvement_significant": true,
+    "result": "KEEP"
+  },
+  "feature_importance": {
+    "kind": "mean |SHAP| on WEEE segments (kcal/min)",
+    "values": {
+      "age": 0.1081,
+      "is_female": 0.5158,
+      "height_cm": 0.3883,
+      "weight_kg": 0.4177,
+      "hr": 3.2367
+    }
+  },
+  "fitfusion_met_baseline_note": "MET values from web/src/lib/calories.ts; treadmill speed used to pick walk/jog/run, which the app itself cannot do."
+}

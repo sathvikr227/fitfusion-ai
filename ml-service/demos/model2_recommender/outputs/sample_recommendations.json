@@ -1,0 +1,1058 @@
+{
+  "meals_cold_start": {
+    "meals": [
+      {
+        "slot": "breakfast",
+        "kcal_min": 548.2,
+        "kcal_max": 913.8,
+        "widened": false,
+        "recipes": [
+          {
+            "recipe_id": 186162,
+            "name": "baked homemade granola lower fat",
+            "kcal": 610.5,
+            "protein_g": 15.5,
+            "minutes": 40,
+            "likes_last_year": 1,
+            "likes_all_time": 6,
+            "score_breakdown": {
+              "popularity": 0.0035
+            }
+          },
+          {
+            "recipe_id": 498364,
+            "name": "seitan bacon",
+            "kcal": 646.1,
+            "protein_g": 36.0,
+            "minutes": 75,
+            "likes_last_year": 1,
+            "likes_all_time": 2,
+            "score_breakdown": {
+              "popularity": 0.0035
+            }
+          },
+          {
+            "recipe_id": 507982,
+            "name": "chocolate smoothie w blueberries and pineapple",
+            "kcal": 639.3,
+            "protein_g": 19.0,
+            "minutes": 8,
+            "likes_last_year": 1,
+            "likes_all_time": 2,
+            "score_breakdown": {
+              "popularity": 0.0035
+            }
+          },
+          {
+            "recipe_id": 529395,
+            "name": "peanut butter overnight oats",
+            "kcal": 661.9,
+            "protein_g": 20.0,
+            "minutes": 5,
+            "likes_last_year": 1,
+            "likes_all_time": 1,
+            "score_breakdown": {
+              "popularity": 0.0035
+            }
+          },
+          {
+            "recipe_id": 42719,
+            "name": "crock pot cheesy hash browns",
+            "kcal": 565.1,
+            "protein_g": 17.5,
+            "minutes": 485,
+            "likes_last_year": 0,
+            "likes_all_time": 22,
+            "score_breakdown": {
+              "popularity": 0.0
+            }
+          }
+        ]
+      },
+      {
+        "slot": "lunch",
+        "kcal_min": 767.2,
+        "kcal_max": 1278.8,
+        "widened": false,
+        "recipes": [
+          {
+            "recipe_id": 135350,
+            "name": "fannie farmer s classic baked macaroni cheese",
+            "kcal": 836.2,
+            "protein_g": 27.5,
+            "minutes": 40,
+            "likes_last_year": 6,
+            "likes_all_time": 669,
+            "score_breakdown": {
+              "popularity": 0.0208
+            }
+          },
+          {
+            "recipe_id": 226621,
+            "name": "super easy cheese enchiladas",
+            "kcal": 899.6,
+            "protein_g": 46.0,
+            "minutes": 55,
+            "likes_last_year": 1,
+            "likes_all_time": 12,
+            "score_breakdown": {
+              "popularity": 0.0035
+            }
+          },
+          {
+            "recipe_id": 226915,
+            "name": "roast vegetable lasagne with spinach and ricotta",
+            "kcal": 1060.8,
+            "protein_g": 48.5,
+            "minutes": 85,
+            "likes_last_year": 1,
+            "likes_all_time": 12,
+            "score_breakdown": {
+              "popularity": 0.0035
+            }
+          },
+          {
+            "recipe_id": 197059,
+            "name": "greek macaroni and cheese",
+            "kcal": 914.5,
+            "protein_g": 34.0,
+            "minutes": 105,
+            "likes_last_year": 1,
+            "likes_all_time": 10,
+            "score_breakdown": {
+              "popularity": 0.0035
+            }
+          },
+          {
+            "recipe_id": 400909,
+            "name": "crock pot macaroni and cheese",
+            "kcal": 793.0,
+            "protein_g": 30.5,
+            "minutes": 260,
+            "likes_last_year": 1,
+            "likes_all_time": 7,
+            "score_breakdown": {
+              "popularity": 0.0035
+            }
+          }
+        ]
+      },
+      {
+        "slot": "dinner",
+        "kcal_min": 657.8,
+        "kcal_max": 1096.2,
+        "widened": false,
+        "recipes": [
+          {
+            "recipe_id": 360528,
+            "name": "yummiest ever baked mac and cheese",
+            "kcal": 709.7,
+            "protein_g": 30.0,
+            "minutes": 60,
+            "likes_last_year": 6,
+            "likes_all_time": 82,
+            "score_breakdown": {
+              "popularity": 0.0208
+            }
+          },
+          {
+            "recipe_id": 219572,
+            "name": "creamy macaroni cheese for two or one",
+            "kcal": 701.2,
+            "protein_g": 30.0,
+            "minutes": 40,
+            "likes_last_year": 3,
+            "likes_all_time": 33,
+            "score_breakdown": {
+              "popularity": 0.0104
+            }
+          },
+          {
+            "recipe_id": 202833,
+            "name": "olive garden five cheese ziti al forno",
+            "kcal": 732.9,
+            "protein_g": 36.0,
+            "minutes": 70,
+            "likes_last_year": 2,
+            "likes_all_time": 31,
+            "score_breakdown": {
+              "popularity": 0.0069
+            }
+          },
+          {
+            "recipe_id": 217322,
+            "name": "macaroni with fontina and gorgonzola cheeses",
+            "kcal": 725.7,
+            "protein_g": 29.0,
+            "minutes": 20,
+            "likes_last_year": 1,
+            "likes_all_time": 7,
+            "score_breakdown": {
+              "popularity": 0.0035
+            }
+          },
+          {
+            "recipe_id": 470044,
+            "name": "mac cheese noodles and co style",
+            "kcal": 963.3,
+            "protein_g": 39.5,
+            "minutes": 30,
+            "likes_last_year": 1,
+            "likes_all_time": 7,
+            "score_breakdown": {
+              "popularity": 0.0035
+            }
+          }
+        ]
+      },
+      {
+        "slot": "snack",
+        "kcal_min": 219.0,
+        "kcal_max": 365.0,
+        "widened": false,
+        "recipes": [
+          {
+            "recipe_id": 472957,
+            "name": "20 minute honey granola easy",
+            "kcal": 340.9,
+            "protein_g": 7.0,
+            "minutes": 24,
+            "likes_last_year": 6,
+            "likes_all_time": 15,
+            "score_breakdown": {
+              "popularity": 0.0208
+            }
+          },
+          {
+            "recipe_id": 74048,
+            "name": "puppy chow or monkey munch",
+            "kcal": 268.4,
+            "protein_g": 3.5,
+            "minutes": 32,
+            "likes_last_year": 3,
+            "likes_all_time": 148,
+            "score_breakdown": {
+              "popularity": 0.0104
+            }
+          },
+          {
+            "recipe_id": 8507,
+            "name": "mozzarella tomato and basil salad",
+            "kcal": 320.3,
+            "protein_g": 14.0,
+            "minutes": 5,
+            "likes_last_year": 2,
+            "likes_all_time": 50,
+            "score_breakdown": {
+              "popularity": 0.0069
+            }
+          },
+          {
+            "recipe_id": 138459,
+            "name": "spicy hot crackers",
+            "kcal": 363.0,
+            "protein_g": 3.5,
+            "minutes": 20,
+            "likes_last_year": 2,
+            "likes_all_time": 23,
+            "score_breakdown": {
+              "popularity": 0.0069
+            }
+          },
+          {
+            "recipe_id": 223576,
+            "name": "fast and easy caramel popcorn",
+            "kcal": 332.2,
+            "protein_g": 3.0,
+            "minutes": 10,
+            "likes_last_year": 2,
+            "likes_all_time": 23,
+            "score_breakdown": {
+              "popularity": 0.0069
+            }
+          }
+        ]
+      }
+    ],
+    "applied_restrictions": [
+      "vegetarian"
+    ],
+    "unsupported_restrictions": [],
+    "reason": null,
+    "method": "popularity_last_365d",
+    "history_used": [],
+    "cold_start": true,
+    "model_version": "meal-popularity-v1",
+    "stub": false
+  },
+  "meals_with_history": {
+    "meals": [
+      {
+        "slot": "breakfast",
+        "kcal_min": 548.2,
+        "kcal_max": 913.8,
+        "widened": false,
+        "recipes": [
+          {
+            "recipe_id": 159747,
+            "name": "east indian farina hot cereal payasam",
+            "kcal": 689.4,
+            "protein_g": 17.5,
+            "minutes": 10,
+            "likes_last_year": 0,
+            "likes_all_time": 6,
+            "score_breakdown": {
+              "popularity": 0.0,
+              "als": 0.131,
+              "text": 0.0756
+            }
+          },
+          {
+            "recipe_id": 173528,
+            "name": "ful medames egyptian fava beans",
+            "kcal": 704.0,
+            "protein_g": 44.5,
+            "minutes": 60,
+            "likes_last_year": 0,
+            "likes_all_time": 1,
+            "score_breakdown": {
+              "popularity": 0.0,
+              "als": 0.1306,
+              "text": 0.0747
+            }
+          },
+          {
+            "recipe_id": 399635,
+            "name": "vegan spinach mushroom quiche",
+            "kcal": 746.1,
+            "protein_g": 25.0,
+            "minutes": 120,
+            "likes_last_year": 0,
+            "likes_all_time": 1,
+            "score_breakdown": {
+              "popularity": 0.0,
+              "als": 0.132,
+              "text": 0.0653
+            }
+          },
+          {
+            "recipe_id": 227041,
+            "name": "vegan shepherd s omelet",
+            "kcal": 648.6,
+            "protein_g": 32.0,
+            "minutes": 75,
+            "likes_last_year": 0,
+            "likes_all_time": 2,
+            "score_breakdown": {
+              "popularity": 0.0,
+              "als": 0.1313,
+              "text": 0.0632
+            }
+          },
+          {
+            "recipe_id": 404981,
+            "name": "peruvian home fries",
+            "kcal": 614.8,
+            "protein_g": 21.0,
+            "minutes": 60,
+            "likes_last_year": 0,
+            "likes_all_time": 5,
+            "score_breakdown": {
+              "popularity": 0.0,
+              "als": 0.132,
+              "text": 0.0493
+            }
+          }
+        ]
+      },
+      {
+        "slot": "lunch",
+        "kcal_min": 767.2,
+        "kcal_max": 1278.8,
+        "widened": false,
+        "recipes": [
+          {
+            "recipe_id": 310833,
+            "name": "indian spiced chickpea and fire roasted tomato soup",
+            "kcal": 916.8,
+            "protein_g": 29.0,
+            "minutes": 22,
+            "likes_last_year": 0,
+            "likes_all_time": 1,
+            "score_breakdown": {
+              "popularity": 0.0,
+              "als": 0.1315,
+              "text": 0.1605
+            }
+          },
+          {
+            "recipe_id": 482631,
+            "name": "curried red kidney beans and cauliflower rajma masala",
+            "kcal": 1010.4,
+            "protein_g": 32.0,
+            "minutes": 42,
+            "likes_last_year": 0,
+            "likes_all_time": 2,
+            "score_breakdown": {
+              "popularity": 0.0,
+              "als": 0.1351,
+              "text": 0.1445
+            }
+          },
+          {
+            "recipe_id": 489145,
+            "name": "chickpea and paneer curry",
+            "kcal": 1203.7,
+            "protein_g": 33.5,
+            "minutes": 30,
+            "likes_last_year": 0,
+            "likes_all_time": 1,
+            "score_breakdown": {
+              "popularity": 0.0,
+              "als": 0.1313,
+              "text": 0.1471
+            }
+          },
+          {
+            "recipe_id": 51821,
+            "name": "spinach dal",
+            "kcal": 784.4,
+            "protein_g": 31.5,
+            "minutes": 45,
+            "likes_last_year": 0,
+            "likes_all_time": 4,
+            "score_breakdown": {
+              "popularity": 0.0,
+              "als": 0.1362,
+              "text": 0.1315
+            }
+          },
+          {
+            "recipe_id": 129676,
+            "name": "totally easy totally yummy jeera rice and daal fry",
+            "kcal": 994.4,
+            "protein_g": 38.5,
+            "minutes": 65,
+            "likes_last_year": 0,
+            "likes_all_time": 2,
+            "score_breakdown": {
+              "popularity": 0.0,
+              "als": 0.1316,
+              "text": 0.1312
+            }
+          }
+        ]
+      },
+      {
+        "slot": "dinner",
+        "kcal_min": 657.8,
+        "kcal_max": 1096.2,
+        "widened": false,
+        "recipes": [
+          {
+            "recipe_id": 52325,
+            "name": "dal",
+            "kcal": 704.0,
+            "protein_g": 30.5,
+            "minutes": 40,
+            "likes_last_year": 0,
+            "likes_all_time": 7,
+            "score_breakdown": {
+              "popularity": 0.0,
+              "als": 0.139,
+              "text": 0.1614
+            }
+          },
+          {
+            "recipe_id": 355848,
+            "name": "nimbu masoor dal curried lentils",
+            "kcal": 736.1,
+            "protein_g": 29.0,
+            "minutes": 100,
+            "likes_last_year": 0,
+            "likes_all_time": 1,
+            "score_breakdown": {
+              "popularity": 0.0,
+              "als": 0.133,
+              "text": 0.138
+            }
+          },
+          {
+            "recipe_id": 135350,
+            "name": "fannie farmer s classic baked macaroni cheese",
+            "kcal": 836.2,
+            "protein_g": 27.5,
+            "minutes": 40,
+            "likes_last_year": 6,
+            "likes_all_time": 669,
+            "score_breakdown": {
+              "popularity": 0.0104,
+              "als": 0.1868,
+              "text": 0.0324
+            }
+          },
+          {
+            "recipe_id": 72810,
+            "name": "megaddara lentil lebanese dish",
+            "kcal": 706.8,
+            "protein_g": 26.5,
+            "minutes": 125,
+            "likes_last_year": 0,
+            "likes_all_time": 1,
+            "score_breakdown": {
+              "popularity": 0.0,
+              "als": 0.1341,
+              "text": 0.088
+            }
+          },
+          {
+            "recipe_id": 111507,
+            "name": "quickie pasta bake",
+            "kcal": 703.6,
+            "protein_g": 27.5,
+            "minutes": 50,
+            "likes_last_year": 0,
+            "likes_all_time": 1,
+            "score_breakdown": {
+              "popularity": 0.0,
+              "als": 0.1315,
+              "text": 0.0848
+            }
+          }
+        ]
+      },
+      {
+        "slot": "snack",
+        "kcal_min": 219.0,
+        "kcal_max": 365.0,
+        "widened": false,
+        "recipes": [
+          {
+            "recipe_id": 35914,
+            "name": "onion bhajis",
+            "kcal": 293.9,
+            "protein_g": 19.0,
+            "minutes": 125,
+            "likes_last_year": 0,
+            "likes_all_time": 1,
+            "score_breakdown": {
+              "popularity": 0.0,
+              "als": 0.1313,
+              "text": 0.1565
+            }
+          },
+          {
+            "recipe_id": 14964,
+            "name": "potatoes in yogurt",
+            "kcal": 228.7,
+            "protein_g": 6.0,
+            "minutes": 25,
+            "likes_last_year": 0,
+            "likes_all_time": 2,
+            "score_breakdown": {
+              "popularity": 0.0,
+              "als": 0.137,
+              "text": 0.1506
+            }
+          },
+          {
+            "recipe_id": 195139,
+            "name": "vegetable samosa filling",
+            "kcal": 248.3,
+            "protein_g": 4.5,
+            "minutes": 35,
+            "likes_last_year": 0,
+            "likes_all_time": 4,
+            "score_breakdown": {
+              "popularity": 0.0,
+              "als": 0.129,
+              "text": 0.1515
+            }
+          },
+          {
+            "recipe_id": 150599,
+            "name": "khasta aloo spicy pan fried potatoes",
+            "kcal": 273.4,
+            "protein_g": 5.5,
+            "minutes": 17,
+            "likes_last_year": 0,
+            "likes_all_time": 2,
+            "score_breakdown": {
+              "popularity": 0.0,
+              "als": 0.1416,
+              "text": 0.1282
+            }
+          },
+          {
+            "recipe_id": 207389,
+            "name": "homemade paneer panir indian cheese",
+            "kcal": 275.6,
+            "protein_g": 14.5,
+            "minutes": 65,
+            "likes_last_year": 0,
+            "likes_all_time": 5,
+            "score_breakdown": {
+              "popularity": 0.0,
+              "als": 0.1401,
+              "text": 0.1193
+            }
+          }
+        ]
+      }
+    ],
+    "applied_restrictions": [
+      "vegetarian"
+    ],
+    "unsupported_restrictions": [],
+    "reason": null,
+    "method": "hybrid_popularity_als_content",
+    "history_used": [
+      8935,
+      25348,
+      84324,
+      266068
+    ],
+    "cold_start": false,
+    "model_version": "meal-popularity-v1+meal-hybrid-v1",
+    "stub": false
+  },
+  "exercises": {
+    "push": {
+      "focus": "push",
+      "goal": "muscle_gain",
+      "level": "intermediate",
+      "allowed_equipment": [
+        "bands",
+        "barbell",
+        "body only",
+        "cable",
+        "dumbbell",
+        "e-z curl bar",
+        "exercise ball",
+        "foam roll",
+        "kettlebells",
+        "machine",
+        "medicine ball",
+        "other"
+      ],
+      "injury_groups_excluded": [
+        "knee"
+      ],
+      "excluded_counts": {
+        "equipment": 0,
+        "injury": 168,
+        "level": 0,
+        "off_target": 429
+      },
+      "candidates_after_filters": 279,
+      "recommendations": [
+        {
+          "id": "Decline_Push-Up",
+          "name": "Decline Push-Up",
+          "score": 0.8806,
+          "primary_muscles": [
+            "chest"
+          ],
+          "equipment": null,
+          "level": "beginner",
+          "category": "strength",
+          "mechanic": "compound",
+          "why": "targets chest; strength/compound fits goal 'muscle_gain'; no special equipment is available; level beginner"
+        },
+        {
+          "id": "Smith_Machine_Decline_Press",
+          "name": "Smith Machine Decline Press",
+          "score": 0.8688,
+          "primary_muscles": [
+            "chest"
+          ],
+          "equipment": "machine",
+          "level": "beginner",
+          "category": "strength",
+          "mechanic": "compound",
+          "why": "targets chest; strength/compound fits goal 'muscle_gain'; machine is available; level beginner"
+        },
+        {
+          "id": "Barbell_Shoulder_Press",
+          "name": "Barbell Shoulder Press",
+          "score": 0.8683,
+          "primary_muscles": [
+            "shoulders"
+          ],
+          "equipment": "barbell",
+          "level": "intermediate",
+          "category": "strength",
+          "mechanic": "compound",
+          "why": "targets shoulders; strength/compound fits goal 'muscle_gain'; barbell is available; level intermediate"
+        },
+        {
+          "id": "Decline_Close-Grip_Bench_To_Skull_Crusher",
+          "name": "Decline Close-Grip Bench To Skull Crusher",
+          "score": 0.8683,
+          "primary_muscles": [
+            "triceps"
+          ],
+          "equipment": "barbell",
+          "level": "intermediate",
+          "category": "strength",
+          "mechanic": "compound",
+          "why": "targets triceps; strength/compound fits goal 'muscle_gain'; barbell is available; level intermediate"
+        },
+        {
+          "id": "Lying_Dumbbell_Tricep_Extension",
+          "name": "Lying Dumbbell Tricep Extension",
+          "score": 0.8683,
+          "primary_muscles": [
+            "triceps"
+          ],
+          "equipment": "dumbbell",
+          "level": "intermediate",
+          "category": "strength",
+          "mechanic": "isolation",
+          "why": "targets triceps; strength/isolation fits goal 'muscle_gain'; dumbbell is available; level intermediate"
+        }
+      ],
+      "note": null,
+      "method": "content_cosine",
+      "model_version": "exercise-content-v1",
+      "stub": false
+    },
+    "pull": {
+      "focus": "pull",
+      "goal": "muscle_gain",
+      "level": "intermediate",
+      "allowed_equipment": [
+        "bands",
+        "barbell",
+        "body only",
+        "cable",
+        "dumbbell",
+        "e-z curl bar",
+        "exercise ball",
+        "foam roll",
+        "kettlebells",
+        "machine",
+        "medicine ball",
+        "other"
+      ],
+      "injury_groups_excluded": [
+        "knee"
+      ],
+      "excluded_counts": {
+        "equipment": 0,
+        "injury": 168,
+        "level": 0,
+        "off_target": 568
+      },
+      "candidates_after_filters": 140,
+      "recommendations": [
+        {
+          "id": "Seated_One-arm_Cable_Pulley_Rows",
+          "name": "Seated One-arm Cable Pulley Rows",
+          "score": 0.867,
+          "primary_muscles": [
+            "middle back"
+          ],
+          "equipment": "cable",
+          "level": "intermediate",
+          "category": "strength",
+          "mechanic": "compound",
+          "why": "targets middle back; strength/compound fits goal 'muscle_gain'; cable is available; level intermediate"
+        },
+        {
+          "id": "Lying_Cambered_Barbell_Row",
+          "name": "Lying Cambered Barbell Row",
+          "score": 0.8597,
+          "primary_muscles": [
+            "middle back"
+          ],
+          "equipment": "barbell",
+          "level": "beginner",
+          "category": "strength",
+          "mechanic": "isolation",
+          "why": "targets middle back; strength/isolation fits goal 'muscle_gain'; barbell is available; level beginner"
+        },
+        {
+          "id": "Scapular_Pull-Up",
+          "name": "Scapular Pull-Up",
+          "score": 0.7781,
+          "primary_muscles": [
+            "traps"
+          ],
+          "equipment": null,
+          "level": "beginner",
+          "category": "strength",
+          "mechanic": "isolation",
+          "why": "targets traps; strength/isolation fits goal 'muscle_gain'; no special equipment is available; level beginner"
+        },
+        {
+          "id": "Elevated_Cable_Rows",
+          "name": "Elevated Cable Rows",
+          "score": 0.7673,
+          "primary_muscles": [
+            "lats"
+          ],
+          "equipment": "cable",
+          "level": "intermediate",
+          "category": "strength",
+          "mechanic": "compound",
+          "why": "targets lats; strength/compound fits goal 'muscle_gain'; cable is available; level intermediate"
+        },
+        {
+          "id": "Gironda_Sternum_Chins",
+          "name": "Gironda Sternum Chins",
+          "score": 0.7673,
+          "primary_muscles": [
+            "lats"
+          ],
+          "equipment": "other",
+          "level": "intermediate",
+          "category": "strength",
+          "mechanic": "compound",
+          "why": "targets lats; strength/compound fits goal 'muscle_gain'; other is available; level intermediate"
+        }
+      ],
+      "note": null,
+      "method": "content_cosine",
+      "model_version": "exercise-content-v1",
+      "stub": false
+    },
+    "legs": {
+      "focus": "legs",
+      "goal": "muscle_gain",
+      "level": "intermediate",
+      "allowed_equipment": [
+        "bands",
+        "barbell",
+        "body only",
+        "cable",
+        "dumbbell",
+        "e-z curl bar",
+        "exercise ball",
+        "foam roll",
+        "kettlebells",
+        "machine",
+        "medicine ball",
+        "other"
+      ],
+      "injury_groups_excluded": [
+        "knee"
+      ],
+      "excluded_counts": {
+        "equipment": 0,
+        "injury": 168,
+        "level": 0,
+        "off_target": 590
+      },
+      "candidates_after_filters": 118,
+      "recommendations": [
+        {
+          "id": "Kettlebell_Dead_Clean",
+          "name": "Kettlebell Dead Clean",
+          "score": 0.8072,
+          "primary_muscles": [
+            "hamstrings"
+          ],
+          "equipment": "kettlebells",
+          "level": "intermediate",
+          "category": "strength",
+          "mechanic": "compound",
+          "why": "targets hamstrings; strength/compound fits goal 'muscle_gain'; kettlebells is available; level intermediate"
+        },
+        {
+          "id": "Snatch_Pull",
+          "name": "Snatch Pull",
+          "score": 0.8072,
+          "primary_muscles": [
+            "hamstrings"
+          ],
+          "equipment": "barbell",
+          "level": "intermediate",
+          "category": "strength",
+          "mechanic": "compound",
+          "why": "targets hamstrings; strength/compound fits goal 'muscle_gain'; barbell is available; level intermediate"
+        },
+        {
+          "id": "Balance_Board",
+          "name": "Balance Board",
+          "score": 0.7677,
+          "primary_muscles": [
+            "calves"
+          ],
+          "equipment": "other",
+          "level": "beginner",
+          "category": "strength",
+          "mechanic": "compound",
+          "why": "targets calves; strength/compound fits goal 'muscle_gain'; other is available; level beginner"
+        },
+        {
+          "id": "One-Legged_Cable_Kickback",
+          "name": "One-Legged Cable Kickback",
+          "score": 0.6603,
+          "primary_muscles": [
+            "glutes"
+          ],
+          "equipment": "cable",
+          "level": "intermediate",
+          "category": "strength",
+          "mechanic": "isolation",
+          "why": "targets glutes; strength/isolation fits goal 'muscle_gain'; cable is available; level intermediate"
+        },
+        {
+          "id": "Glute_Kickback",
+          "name": "Glute Kickback",
+          "score": 0.6524,
+          "primary_muscles": [
+            "glutes"
+          ],
+          "equipment": "body only",
+          "level": "beginner",
+          "category": "strength",
+          "mechanic": "compound",
+          "why": "targets glutes; strength/compound fits goal 'muscle_gain'; body only is available; level beginner"
+        }
+      ],
+      "note": null,
+      "method": "content_cosine",
+      "model_version": "exercise-content-v1",
+      "stub": false
+    },
+    "core": {
+      "focus": "core",
+      "goal": "muscle_gain",
+      "level": "intermediate",
+      "allowed_equipment": [
+        "bands",
+        "barbell",
+        "body only",
+        "cable",
+        "dumbbell",
+        "e-z curl bar",
+        "exercise ball",
+        "foam roll",
+        "kettlebells",
+        "machine",
+        "medicine ball",
+        "other"
+      ],
+      "injury_groups_excluded": [
+        "knee"
+      ],
+      "excluded_counts": {
+        "equipment": 0,
+        "injury": 168,
+        "level": 0,
+        "off_target": 590
+      },
+      "candidates_after_filters": 118,
+      "recommendations": [
+        {
+          "id": "Russian_Twist",
+          "name": "Russian Twist",
+          "score": 0.8811,
+          "primary_muscles": [
+            "abdominals"
+          ],
+          "equipment": "body only",
+          "level": "intermediate",
+          "category": "strength",
+          "mechanic": "compound",
+          "why": "targets abdominals; strength/compound fits goal 'muscle_gain'; body only is available; level intermediate"
+        },
+        {
+          "id": "Barbell_Side_Bend",
+          "name": "Barbell Side Bend",
+          "score": 0.8705,
+          "primary_muscles": [
+            "abdominals"
+          ],
+          "equipment": "barbell",
+          "level": "beginner",
+          "category": "strength",
+          "mechanic": "isolation",
+          "why": "targets abdominals; strength/isolation fits goal 'muscle_gain'; barbell is available; level beginner"
+        },
+        {
+          "id": "Barbell_Ab_Rollout",
+          "name": "Barbell Ab Rollout",
+          "score": 0.8436,
+          "primary_muscles": [
+            "abdominals"
+          ],
+          "equipment": "barbell",
+          "level": "intermediate",
+          "category": "strength",
+          "mechanic": "compound",
+          "why": "targets abdominals; strength/compound fits goal 'muscle_gain'; barbell is available; level intermediate"
+        },
+        {
+          "id": "Hyperextensions_With_No_Hyperextension_Bench",
+          "name": "Hyperextensions With No Hyperextension Bench",
+          "score": 0.6634,
+          "primary_muscles": [
+            "lower back"
+          ],
+          "equipment": "body only",
+          "level": "intermediate",
+          "category": "strength",
+          "mechanic": "compound",
+          "why": "targets lower back; strength/compound fits goal 'muscle_gain'; body only is available; level intermediate"
+        },
+        {
+          "id": "Hyperextensions_Back_Extensions",
+          "name": "Hyperextensions (Back Extensions)",
+          "score": 0.6533,
+          "primary_muscles": [
+            "lower back"
+          ],
+          "equipment": "other",
+          "level": "beginner",
+          "category": "strength",
+          "mechanic": "isolation",
+          "why": "targets lower back; strength/isolation fits goal 'muscle_gain'; other is available; level beginner"
+        }
+      ],
+      "note": null,
+      "method": "content_cosine",
+      "model_version": "exercise-content-v1",
+      "stub": false
+    }
+  },
+  "real_user": {
+    "user": 7676,
+    "hybrid_top10": [
+      2886,
+      60350,
+      5170,
+      106251,
+      63071,
+      54257,
+      87782,
+      35087,
+      28851,
+      97496
+    ],
+    "popularity_top10": [
+      2886,
+      205890,
+      60350,
+      54257,
+      97496,
+      5170,
+      486641,
+      26110,
+      63071,
+      349246
+    ],
+    "held_out_likes": [
+      63734,
+      158434,
+      424963
+    ],
+    "eligible_users": 131,
+    "recall_at_10": {
+      "hybrid": 0.007633587786259542,
+      "popularity": 0.007506361323155216
+    }
+  }
+}

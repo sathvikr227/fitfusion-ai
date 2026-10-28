@@ -1,0 +1,132 @@
+{
+  "model": "injury_soccermon_knee",
+  "trained_at": "2026-10-28T03:58:10+00:00",
+  "python": "3.12.10",
+  "status": "EXPLORATORY \u2014 not served under any outcome (PROTOCOL.md Part B)",
+  "protocol": "demos/model3_injury/PROTOCOL.md (committed 1340716 before training)",
+  "dataset": {
+    "title": "SoccerMon (subjective.zip)",
+    "doi": "10.5281/zenodo.10033832",
+    "licence": "CC BY 4.0",
+    "sha256": "338e9878fbed1f941cfc37b3f012cb356f97cc0f726e80a79aa5c8e67cc2a87c"
+  },
+  "episode_rule": "first left/right knee report after >= 14 days without one",
+  "label": "knee episode starts on day t ... t+6",
+  "exclusions": "knee report in t-14 ... t-1; no wellness report in t-7 ... t-1",
+  "region_episodes": [
+    {
+      "region": "thigh",
+      "episodes": 20,
+      "players": 9
+    },
+    {
+      "region": "knee",
+      "episodes": 10,
+      "players": 5
+    },
+    {
+      "region": "foot",
+      "episodes": 10,
+      "players": 9
+    },
+    {
+      "region": "leg",
+      "episodes": 8,
+      "players": 4
+    },
+    {
+      "region": "groin_hip",
+      "episodes": 7,
+      "players": 3
+    },
+    {
+      "region": "stomach_back",
+      "episodes": 7,
+      "players": 2
+    },
+    {
+      "region": "head_neck",
+      "episodes": 2,
+      "players": 2
+    }
+  ],
+  "funnel": {
+    "player_days_on_roster": 36550,
+    "rows_after_exclusions": 21153,
+    "players": 50,
+    "positive_rows": 40,
+    "knee_episodes": 10,
+    "knee_players": 5,
+    "knee_players_with_positive_rows": 4,
+    "prevalence": 0.00189
+  },
+  "features": [
+    "soreness_7d_mean",
+    "fatigue_7d_mean",
+    "sleep_duration_7d_mean",
+    "sleep_quality_7d_mean",
+    "readiness_7d_mean",
+    "stress_7d_mean",
+    "mood_7d_mean",
+    "daily_load_7d_sum",
+    "acwr_prev",
+    "atl_prev",
+    "ctl28_prev",
+    "monotony_prev",
+    "strain_prev",
+    "wellness_reports_7d"
+  ],
+  "folds": {
+    "method": "StratifiedGroupKFold(5, shuffle, seed 42) by player",
+    "injured_players_per_fold": [
+      1,
+      1,
+      1,
+      1,
+      0
+    ]
+  },
+  "out_of_fold": {
+    "XGBoost": {
+      "roc_auc": 0.6586,
+      "roc_auc_ci95": [
+        0.1721,
+        0.9333
+      ],
+      "pr_auc": 0.006,
+      "pr_auc_ci95": [
+        0.0008,
+        0.0236
+      ]
+    },
+    "LogReg": {
+      "roc_auc": 0.6607,
+      "roc_auc_ci95": [
+        0.2334,
+        0.9527
+      ],
+      "pr_auc": 0.0057,
+      "pr_auc_ci95": [
+        0.0007,
+        0.0198
+      ]
+    },
+    "ACWR rule": {
+      "roc_auc": 0.4334,
+      "roc_auc_ci95": [
+        0.0317,
+        0.7216
+      ],
+      "pr_auc": 0.0017,
+      "pr_auc_ci95": [
+        0.0002,
+        0.0044
+      ]
+    },
+    "Prevalence": {
+      "roc_auc": 0.5,
+      "pr_auc": 0.00189
+    }
+  },
+  "figure": "injury_soccermon_knee.png"
+}

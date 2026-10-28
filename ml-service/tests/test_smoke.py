@@ -42,14 +42,14 @@ def test_healthz_is_open():
     body = response.json()
     assert body["ok"] is True
     assert set(body["models_status"]) == {
-        "calorie", "recommender", "injury", "trajectory", "rl"
+        "calorie", "calorie_xgboost", "recommender", "recommender_hybrid", "exercise_recommender", "injury", "trajectory", "rl"
     }
 
 
 def test_auth_required_on_every_model_endpoint():
     calls = [
         ("/predict/calories", {"weight_kg": 70, "duration_min": 30}),
-        ("/recommend", {"age": 25, "bmi": 24}),
+        ("/recommend", {"meals": [{"slot": "lunch", "kcal_target": 600}]}),
         ("/predict/injury-risk", {"user_id": "u1"}),
         ("/predict/trajectory", {"user_id": "u1", "sessions": [
             {"duration": 1.0, "completion_rate": 0.8}
@@ -71,50 +71,64 @@ def test_bad_token_rejected():
     assert response.status_code == 401
 
 
-# ── Model 1: calorie ──────────────────────────────────────────────────────────
-def test_calorie_prediction_with_shap():
-    needs("calorie")
-    response = client.post(
-        "/predict/calories",
-        json={
-            "weight_kg": 74.9,
-            "age": 46,
-            "bmi": 32.0,
-            "resting_bpm": 66,
-            "duration_hours": 1.3,
-            "workout_type": "HIIT",
-        },
-        headers=AUTH,
-    )
-    assert response.status_code == 200
-    body = response.json()
-    assert body["stub"] is False
-    assert body["calories"] > 0
-    assert body["workout_type"] == "HIIT"
-    assert len(body["shap_top_features"]) > 0
-    assert body["baseline_met_calories"] > 0
-    for feature in body["shap_top_features"]:
-        assert {"feature", "label", "impact", "value"} <= set(feature)
+# ── Stage 1: energy expenditure ───────────────────────────────────────────────
+CARDIO_WITH_HR = {
+    "weight_kg": 70,
+    "age": 30,
+    "sex": "Male",
+    "avg_hr": 140,
+    "duration_min": 30,
+    "exercise": "Running",
+}
 
 
-def test_calorie_accepts_app_native_body_and_imputes():
-    """The app sends minutes and an exercise name and often has no resting BPM."""
+def test_calorie_heart_rate_method_is_used_for_cardio_with_hr():
     needs("calorie")
-    response = client.post(
-        "/predict/calories",
-        json={"weight_kg": 70, "duration_min": 45, "exercise": "Bench Press"},
-        headers=AUTH,
-    )
-    assert response.status_code == 200
-    body = response.json()
-    assert body["workout_type"] == "Strength"
-    assert body["calories"] > 0
-    # Age, BMI and resting BPM were absent, so the model reports imputing them.
-    assert "Resting_BPM" in body["imputed"]
+    body = client.post("/predict/calories", json=CARDIO_WITH_HR, headers=AUTH).json()
+    assert body["method"] == "heart_rate"
+    assert body["validated"] is True
+    assert body["expected_error_kcal_per_min"] > 0
+    assert body["calories"] == pytest.approx(body["kcal_per_min"] * 30, abs=0.5)
+    assert 2 < body["kcal_per_min"] < 20
+
+
+def test_calorie_matches_calibrated_keytel_formula():
+    needs("calorie")
+    from app.energy import keytel_kcal_per_min
+
+    energy = registry.calorie
+    expected = energy["intercept"] + energy["slope"] * float(keytel_kcal_per_min(140, 70, 30, False))
+    body = client.post("/predict/calories", json=CARDIO_WITH_HR, headers=AUTH).json()
+    assert body["kcal_per_min"] == pytest.approx(expected, abs=0.01)
+
+
+def test_calorie_higher_heart_rate_burns_more():
+    needs("calorie")
+    easy = client.post("/predict/calories", json={**CARDIO_WITH_HR, "avg_hr": 110}, headers=AUTH).json()
+    hard = client.post("/predict/calories", json={**CARDIO_WITH_HR, "avg_hr": 170}, headers=AUTH).json()
+    assert easy["method"] == hard["method"] == "heart_rate"
+    assert hard["calories"] > easy["calories"]
+
+
+@pytest.mark.parametrize(
+    "change, reason_fragment",
+    [
+        ({"avg_hr": None}, "no average heart rate"),
+        ({"exercise": "Bench Press"}, "cardio only"),
+        ({"sex": "Other"}, "age and sex"),
+        ({"avg_hr": 60}, "outside the validated range"),
+    ],
+)
+def test_calorie_falls_back_to_met_outside_validated_conditions(change, reason_fragment):
+    needs("calorie")
+    body = client.post("/predict/calories", json={**CARDIO_WITH_HR, **change}, headers=AUTH).json()
+    assert body["method"] == "met_table"
+    assert body["validated"] is False
+    assert reason_fragment in body["reason"]
+    assert body["calories"] == body["baseline_met_calories"] > 0
 
 
 def test_calorie_legacy_alias_still_works():
-    needs("calorie")
     response = client.post(
         "/predict/calorie",
         json={"exercise": "running", "duration_min": 30, "weight_kg": 70},
@@ -125,10 +139,8 @@ def test_calorie_legacy_alias_still_works():
 
 
 def test_calorie_longer_session_burns_more():
-    needs("calorie")
-    base = {"weight_kg": 80, "age": 30, "bmi": 25, "resting_bpm": 62, "workout_type": "Cardio"}
-    short = client.post("/predict/calories", json={**base, "duration_hours": 0.5}, headers=AUTH)
-    long = client.post("/predict/calories", json={**base, "duration_hours": 1.8}, headers=AUTH)
+    short = client.post("/predict/calories", json={**CARDIO_WITH_HR, "duration_min": 20}, headers=AUTH)
+    long = client.post("/predict/calories", json={**CARDIO_WITH_HR, "duration_min": 60}, headers=AUTH)
     assert long.json()["calories"] > short.json()["calories"]
 
 
@@ -144,212 +156,149 @@ def test_calorie_rejects_bad_weight():
     assert response.status_code == 422
 
 
-# ── Model 2: recommender ──────────────────────────────────────────────────────
-def test_recommend_returns_workouts_and_diet():
+# ── Stage 2: meal recommender ─────────────────────────────────────────────────
+DAY = [
+    {"slot": "breakfast", "kcal_target": 450},
+    {"slot": "lunch", "kcal_target": 650},
+    {"slot": "dinner", "kcal_target": 600},
+    {"slot": "snack", "kcal_target": 200},
+]
+
+
+def _catalog():
+    return registry.recommender["catalog"].set_index("recipe_id")
+
+
+def test_recommend_returns_real_recipes_for_every_slot_in_calorie_band():
     needs("recommender")
-    response = client.post(
-        "/recommend",
-        json={
-            "age": 25,
-            "bmi": 24.5,
-            "goal": "Muscle Gain",
-            "workout_frequency": 5,
-            "experience_level": 2,
-        },
-        headers=AUTH,
-    )
-    assert response.status_code == 200
-    body = response.json()
-    assert body["stub"] is False
-    assert len(body["recommended_workouts"]) > 0
-    assert body["neighbours_used"] > 0
-    assert body["recommended_diet_focus"]["strategy"] == "high_protein"
-    assert len(body["recommended_diet_focus"]["foods"]) > 0
+    body = client.post("/recommend", json={"meals": DAY}, headers=AUTH).json()
+    assert body["stub"] is False and body["method"].startswith("popularity")
+    assert [m["slot"] for m in body["meals"]] == ["breakfast", "lunch", "dinner", "snack"]
+    catalog = _catalog()
+    for meal in body["meals"]:
+        assert len(meal["recipes"]) == 5
+        for recipe in meal["recipes"]:
+            assert meal["kcal_min"] <= recipe["kcal"] <= meal["kcal_max"]
+            assert catalog.loc[recipe["recipe_id"], "name"] == recipe["name"]
 
 
-def test_recommend_respects_vegetarian_restriction():
+def test_recommend_ranks_by_popularity():
     needs("recommender")
-    response = client.post(
-        "/recommend",
-        json={
-            "age": 30,
-            "bmi": 22,
-            "goal": "Muscle Gain",
-            "dietary_restrictions": ["Vegetarian"],
-            "diet_items": 15,
-        },
-        headers=AUTH,
-    )
-    assert response.status_code == 200
-    body = response.json()
-    assert "vegetarian" in body["applied_restrictions"]
-    banned = ("beef", "pork", "chicken", "fish", "bacon", "turkey")
-    for food in body["recommended_diet_focus"]["foods"]:
-        text = f"{food['name']} {food['category']}".lower()
-        assert not any(word in text for word in banned), food["name"]
+    body = client.post("/recommend", json={"meals": DAY[:1], "per_meal": 10}, headers=AUTH).json()
+    likes = [(r["likes_last_year"], r["likes_all_time"]) for r in body["meals"][0]["recipes"]]
+    assert likes == sorted(likes, reverse=True)
 
 
-def test_recommend_vegan_excludes_all_animal_foods():
-    """Regression: a blocklist alone leaked "Ling" and "Orange Roughy" (both
-    fish) into vegan results. Vegan/vegetarian now run an allow-list against the
-    food's leading identity."""
+def test_recommend_never_repeats_a_recipe_across_slots():
     needs("recommender")
-    response = client.post(
-        "/recommend",
-        json={
-            "age": 28,
-            "bmi": 23,
-            "goal": "Muscle Gain",
-            "dietary_restrictions": ["vegan"],
-            "diet_items": 20,
-        },
-        headers=AUTH,
-    )
-    body = response.json()
-    assert "vegan" in body["applied_restrictions"]
-    animal = (
-        "seal", "whale", "meat", "fish", "chicken", "beef", "pork", "duck",
-        "roughy", "ling,", "sea cucumber", "gelatin", "egg", "cheese", "milk",
-        "butter", "yogurt", "whey", "crab", "shrimp", "tuna", "salmon",
-    )
-    for food in body["recommended_diet_focus"]["foods"]:
-        name = food["name"].lower()
-        assert not any(word in name for word in animal), food["name"]
+    body = client.post("/recommend", json={"meals": DAY}, headers=AUTH).json()
+    ids = [r["recipe_id"] for m in body["meals"] for r in m["recipes"]]
+    assert len(ids) == len(set(ids))
 
 
-def test_recommend_vegetarian_allows_dairy_and_egg_but_no_flesh():
+@pytest.mark.parametrize(
+    "restriction, flag",
+    [("Vegetarian", "is_vegetarian"), ("vegan", "is_vegan"), ("Gluten Free", "is_gluten_free"),
+     ("nut-free", "is_nut_free"), ("Lactose Free", "is_dairy_free")],
+)
+def test_recommend_respects_supported_restrictions(restriction, flag):
     needs("recommender")
-    response = client.post(
-        "/recommend",
-        json={
-            "age": 28,
-            "bmi": 23,
-            "goal": "Muscle Gain",
-            "dietary_restrictions": ["Vegetarian"],
-            "diet_items": 20,
-        },
-        headers=AUTH,
-    )
-    flesh = ("seal", "whale", "fish", "chicken", "beef", "pork", "roughy", "shrimp")
-    for food in response.json()["recommended_diet_focus"]["foods"]:
-        assert not any(word in food["name"].lower() for word in flesh), food["name"]
+    body = client.post("/recommend", json={"meals": DAY, "dietary_restrictions": [restriction]},
+                       headers=AUTH).json()
+    catalog = _catalog()
+    recipes = [r for m in body["meals"] for r in m["recipes"]]
+    assert recipes, "expected recipes for a supported restriction"
+    assert all(bool(catalog.loc[r["recipe_id"], flag]) for r in recipes)
 
 
-def test_recommend_diet_picks_are_actual_foods_not_beverages():
-    """Regression: ranking weight-loss purely by lowest calories returned diet
-    soda, black coffee and tea. Nutrition floors now apply."""
+def test_recommend_refuses_restrictions_it_cannot_verify():
     needs("recommender")
-    response = client.post(
-        "/recommend",
-        json={"age": 35, "bmi": 30, "goal": "Weight Loss", "diet_items": 10},
-        headers=AUTH,
-    )
-    focus = response.json()["recommended_diet_focus"]
-    assert focus["avg_protein"] >= 5.0
-    for food in focus["foods"]:
-        assert food["protein"] >= 4.0, food["name"]
-        assert food["calories"] >= 20.0, food["name"]
+    body = client.post("/recommend", json={"meals": DAY, "dietary_restrictions": ["Vegetarian", "Halal"]},
+                       headers=AUTH).json()
+    assert body["meals"] == []
+    assert body["unsupported_restrictions"] == ["halal"]
+    assert "halal" in body["reason"]
 
 
-def test_recommend_excludes_workouts_conflicting_with_injuries():
+def test_recommend_ignores_no_restriction_values():
     needs("recommender")
-    response = client.post(
-        "/recommend",
-        json={"age": 30, "bmi": 26, "goal": "Weight Loss", "injuries": ["lower back pain"]},
-        headers=AUTH,
-    )
-    assert response.status_code == 200
-    body = response.json()
-    returned = {w["workout_type"] for w in body["recommended_workouts"]}
-    # A back injury withholds Strength and HIIT.
-    assert not ({"Strength", "HIIT"} & returned) or body["excluded_workouts"]
+    body = client.post("/recommend", json={"meals": DAY[:1], "dietary_restrictions": ["Non-Vegetarian", "None"]},
+                       headers=AUTH).json()
+    assert body["unsupported_restrictions"] == [] and body["meals"][0]["recipes"]
 
 
-def test_recommend_weight_loss_targets_calories():
+def test_recommend_applies_protein_floor_and_exclusions():
     needs("recommender")
-    response = client.post(
-        "/recommend",
-        json={"age": 40, "bmi": 31, "goal": "Weight Loss"},
-        headers=AUTH,
-    )
-    assert response.json()["recommended_diet_focus"]["strategy"] == "calorie_deficit"
+    first = client.post("/recommend", json={"meals": [{"slot": "dinner", "kcal_target": 600, "min_protein_g": 30}]},
+                        headers=AUTH).json()["meals"][0]["recipes"]
+    assert all(r["protein_g"] >= 30 for r in first)
+    excluded = [r["recipe_id"] for r in first]
+    second = client.post("/recommend", json={"meals": [{"slot": "dinner", "kcal_target": 600, "min_protein_g": 30}],
+                                             "exclude_recipe_ids": excluded}, headers=AUTH).json()["meals"][0]["recipes"]
+    assert not set(excluded) & {r["recipe_id"] for r in second}
 
 
 # ── Model 3: injury risk ──────────────────────────────────────────────────────
-def test_injury_risk_returns_all_four_labels():
+REST_WEEK = [{"sessions": 0, "total_km": 0, "strength": 0, "alt_hours": 0}] * 7
+BUSY_WEEK = [{"sessions": 2, "total_km": 12, "strength": 1, "alt_hours": 1}] * 7
+
+
+def test_injury_risk_returns_overall_and_all_four_regions():
     needs("injury")
     response = client.post(
         "/predict/injury-risk",
-        json={
-            "user_id": "u1",
-            "age": 28,
-            "bmi": 29.0,
-            "resting_bpm": 72,
-            "session_duration_hours": 1.8,
-            "workout_frequency": 5,
-            "experience_level": 1,
-            "sleep_avg_hours": 7.5,
-        },
+        json={"user_id": "u1", "recent_days": BUSY_WEEK, "recent_exercises": ["Back Squat"]},
         headers=AUTH,
     )
     assert response.status_code == 200
     body = response.json()
-    assert body["stub"] is False
-    assert set(body["risk"]) == set(INJURY_LABELS)
-    for score in body["risk"].values():
-        assert 0.0 <= score <= 1.0
+    assert set(body["risk"]) == set(INJURY_LABELS) == set(body["basis"])
     assert body["threshold"] == 0.7
-    assert "clinical" in body["disclaimer"].lower()
+    assert "diagnosis" in body["disclaimer"].lower()
+    if registry.injury.get("serve"):
+        assert body["stub"] is False
+        assert 0.0 < body["overall_risk"] < 1.0
+        assert body["relative_risk"] == pytest.approx(body["overall_risk"] / registry.injury["prevalence"], rel=1e-2)
+        assert body["overall_elevated"] == (body["overall_risk"] >= body["overall_threshold"])
+    else:
+        assert body["overall_risk"] is None and body["stub"] is True
 
 
-def test_injury_risk_rises_with_sleep_debt():
+def test_injury_region_flag_needs_recorded_injury_and_elevated_load():
     needs("injury")
-    base = {
-        "user_id": "u1",
-        "age": 28,
-        "bmi": 26.0,
-        "resting_bpm": 65,
-        "session_duration_hours": 1.0,
-        "workout_frequency": 4,
-        "experience_level": 2,
-    }
-    rested = client.post(
-        "/predict/injury-risk", json={**base, "sleep_avg_hours": 8.0}, headers=AUTH
-    ).json()
-    deprived = client.post(
-        "/predict/injury-risk", json={**base, "sleep_avg_hours": 4.5}, headers=AUTH
-    ).json()
-    assert sum(deprived["risk"].values()) > sum(rested["risk"].values())
-
-
-def test_injury_risk_boosts_previously_injured_group():
-    needs("injury")
-    base = {
-        "user_id": "u1", "age": 30, "bmi": 24.0, "resting_bpm": 60,
-        "session_duration_hours": 1.0, "workout_frequency": 3, "experience_level": 2,
-    }
-    plain = client.post("/predict/injury-risk", json=base, headers=AUTH).json()
-    injured = client.post(
+    body = client.post(
         "/predict/injury-risk",
-        json={**base, "prior_injuries": ["Knee (Left)"]},
+        json={"user_id": "u1", "recent_days": REST_WEEK, "prior_injuries": ["Knee (Left)"]},
         headers=AUTH,
     ).json()
-    assert injured["risk"]["knee"] > plain["risk"]["knee"]
+    expected = 0.9 if body["overall_elevated"] else 0.6
+    assert body["risk"]["knee"] == expected
+    assert ("knee" in body["flagged"]) == body["overall_elevated"]
+    assert body["risk"]["shoulder"] == 0.1
 
 
-def test_injury_risk_imputes_when_only_user_id_supplied():
+def test_injury_risk_rejects_wrong_number_of_days():
+    response = client.post(
+        "/predict/injury-risk", json={"user_id": "u1", "recent_days": REST_WEEK[:5]}, headers=AUTH
+    )
+    assert response.status_code == 422
+
+
+def test_injury_risk_without_days_reports_imputed():
     """Documented {user_id}-only contract. Without Supabase configured the
-    endpoint must still answer, using training-set medians."""
+    endpoint still answers with region rules and says what it lacked."""
     needs("injury")
     response = client.post("/predict/injury-risk", json={"user_id": "u1"}, headers=AUTH)
     assert response.status_code == 200
     body = response.json()
     assert set(body["risk"]) == set(INJURY_LABELS)
-    assert len(body["imputed"]) > 0
+    assert body["overall_risk"] is None and body["flagged"] == []
+    if registry.injury.get("serve"):
+        assert body["imputed"] == ["recent_days"]
 
 
 # ── Model 4: trajectory ───────────────────────────────────────────────────────
-def test_trajectory_returns_valid_class():
+def test_trajectory_strength_sessions_get_the_rule_with_reason():
     needs("trajectory")
     response = client.post(
         "/predict/trajectory",
@@ -366,14 +315,16 @@ def test_trajectory_returns_valid_class():
     )
     assert response.status_code == 200
     body = response.json()
-    assert body["stub"] is False
-    assert body["label"] in TRAJECTORY_CLASSES
+    # Strength sessions have no pace: the running model must not guess, so the
+    # completion-slope rule answers and says why.
+    assert body["stub"] is True and "runs" in body["reason"]
+    assert body["label"] == "IMPROVE"
     assert body["trajectory_score"] == TRAJECTORY_CLASSES.index(body["label"])
     assert abs(sum(body["probs"].values()) - 1.0) < 0.01
 
 
-def test_trajectory_pads_short_history():
-    """A user with one logged session must still get a prediction."""
+def test_trajectory_short_history_gets_the_rule_not_padding():
+    """One session is not 4 runs: no padding, the rule answers with a reason."""
     needs("trajectory")
     response = client.post(
         "/predict/trajectory",
@@ -381,7 +332,8 @@ def test_trajectory_pads_short_history():
         headers=AUTH,
     )
     assert response.status_code == 200
-    assert response.json()["sessions_used"] == 1
+    body = response.json()
+    assert body["sessions_used"] == 1 and body["stub"] is True and body["reason"]
 
 
 def test_trajectory_rejects_empty_sessions():
@@ -417,7 +369,10 @@ def test_rl_action_returns_valid_action():
     )
     assert response.status_code == 200
     body = response.json()
-    assert body["stub"] is False
+    served = bool((registry.rl_meta or {}).get("serve"))
+    assert body["stub"] is (not served)
+    if not served:
+        assert body["reason"]
     assert body["action"] in {"REDUCE", "MAINTAIN", "INCREASE"}
     assert body["intensity_delta"] in {-0.15, 0.0, 0.15}
     assert len(body["state"]) == 5
@@ -479,15 +434,19 @@ def test_endpoints_fall_back_when_models_absent(tmp_path, monkeypatch):
         # MET: 7.5 * 70 * 1.0 = 525 kcal
         assert calorie["calories"] == pytest.approx(525.0, abs=1.0)
 
-        rec = bare.post("/recommend", json={"age": 25, "bmi": 24}, headers=AUTH).json()
-        assert rec["stub"] is True and rec["recommended_workouts"] == []
+        rec = bare.post("/recommend", json={"meals": [{"slot": "lunch", "kcal_target": 600}]},
+                        headers=AUTH).json()
+        assert rec["stub"] is True and rec["meals"] == []
 
         injury = bare.post(
             "/predict/injury-risk",
-            json={"user_id": "u1", "sleep_avg_hours": 5.0},
+            json={"user_id": "u1", "recent_days": BUSY_WEEK, "prior_injuries": ["lower back"]},
             headers=AUTH,
         ).json()
         assert injury["stub"] is True and set(injury["risk"]) == set(INJURY_LABELS)
+        # No model: rules only, and nothing may claim elevated load or a flag.
+        assert injury["overall_risk"] is None and injury["flagged"] == []
+        assert injury["risk"]["back"] == 0.6
 
         trajectory = bare.post(
             "/predict/trajectory",
