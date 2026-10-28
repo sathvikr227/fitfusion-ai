@@ -5,7 +5,7 @@
   Old model: MultiOutputClassifier(XGBClassifier(n_estimators=100, max_depth=4)) on valakhorasani/gym-members-exercise-dataset (973 rows).
   Its knee label was made by a rule over its own inputs: CALIBRATED: Resting_BPM > 68 (75th pct) AND Workout_Frequency >= 4 (75th pct). The documen...
   Old knee F1 = 1.0: the model re-learned the rule. It never saw an injury.
-  New model: real injuries of 74 runners (Part A, served) + real body-part
+  New model: real injuries of 74 runners (Part A, evaluated; NOT served, failed its rule) + real body-part
   reports from SoccerMon (Part B, exploratory only). See PROTOCOL.md.
 
 ────────────────────────────────────────────────────────────────────────

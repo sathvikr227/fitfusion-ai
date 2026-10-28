@@ -71,7 +71,7 @@ def main() -> None:
         print(f"  Old model: {old['algorithm']} on {old['dataset']} ({old['rows']} rows).")
         print(f"  Its knee label was made by a rule over its own inputs: {knee['label_rule'][:90]}...")
         print(f"  Old knee F1 = {knee['f1']}: the model re-learned the rule. It never saw an injury.")
-    print("  New model: real injuries of 74 runners (Part A, served) + real body-part")
+    print("  New model: real injuries of 74 runners (Part A, evaluated; NOT served, failed its rule) + real body-part")
     print("  reports from SoccerMon (Part B, exploratory only). See PROTOCOL.md.")
 
     section("2. The training data and its label (runners, CC0)")
