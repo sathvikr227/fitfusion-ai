@@ -16,7 +16,7 @@ informational risk indicator, **not a diagnosis**.
 
 **Status.** The XGBoost model failed the pre-registered serving rule (test ROC-AUC 0.589, CI
 includes 0.5), so the app currently serves the region rules only. `RESULTS.md` has every number
-and the decision pending with the project owner.
+and the owner's decision (2026-10-28) to keep the pre-registered outcome.
 
 | File | Contents |
 |---|---|

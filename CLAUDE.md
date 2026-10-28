@@ -99,8 +99,8 @@ km, strength sessions, other cardio hours) plus a fixed rule table for regions
 (`app/injury_load.py`, mirrored in `web/src/lib/ml-service/injury-rules.ts`). The
 protocol was committed before training (`demos/model3_injury/PROTOCOL.md`). XGB-APP
 scored test ROC-AUC 0.589 [0.482, 0.667], so by that rule it is **not served**;
-logistic regression scored 0.669 on test but lower on development, and the choice
-is pending with the user. The exercise matcher is word-boundary based on both sides
+logistic regression scored 0.669 on test but lower on development, and on
+2026-10-28 the user chose not to serve it either (rules only). The exercise matcher is word-boundary based on both sides
 (`keyword_pattern` / `keywordPattern`): "Pullups" loads shoulder, "Crunch" no
 longer loads knee. Teacher demo: `ml-service/demos/model3_injury/`.
 

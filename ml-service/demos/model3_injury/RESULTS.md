@@ -13,9 +13,9 @@ and serving rule were committed (`1340716`, `PROTOCOL.md`) **before** any model 
   body-region rules alone and returns `overall_risk: null`.
 - **The slide target (F1 > 0.75 per label) is not met.** Measured F1 is 0.042, overall only,
   because no open dataset has real knee/back/shoulder/hamstring labels.
-- **Open decision for the project owner.** Logistic regression scored higher on the test athletes
-  (0.669, CI [0.563, 0.747]), but lower on the development athletes (0.566 vs 0.598). See
-  "Decision pending" below.
+- **Logistic regression is not served either (owner's decision, 2026-10-28).** It scored higher on
+  the test athletes (0.669, CI [0.563, 0.747]) but lower on the development athletes (0.566 vs
+  0.598). See "Owner's decision" below.
 
 ## Part A — overall injury risk (74 competitive runners)
 
@@ -79,17 +79,20 @@ Figures: `models/reports/injury_load_roc_pr.png`, `injury_load_confusion.png`,
 | Logistic regression significantly better on test? | yes (Δ CI below 0) → **choice goes back to the owner** |
 | Slide target F1 > 0.75 | **not met** (0.042) |
 
-### Decision pending (owner)
+### Owner's decision (2026-10-28): keep the pre-registered outcome
 
 Logistic regression won on the 14 test athletes but lost on the 60 development athletes. With
-this few athletes the ranking is not stable. Serving it *because* of the test result would be
-choosing a model on the test set. Options:
+this few athletes the ranking is not stable, and serving it *because* of the test result would
+be choosing a model on the test set. The options were:
 
-1. **Keep as is (pre-registered outcome).** No overall ML score is served; regions use rules.
-2. **Serve LogReg-APP, labelled as a post-hoc choice.** It clears the 0.5 bar on test, but that
-   evidence is not independent any more.
-3. **Run a post-hoc repeated athlete-grouped CV over all 74 athletes** to show how unstable the
-   ranking is, labelled as post-hoc, then decide.
+1. **Keep as is (pre-registered outcome).** ← **chosen**
+2. Serve LogReg-APP, labelled as a post-hoc choice.
+3. Run a post-hoc repeated athlete-grouped CV over all 74 athletes, then decide.
+
+**What is served:** no overall ML score (`overall_risk: null`, `stub: true`). Body regions come
+from the rule table, and recorded injuries and pain still strip exercises in the replan. The
+XGBoost model, its evaluation and the logistic-regression comparison stay in the repo as the
+evidence.
 
 ## Part B — knee injuries, SoccerMon (exploratory, never served)
 
