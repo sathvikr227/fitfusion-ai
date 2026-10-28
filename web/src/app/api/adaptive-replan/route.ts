@@ -185,8 +185,8 @@ export async function POST(req: NextRequest) {
     // ══ STEP 2 — Transformer trajectory ═══════════════════════════════════════
     let trajectory: TrajectoryResponse | null = null
     let trajectoryFromFallback = false
-    if (sessions.length > 0) {
-      const trajectoryResult = await predictTrajectory({ user_id: userId, sessions })
+    if (history.trajectorySessions.length > 0) {
+      const trajectoryResult = await predictTrajectory({ user_id: userId, sessions: history.trajectorySessions })
       trajectory = trajectoryResult.data
       trajectoryFromFallback = trajectoryResult.fromFallback
       if (trajectoryResult.fromFallback) {
@@ -354,6 +354,7 @@ TASK: Modify the workout_plan section for next week based on the directive above
             probs: trajectory.probs,
             sessions_used: trajectory.sessions_used,
             model_version: trajectory.model_version,
+            reason: trajectory.reason ?? null,
             from_fallback: trajectoryFromFallback,
           }
         : null,

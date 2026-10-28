@@ -1,0 +1,24 @@
+{
+  "sample": {
+    "probs": {
+      "REGRESS": 0.3482215106487274,
+      "PLATEAU": 0.4449147582054138,
+      "IMPROVE": 0.20686377584934235
+    },
+    "label": "PLATEAU"
+  },
+  "held_out_accuracy_recomputed": 0.48074529614173805,
+  "api_response": {
+    "label": "PLATEAU",
+    "trajectory_score": 1,
+    "probs": {
+      "REGRESS": 0.3482,
+      "PLATEAU": 0.4449,
+      "IMPROVE": 0.2069
+    },
+    "sessions_used": 4,
+    "model_version": "trajectory-runs-transformer-v1",
+    "reason": null,
+    "stub": false
+  }
+}

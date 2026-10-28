@@ -68,7 +68,7 @@ Run in this order — later models assume the earlier artifacts exist.
 .venv/Scripts/python.exe -m training.build_meal_catalog     # ~20 s   (writes meal_catalog.pkl)
 .venv/Scripts/python.exe -m training.train_injury_load            # ~25 min (Model 3, runners; bootstrap CIs)
 .venv/Scripts/python.exe -m training.train_injury_soccermon_knee  # ~3 min  (Model 3 Part B, exploratory)
-.venv/Scripts/python.exe -m training.train_transformer  # ~2 min
+.venv/Scripts/python.exe -u -m training.train_trajectory_runs  # ~3.5 h (Model 4, Strava; 4 seeds)
 .venv/Scripts/python.exe -m training.train_rl_agent     # ~25 min
 ```
 
@@ -87,7 +87,8 @@ Run in this order — later models assume the earlier artifacts exist.
 | `train_injury_load.py` | `injury_load_model.pkl` (carries `serve`; currently False), `reports/injury_load.json`, `reports/injury_load_*.png` |
 | `train_injury_soccermon_knee.py` | `reports/injury_soccermon_knee.json` + `.png` (exploratory, no artifact) |
 | `train_injury.py` | RETIRED (circular proxy labels); `injury_risk_model.pkl` is no longer loaded |
-| `train_transformer.py` | `transformer_model.pt`, `transformer_meta.json` |
+| `train_trajectory_runs.py` | `trajectory_runs.pt` + `trajectory_runs_meta.json` (served), `reports/trajectory_runs.json` + `.png` |
+| `train_transformer.py` | RETIRED (pseudo-sequences); `transformer_model.pt` is no longer loaded |
 | `train_rl_agent.py` | `fitfusion_rl_agent.zip` |
 
 Everything in `models/` is gitignored — artifacts are produced by training and

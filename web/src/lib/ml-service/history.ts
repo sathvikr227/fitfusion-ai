@@ -11,6 +11,7 @@ import { normalizeWorkoutType } from "./index"
 import type { SessionFeatures } from "./types"
 import { buildRecentDays, type RecentDay } from "./injury-rules"
 import { injuryListFromProfile } from "./profile"
+import { buildRunSessions } from "./run-sessions"
 
 export const SESSION_WINDOW = 4
 
@@ -18,8 +19,13 @@ export const SESSION_WINDOW = 4
 const DEFAULT_SESSION_MINUTES = 45
 
 export type UserHistory = {
-  /** Oldest first, ready for the Transformer. */
+  /** Logged workouts, oldest first (sparkline and the completion-slope rule). */
   sessions: SessionFeatures[]
+  /**
+   * What /predict/trajectory should read: the last 4 running sessions when the
+   * user has them (the Transformer's input), otherwise `sessions`.
+   */
+  trajectorySessions: SessionFeatures[]
   /** Whole percent, 0-100. */
   completionRate: number
   completionSource: "plan_exercises" | "workout_execution" | "plan_ratio"
@@ -162,10 +168,12 @@ export async function buildUserHistory(
         .limit(SESSION_WINDOW * 2),
 
       supabase
+        // 120 days covers the trajectory model's 4 runs (within 56 days) and
+        // the run before them; the injury week filters to its own 7 days.
         .from("cardio_logs")
         .select("date, activity, distance_km, duration_minutes")
         .eq("user_id", userId)
-        .gte("date", since),
+        .gte("date", daysAgo(120)),
 
       supabase
         .from("workout_plans")
@@ -285,8 +293,11 @@ export async function buildUserHistory(
     .filter((r) => String(r.date) < daysAgo(0))
     .flatMap((r) => namesByLog.get(String(r.id)) ?? [])
 
+  const runSessions = buildRunSessions(cardioRes.data ?? [])
+
   return {
     sessions,
+    trajectorySessions: runSessions.length > 0 ? runSessions : sessions,
     completionRate,
     completionSource,
     avgSleep,

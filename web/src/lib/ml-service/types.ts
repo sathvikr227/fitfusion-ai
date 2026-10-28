@@ -201,8 +201,12 @@ export type SessionFeatures = {
   duration: number
   completion_rate: number
   workout_type?: string
+  /** Monday = 0 for running sessions (the model's convention). */
   day_of_week?: number
   date?: string
+  /** Running sessions only: the trajectory model needs both. */
+  distance_km?: number
+  gap_days?: number
 }
 
 export type TrajectoryRequest = {
@@ -219,6 +223,8 @@ export type TrajectoryResponse = {
   probs: Record<string, number>
   sessions_used: number
   model_version: string
+  /** Why the completion-slope rule answered instead of the model. */
+  reason?: string | null
   stub: boolean
 }
 

@@ -25,8 +25,8 @@ MEAL_CATALOG_ARTIFACT = "meal_catalog.pkl"
 EXERCISE_INDEX_ARTIFACT = "exercise_index.pkl"
 MEAL_HYBRID_ARTIFACT = "meal_hybrid_serving.pkl"
 INJURY_ARTIFACT = "injury_load_model.pkl"
-TRAJECTORY_ARTIFACT = "transformer_model.pt"
-TRAJECTORY_META_ARTIFACT = "transformer_meta.json"
+TRAJECTORY_ARTIFACT = "trajectory_runs.pt"
+TRAJECTORY_META_ARTIFACT = "trajectory_runs_meta.json"
 RL_ARTIFACT = "fitfusion_rl_agent.zip"
 
 
@@ -196,10 +196,15 @@ class ModelRegistry:
         try:
             import torch
 
-            from .trajectory_model import WorkoutTransformer
+            from .trajectory_runs import SESSION_FEATURES, RunTransformer
 
             meta = json.loads(meta_path.read_text(encoding="utf-8"))
-            model = WorkoutTransformer()
+            for key in ("feature_mean", "feature_std", "serve", "classes"):
+                if key not in meta:
+                    raise KeyError(f"{TRAJECTORY_META_ARTIFACT} is missing '{key}'")
+            if meta.get("features") != SESSION_FEATURES:
+                raise ValueError(f"{TRAJECTORY_META_ARTIFACT} features do not match app.trajectory_runs")
+            model = RunTransformer()
             model.load_state_dict(torch.load(path, map_location="cpu", weights_only=True))
             model.eval()
             self.trajectory_model = model

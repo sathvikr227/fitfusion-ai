@@ -1,0 +1,483 @@
+{
+  "model": "trajectory_runs",
+  "trained_at": "2026-10-28T13:16:53+00:00",
+  "python": "3.12.10",
+  "artifact": [
+    "trajectory_runs.pt",
+    "trajectory_runs_meta.json"
+  ],
+  "model_version": "trajectory-runs-transformer-v1",
+  "protocol": "demos/model4_trajectory/PROTOCOL.md (committed a2de032 before training)",
+  "dataset": {
+    "title": "A public dataset on long-distance running training in 2019 and 2020",
+    "doi": "10.6084/m9.figshare.16620238",
+    "version": 5,
+    "licence": "CC BY 4.0",
+    "files_md5": {
+      "run_ww_2019_d.parquet": "e10b8ba19ec1340b14b90049f945c259",
+      "run_ww_2020_d.parquet": "35161d5a273f51aa82d05f12bf4e0a04"
+    },
+    "funnel": {
+      "athlete_days": 26617172,
+      "run_days": 9259153,
+      "athletes": 36412,
+      "run_days_after_cleaning": 9186630,
+      "athletes_after_cleaning": 36397,
+      "windows": 1091424,
+      "windows_before_span_filter": 1127942
+    }
+  },
+  "label": {
+    "measure": "median Riegel 10 km-equivalent pace, sessions 5-8 vs 1-4",
+    "q1": -0.02229768275510846,
+    "q2": 0.02107158499194073,
+    "improve": "change < q1",
+    "regress": "change > q2"
+  },
+  "split": {
+    "train": {
+      "windows": 763342,
+      "athletes": 24327,
+      "class_counts": {
+        "REGRESS": 254447,
+        "PLATEAU": 254448,
+        "IMPROVE": 254447
+      }
+    },
+    "val": {
+      "windows": 164174,
+      "athletes": 5212,
+      "class_counts": {
+        "REGRESS": 54721,
+        "PLATEAU": 54667,
+        "IMPROVE": 54786
+      }
+    },
+    "test": {
+      "windows": 163908,
+      "athletes": 5214,
+      "class_counts": {
+        "REGRESS": 54513,
+        "PLATEAU": 54815,
+        "IMPROVE": 54580
+      }
+    }
+  },
+  "transformer": {
+    "config": {
+      "d_model": 32,
+      "heads": 4,
+      "layers": 2,
+      "ff": 128,
+      "dropout": 0.1,
+      "epochs": 20,
+      "batch": 512,
+      "lr": 0.001,
+      "seed": 42
+    },
+    "history": [
+      {
+        "epoch": 1,
+        "train_loss": 1.0428,
+        "val_accuracy": 0.4742,
+        "val_macro_f1": 0.4682
+      },
+      {
+        "epoch": 2,
+        "train_loss": 1.0294,
+        "val_accuracy": 0.4788,
+        "val_macro_f1": 0.4792
+      },
+      {
+        "epoch": 3,
+        "train_loss": 1.027,
+        "val_accuracy": 0.4763,
+        "val_macro_f1": 0.4758
+      },
+      {
+        "epoch": 4,
+        "train_loss": 1.0253,
+        "val_accuracy": 0.4813,
+        "val_macro_f1": 0.4809
+      },
+      {
+        "epoch": 5,
+        "train_loss": 1.0246,
+        "val_accuracy": 0.4797,
+        "val_macro_f1": 0.4795
+      },
+      {
+        "epoch": 6,
+        "train_loss": 1.0237,
+        "val_accuracy": 0.4808,
+        "val_macro_f1": 0.4812
+      },
+      {
+        "epoch": 7,
+        "train_loss": 1.0232,
+        "val_accuracy": 0.48,
+        "val_macro_f1": 0.4798
+      },
+      {
+        "epoch": 8,
+        "train_loss": 1.0224,
+        "val_accuracy": 0.4816,
+        "val_macro_f1": 0.4796
+      },
+      {
+        "epoch": 9,
+        "train_loss": 1.022,
+        "val_accuracy": 0.4809,
+        "val_macro_f1": 0.48
+      },
+      {
+        "epoch": 10,
+        "train_loss": 1.0217,
+        "val_accuracy": 0.4813,
+        "val_macro_f1": 0.4797
+      },
+      {
+        "epoch": 11,
+        "train_loss": 1.0211,
+        "val_accuracy": 0.4818,
+        "val_macro_f1": 0.4812
+      },
+      {
+        "epoch": 12,
+        "train_loss": 1.0211,
+        "val_accuracy": 0.4827,
+        "val_macro_f1": 0.4821
+      },
+      {
+        "epoch": 13,
+        "train_loss": 1.0209,
+        "val_accuracy": 0.4806,
+        "val_macro_f1": 0.4772
+      },
+      {
+        "epoch": 14,
+        "train_loss": 1.0206,
+        "val_accuracy": 0.4827,
+        "val_macro_f1": 0.4819
+      },
+      {
+        "epoch": 15,
+        "train_loss": 1.0204,
+        "val_accuracy": 0.482,
+        "val_macro_f1": 0.4799
+      },
+      {
+        "epoch": 16,
+        "train_loss": 1.0203,
+        "val_accuracy": 0.4814,
+        "val_macro_f1": 0.4807
+      },
+      {
+        "epoch": 17,
+        "train_loss": 1.02,
+        "val_accuracy": 0.4808,
+        "val_macro_f1": 0.4791
+      },
+      {
+        "epoch": 18,
+        "train_loss": 1.0199,
+        "val_accuracy": 0.4829,
+        "val_macro_f1": 0.4815
+      },
+      {
+        "epoch": 19,
+        "train_loss": 1.0199,
+        "val_accuracy": 0.483,
+        "val_macro_f1": 0.4818
+      },
+      {
+        "epoch": 20,
+        "train_loss": 1.0196,
+        "val_accuracy": 0.4831,
+        "val_macro_f1": 0.4814
+      }
+    ],
+    "stability_other_seeds": {
+      "0": {
+        "best_val_macro_f1": 0.4827,
+        "test_accuracy": 0.4816
+      },
+      "1": {
+        "best_val_macro_f1": 0.4831,
+        "test_accuracy": 0.4806
+      },
+      "2": {
+        "best_val_macro_f1": 0.4824,
+        "test_accuracy": 0.4807
+      }
+    }
+  },
+  "test": {
+    "Transformer": {
+      "accuracy": 0.4807,
+      "macro_f1": 0.4804,
+      "per_class": {
+        "REGRESS": {
+          "precision": 0.4665,
+          "recall": 0.4726
+        },
+        "PLATEAU": {
+          "precision": 0.4574,
+          "recall": 0.4387
+        },
+        "IMPROVE": {
+          "precision": 0.5167,
+          "recall": 0.5311
+        }
+      },
+      "confusion_matrix": [
+        [
+          25763,
+          14996,
+          13754
+        ],
+        [
+          17403,
+          24049,
+          13363
+        ],
+        [
+          12059,
+          13535,
+          28986
+        ]
+      ],
+      "ci95": {
+        "accuracy": [
+          0.4779,
+          0.4836
+        ],
+        "macro_f1": [
+          0.4775,
+          0.4833
+        ]
+      }
+    },
+    "Majority": {
+      "accuracy": 0.3344,
+      "macro_f1": 0.1671,
+      "per_class": {
+        "REGRESS": {
+          "precision": 0.0,
+          "recall": 0.0
+        },
+        "PLATEAU": {
+          "precision": 0.3344,
+          "recall": 1.0
+        },
+        "IMPROVE": {
+          "precision": 0.0,
+          "recall": 0.0
+        }
+      },
+      "confusion_matrix": [
+        [
+          0,
+          54513,
+          0
+        ],
+        [
+          0,
+          54815,
+          0
+        ],
+        [
+          0,
+          54580,
+          0
+        ]
+      ],
+      "ci95": {
+        "accuracy": [
+          0.3299,
+          0.3388
+        ],
+        "macro_f1": [
+          0.1654,
+          0.1687
+        ]
+      }
+    },
+    "Last-delta rule": {
+      "accuracy": 0.3558,
+      "macro_f1": 0.3541,
+      "per_class": {
+        "REGRESS": {
+          "precision": 0.3315,
+          "recall": 0.3845
+        },
+        "PLATEAU": {
+          "precision": 0.4116,
+          "recall": 0.2783
+        },
+        "IMPROVE": {
+          "precision": 0.3475,
+          "recall": 0.405
+        }
+      },
+      "confusion_matrix": [
+        [
+          20959,
+          11653,
+          21901
+        ],
+        [
+          19954,
+          15257,
+          19604
+        ],
+        [
+          22315,
+          10160,
+          22105
+        ]
+      ],
+      "ci95": {
+        "accuracy": [
+          0.3531,
+          0.3586
+        ],
+        "macro_f1": [
+          0.3512,
+          0.3569
+        ]
+      }
+    },
+    "Logistic regression": {
+      "accuracy": 0.4063,
+      "macro_f1": 0.405,
+      "per_class": {
+        "REGRESS": {
+          "precision": 0.408,
+          "recall": 0.3386
+        },
+        "PLATEAU": {
+          "precision": 0.3773,
+          "recall": 0.4169
+        },
+        "IMPROVE": {
+          "precision": 0.4351,
+          "recall": 0.4632
+        }
+      },
+      "confusion_matrix": [
+        [
+          18459,
+          19908,
+          16146
+        ],
+        [
+          15290,
+          22850,
+          16675
+        ],
+        [
+          11490,
+          17810,
+          25280
+        ]
+      ],
+      "ci95": {
+        "accuracy": [
+          0.4032,
+          0.4092
+        ],
+        "macro_f1": [
+          0.4017,
+          0.408
+        ]
+      }
+    },
+    "Gradient boosting": {
+      "accuracy": 0.4637,
+      "macro_f1": 0.4609,
+      "per_class": {
+        "REGRESS": {
+          "precision": 0.469,
+          "recall": 0.3571
+        },
+        "PLATEAU": {
+          "precision": 0.4319,
+          "recall": 0.5252
+        },
+        "IMPROVE": {
+          "precision": 0.4979,
+          "recall": 0.5085
+        }
+      },
+      "confusion_matrix": [
+        [
+          19466,
+          20110,
+          14937
+        ],
+        [
+          12972,
+          28790,
+          13053
+        ],
+        [
+          9065,
+          17762,
+          27753
+        ]
+      ],
+      "ci95": {
+        "accuracy": [
+          0.4607,
+          0.4667
+        ],
+        "macro_f1": [
+          0.4578,
+          0.4638
+        ]
+      }
+    }
+  },
+  "accuracy_differences": {
+    "Transformer minus Majority": {
+      "difference": 0.1463,
+      "ci95": [
+        0.1413,
+        0.1513
+      ]
+    },
+    "Transformer minus Last-delta rule": {
+      "difference": 0.1249,
+      "ci95": [
+        0.1212,
+        0.1284
+      ]
+    },
+    "Transformer minus Logistic regression": {
+      "difference": 0.0744,
+      "ci95": [
+        0.0711,
+        0.078
+      ]
+    },
+    "Transformer minus Gradient boosting": {
+      "difference": 0.017,
+      "ci95": [
+        0.0149,
+        0.0191
+      ]
+    }
+  },
+  "decision": {
+    "rule": "serve iff the lower bound of the transformer's test accuracy CI > majority-class accuracy",
+    "transformer_accuracy_ci_low": 0.4779,
+    "majority_accuracy": 0.3344,
+    "serve": true,
+    "baselines_significantly_better": [],
+    "slide_target_accuracy_over_0_65_met": false
+  },
+  "figures": {
+    "summary": "trajectory_runs.png"
+  }
+}

@@ -274,11 +274,16 @@ class InjuryResponse(MLModel):
 
 # ── 4. Transformer trajectory ─────────────────────────────────────────────────
 class SessionFeatures(MLModel):
+    """One session. Running sessions add distance_km and gap_days, which the
+    trajectory model needs; other sessions only feed the completion-slope rule."""
+
     duration: float = Field(..., ge=0, description="Session duration in hours")
-    completion_rate: float = Field(..., ge=0, le=1)
+    completion_rate: float = Field(default=1.0, ge=0, le=1)
     workout_type: str | None = None
-    day_of_week: int = Field(default=0, ge=0, le=6)
+    day_of_week: int = Field(default=0, ge=0, le=6, description="Monday = 0")
     date: str | None = None
+    distance_km: float | None = Field(default=None, ge=0, le=300, description="Running distance")
+    gap_days: float | None = Field(default=None, ge=0, le=365, description="Days since the previous session")
 
 
 class TrajectoryRequest(MLModel):
@@ -292,6 +297,7 @@ class TrajectoryResponse(MLModel):
     probs: dict[str, float]
     sessions_used: int
     model_version: str
+    reason: str | None = Field(default=None, description="Why the rule answered instead of the model")
     stub: bool = False
 
 

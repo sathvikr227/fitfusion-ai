@@ -1,0 +1,55 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-8.3.3, pluggy-1.6.0 -- C:\Users\Sathv\OneDrive\Desktop\fitfusion-ai-wb\ml-service\.venv\Scripts\python.exe
+rootdir: C:\Users\Sathv\OneDrive\Desktop\fitfusion-ai-wb\ml-service
+plugins: anyio-4.15.1
+collecting ... collected 21 items
+
+tests/test_model4_trajectory.py::test_riegel_pace_is_identity_at_10k_and_slows_longer_runs PASSED [  4%]
+tests/test_model4_trajectory.py::test_valid_run_limits[5-25-True] PASSED [  9%]
+tests/test_model4_trajectory.py::test_valid_run_limits[0.5-3-False] PASSED [ 14%]
+tests/test_model4_trajectory.py::test_valid_run_limits[61-300-False] PASSED [ 19%]
+tests/test_model4_trajectory.py::test_valid_run_limits[5-10-False] PASSED [ 23%]
+tests/test_model4_trajectory.py::test_valid_run_limits[5-80-False] PASSED [ 28%]
+tests/test_model4_trajectory.py::test_valid_run_limits[0-30-False] PASSED [ 33%]
+tests/test_model4_trajectory.py::test_label_direction_faster_is_improve PASSED [ 38%]
+tests/test_model4_trajectory.py::test_session_matrix_shape_and_values PASSED [ 42%]
+tests/test_model4_trajectory.py::test_build_windows_on_a_toy_athlete PASSED [ 47%]
+tests/test_model4_trajectory.py::test_build_windows_drops_windows_spanning_too_long PASSED [ 52%]
+tests/test_model4_trajectory.py::test_trajectory_needs_runs_or_says_why PASSED [ 57%]
+tests/test_model4_trajectory.py::test_trajectory_rejects_invalid_values PASSED [ 61%]
+tests/test_model4_trajectory.py::test_trajectory_falls_back_without_artifacts PASSED [ 66%]
+tests/test_model4_trajectory.py::test_trajectory_with_four_runs_uses_the_model_when_served PASSED [ 71%]
+tests/test_model4_trajectory.py::test_artifact_matches_report_and_is_deterministic PASSED [ 76%]
+tests/test_model4_trajectory.py::test_strava_files_match_figshare_md5 PASSED [ 80%]
+tests/test_smoke.py::test_trajectory_strength_sessions_get_the_rule_with_reason PASSED [ 85%]
+tests/test_smoke.py::test_trajectory_short_history_gets_the_rule_not_padding PASSED [ 90%]
+tests/test_smoke.py::test_trajectory_rejects_empty_sessions PASSED       [ 95%]
+tests/test_smoke.py::test_trajectory_rejects_out_of_range_completion PASSED [100%]
+
+============================== warnings summary ===============================
+.venv\Lib\site-packages\starlette\testclient.py:40
+  C:\Users\Sathv\OneDrive\Desktop\fitfusion-ai-wb\ml-service\.venv\Lib\site-packages\starlette\testclient.py:40: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = typing.Callable[[], typing.ContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================== 21 passed, 1 warning in 8.68s ========================
+
+> web@0.1.0 test
+> node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test "src/**/*.test.mjs"
+
+✔ matcher tolerates missing and hyphenated gaps (1.0296ms)
+✔ matcher only matches at word starts (0.387ms)
+✔ a shoulder flag now strips pull-ups from the plan (1.4257ms)
+✔ buildRecentDays maps FitFusion rows onto runners units (0.6455ms)
+✔ region levels follow the PROTOCOL.md table (1.1238ms)
+✔ needs a 5th, earlier run day for the first gap (3.4788ms)
+✔ maps runs onto the model's session features (0.5009ms)
+✔ drops paces outside 3-15 min/km (0.1474ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 134.5462

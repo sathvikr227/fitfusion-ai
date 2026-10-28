@@ -298,7 +298,7 @@ def test_injury_risk_without_days_reports_imputed():
 
 
 # ── Model 4: trajectory ───────────────────────────────────────────────────────
-def test_trajectory_returns_valid_class():
+def test_trajectory_strength_sessions_get_the_rule_with_reason():
     needs("trajectory")
     response = client.post(
         "/predict/trajectory",
@@ -315,14 +315,16 @@ def test_trajectory_returns_valid_class():
     )
     assert response.status_code == 200
     body = response.json()
-    assert body["stub"] is False
-    assert body["label"] in TRAJECTORY_CLASSES
+    # Strength sessions have no pace: the running model must not guess, so the
+    # completion-slope rule answers and says why.
+    assert body["stub"] is True and "runs" in body["reason"]
+    assert body["label"] == "IMPROVE"
     assert body["trajectory_score"] == TRAJECTORY_CLASSES.index(body["label"])
     assert abs(sum(body["probs"].values()) - 1.0) < 0.01
 
 
-def test_trajectory_pads_short_history():
-    """A user with one logged session must still get a prediction."""
+def test_trajectory_short_history_gets_the_rule_not_padding():
+    """One session is not 4 runs: no padding, the rule answers with a reason."""
     needs("trajectory")
     response = client.post(
         "/predict/trajectory",
@@ -330,7 +332,8 @@ def test_trajectory_pads_short_history():
         headers=AUTH,
     )
     assert response.status_code == 200
-    assert response.json()["sessions_used"] == 1
+    body = response.json()
+    assert body["sessions_used"] == 1 and body["stub"] is True and body["reason"]
 
 
 def test_trajectory_rejects_empty_sessions():

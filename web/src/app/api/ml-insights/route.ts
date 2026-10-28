@@ -52,17 +52,19 @@ export async function GET(req: NextRequest) {
       probs: Record<string, number>
       sessionsUsed: number
       modelVersion: string
+      reason: string | null
       fromFallback: boolean
     } | null = null
 
-    if (history.sessions.length > 0) {
-      const result = await predictTrajectory({ user_id: userId, sessions: history.sessions })
+    if (history.trajectorySessions.length > 0) {
+      const result = await predictTrajectory({ user_id: userId, sessions: history.trajectorySessions })
       trajectory = {
         label: result.data.label,
         score: result.data.trajectory_score,
         probs: result.data.probs,
         sessionsUsed: result.data.sessions_used,
         modelVersion: result.data.model_version,
+        reason: result.data.reason ?? null,
         fromFallback: result.fromFallback,
       }
       if (result.fromFallback) {

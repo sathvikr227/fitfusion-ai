@@ -44,7 +44,7 @@ fitfusion-ai-wb/
 | 1 | Session energy expenditure: calibrated XGBoost HR model + SHAP (Keytel, then MET fallback) | `POST /predict/calories` | MET-only estimate | `/api/workout-log` (Cardio + Workout tabs) |
 | 2 | Hybrid meal recommender (0.5 popularity + 0.25 ALS + 0.25 ingredient TF-IDF) within dietary filters + calorie bands; content-based exercise recommender | `POST /recommend`, `POST /recommend/exercises` | LLM-invented meals, calories and exercises | `/api/generate-plan` |
 | 3 | Training-load injury risk (XGBoost on 74 runners' real injuries; not served, failed its pre-registered rule) + rule-based body regions (knee/back/shoulder/hamstring) | `POST /predict/injury-risk` | reactive injury logging | `/api/adaptive-replan`, `/api/ml-insights` |
-| 4 | PyTorch transformer trajectory (improve/plateau/regress) | `POST /predict/trajectory` | single-week completion rate | `/api/adaptive-replan` |
+| 4 | PyTorch Transformer running trajectory (improve/plateau/regress of 10 km-equivalent pace), trained on 34,753 Strava runners; completion-slope rule for non-runners | `POST /predict/trajectory` | single-week completion rate | `/api/adaptive-replan`, `/api/ml-insights` |
 | 5 | PPO RL agent over `FitFusionEnv` | `POST /rl/action` | the if/else block in `/api/adaptive-replan` | `/api/adaptive-replan` |
 
 `/predict/calorie` and `/predict/injury` remain as aliases for the Step 1 paths.
@@ -104,6 +104,21 @@ logistic regression scored 0.669 on test but lower on development, and on
 (`keyword_pattern` / `keywordPattern`): "Pullups" loads shoulder, "Crunch" no
 longer loads knee. Teacher demo: `ml-service/demos/model3_injury/`.
 
+Stage 4 was rebuilt on 2026-10-28. The old Transformer read pseudo-sequences
+regrouped from cross-sectional Gym Members rows (accuracy 0.459) and is retired;
+FitFusion's Supabase history is seeded/test data (user-confirmed) and is never
+used or shown as pilot data. The new model (`app/trajectory_runs.py`,
+`training/train_trajectory_runs.py`) trains on Strava logs (Afonseca et al.,
+Figshare 10.6084/m9.figshare.16620238, CC BY 4.0; 1,091,424 eight-session windows,
+34,753 athletes): input = last 4 run-days (km, hours, Riegel 10 km pace, gap, weekday),
+label = next 4 vs last 4 pace, tertiles of training athletes (±~2.2%). Protocol
+committed first (a2de032). Test accuracy 0.481 [0.478, 0.484] on 5,214 held-out
+athletes, beating gradient boosting (+0.017, CI [+0.015, +0.019]) and every other
+baseline, so it is **served**; the 65% target is not met. In the app it reads the last
+4 running `cardio_logs` days (`web/src/lib/ml-service/run-sessions.ts`); anyone else
+gets the completion-slope rule with `stub: true` and a `reason`. Teacher demo:
+`ml-service/demos/model4_trajectory/`.
+
 Dietary flags are a safety feature, not a nicety. They are built from ingredient
 lists (the dataset's own "vegetarian" tag is wrong on 631 recipes), guarded a
 second time by the recipe name (Food.com sometimes omits the main protein, e.g.
@@ -161,9 +176,9 @@ Orchestration target = `web/src/app/api/adaptive-replan/route.ts`:
 7. **Full `/api/adaptive-replan` orchestration + tests.** ✅
 
 Training pipelines live in `ml-service/training/` — see its README. Real metrics
-per model are written to `ml-service/models/reports/*.json`; two documented
-targets are not met (calorie MAE and transformer accuracy) and the reports say so
-rather than rounding up.
+per model are written to `ml-service/models/reports/*.json`; documented slide
+targets that are not met (calorie MAE, injury F1, trajectory accuracy) are stated
+as measured in each demo's RESULTS.md rather than rounded up.
 
 ## Supabase tables in play (verified against the live database)
 
