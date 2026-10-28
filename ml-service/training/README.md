@@ -66,7 +66,8 @@ Run in this order — later models assume the earlier artifacts exist.
 .venv/Scripts/python.exe -m training.train_meal_recommender # ~30 min  (Stage 2 method comparison)
 .venv/Scripts/python.exe -m training.evaluate_meal_rolling  # ~20 min  (Stage 2 final verdict)
 .venv/Scripts/python.exe -m training.build_meal_catalog     # ~20 s   (writes meal_catalog.pkl)
-.venv/Scripts/python.exe -m training.train_injury       # ~15 s
+.venv/Scripts/python.exe -m training.train_injury_load            # ~25 min (Model 3, runners; bootstrap CIs)
+.venv/Scripts/python.exe -m training.train_injury_soccermon_knee  # ~3 min  (Model 3 Part B, exploratory)
 .venv/Scripts/python.exe -m training.train_transformer  # ~2 min
 .venv/Scripts/python.exe -m training.train_rl_agent     # ~25 min
 ```
@@ -83,7 +84,9 @@ Run in this order — later models assume the earlier artifacts exist.
 | `train_meal_recommender.py` | `meal_recommender.pkl` (evaluated, not served), `reports/meal_recommender.json` |
 | `evaluate_meal_rolling.py` | `reports/meal_recommender_rolling.json` + `.png` (decision: DROP ML) |
 | `build_meal_catalog.py` | `meal_catalog.pkl` (served), `reports/meal_catalog.json` |
-| `train_injury.py` | `injury_risk_model.pkl` |
+| `train_injury_load.py` | `injury_load_model.pkl` (carries `serve`; currently False), `reports/injury_load.json`, `reports/injury_load_*.png` |
+| `train_injury_soccermon_knee.py` | `reports/injury_soccermon_knee.json` + `.png` (exploratory, no artifact) |
+| `train_injury.py` | RETIRED (circular proxy labels); `injury_risk_model.pkl` is no longer loaded |
 | `train_transformer.py` | `transformer_model.pt`, `transformer_meta.json` |
 | `train_rl_agent.py` | `fitfusion_rl_agent.zip` |
 

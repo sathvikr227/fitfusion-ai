@@ -24,7 +24,7 @@ CALORIE_MODEL_ARTIFACT = "calorie_hr_model.pkl"
 MEAL_CATALOG_ARTIFACT = "meal_catalog.pkl"
 EXERCISE_INDEX_ARTIFACT = "exercise_index.pkl"
 MEAL_HYBRID_ARTIFACT = "meal_hybrid_serving.pkl"
-INJURY_ARTIFACT = "injury_risk_model.pkl"
+INJURY_ARTIFACT = "injury_load_model.pkl"
 TRAJECTORY_ARTIFACT = "transformer_model.pt"
 TRAJECTORY_META_ARTIFACT = "transformer_meta.json"
 RL_ARTIFACT = "fitfusion_rl_agent.zip"
@@ -171,8 +171,16 @@ class ModelRegistry:
         try:
             import joblib
 
-            self.injury = joblib.load(path)
-            log.info("loaded injury model (%s)", self.injury.get("model_version"))
+            from .injury_load import APP_FEATURES
+
+            bundle = joblib.load(path)
+            for key in ("model", "features", "platt_a", "platt_b", "threshold", "prevalence", "serve"):
+                if key not in bundle:
+                    raise KeyError(f"{INJURY_ARTIFACT} is missing '{key}'")
+            if list(bundle["features"]) != APP_FEATURES:
+                raise ValueError(f"{INJURY_ARTIFACT} features do not match app.injury_load.APP_FEATURES")
+            self.injury = bundle
+            log.info("loaded injury model (%s, serve=%s)", bundle.get("model_version"), bundle["serve"])
         except Exception as exc:  # noqa: BLE001
             self.errors["injury"] = str(exc)
             log.exception("failed to load %s", INJURY_ARTIFACT)

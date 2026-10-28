@@ -1,0 +1,128 @@
+
+────────────────────────────────────────────────────────────────────────
+  1. Why Model 3 was rebuilt
+────────────────────────────────────────────────────────────────────────
+  Old model: MultiOutputClassifier(XGBClassifier(n_estimators=100, max_depth=4)) on valakhorasani/gym-members-exercise-dataset (973 rows).
+  Its knee label was made by a rule over its own inputs: CALIBRATED: Resting_BPM > 68 (75th pct) AND Workout_Frequency >= 4 (75th pct). The documen...
+  Old knee F1 = 1.0: the model re-learned the rule. It never saw an injury.
+  New model: real injuries of 74 runners (Part A, served) + real body-part
+  reports from SoccerMon (Part B, exploratory only). See PROTOCOL.md.
+
+────────────────────────────────────────────────────────────────────────
+  2. The training data and its label (runners, CC0)
+────────────────────────────────────────────────────────────────────────
+  rows                                       42766
+  athletes                                   74
+  injury_days                                583
+  prevalence                                 0.01363
+  athletes_with_injury                       63
+  min_days_between_injuries_same_athlete     22
+  missing_values                             0
+  Label: injury on the event day (1) or not (0). Features: the 7 days before it.
+  Class balance: 583 injury days vs 42,183 non-injury days → 1 in 73.
+
+────────────────────────────────────────────────────────────────────────
+  3. Labelled sample input → model features
+────────────────────────────────────────────────────────────────────────
+  Input file: sample_input.json
+  ILLUSTRATIVE INPUT, not a real user. A FitFusion member's last 7 days (oldest first, ending yesterday), the exercises they logged, and the injury they recorded at onboarding.
+  date         sessions  run km strength other cardio h
+  2026-10-21          1       0        1              0
+  2026-10-22          1       6        0              0
+  2026-10-23          2       0        1           0.75
+  2026-10-24          0       0        0              0
+  2026-10-25          1      10        0              0
+  2026-10-26          2       5        1              0
+  2026-10-27          1       0        1              0
+  Derived: sessions_7d = 8, total_km_7d = 21, strength_7d = 4, alt_hours_7d = 0.75, rest_days_7d = 1
+
+────────────────────────────────────────────────────────────────────────
+  4. Prediction: overall risk (ML) + body regions (rules)
+────────────────────────────────────────────────────────────────────────
+  Model served: False  (injury-load-xgb-v1, config {'max_depth': 3, 'n_estimators': 200})
+  Overall risk of an injury tomorrow: 0.0127  = 0.93x the training injury rate (0.0136)
+  Elevated? False  (threshold 0.0169, chosen on development athletes)
+  Recorded injury regions: ['knee'];  loaded by recent exercises: ['back', 'hamstring', 'knee', 'shoulder']
+    knee       level 0.6  recorded injury or pain                                    
+    back       level 0.2  loaded by recent exercises                                 
+    shoulder   level 0.2  loaded by recent exercises                                 
+    hamstring  level 0.2  loaded by recent exercises                                 
+  Levels are rule levels, not probabilities. Informational only, not a diagnosis.
+
+────────────────────────────────────────────────────────────────────────
+  5. Why: SHAP contributions for this input (log-odds, before calibration)
+────────────────────────────────────────────────────────────────────────
+  base value +0.055
+    strength_7d      = 4      → -0.369
+    total_km_d3      = 10     → +0.133
+    total_km_d7      = 0      → -0.107
+    total_km_d2      = 5      → -0.062
+    strength_d5      = 1      → -0.055
+    total_km_d4      = 0      → +0.048
+    sessions_d4      = 0      → -0.032
+    rest_days_7d     = 1      → +0.027
+  [saved] outputs/shap_sample.png
+
+────────────────────────────────────────────────────────────────────────
+  6. Real held-out athletes (never used in training or tuning)
+────────────────────────────────────────────────────────────────────────
+  14 test athletes, 8,548 days, 118 injuries
+  Mean predicted risk on injury days    : 0.0147
+  Mean predicted risk on non-injury days: 0.0134
+  At the threshold: 43 of 118 injury days flagged, 1,871 of 8,430 non-injury days flagged
+  Example — athlete 1, day 672 (injured): 7-day km 117, sessions 6 → risk 0.0098
+
+────────────────────────────────────────────────────────────────────────
+  7. Same request through the FastAPI endpoint
+────────────────────────────────────────────────────────────────────────
+  HTTP 200
+  {
+    "risk": {
+      "knee": 0.6,
+      "back": 0.2,
+      "shoulder": 0.2,
+      "hamstring": 0.2
+    },
+    "threshold": 0.7,
+    "flagged": [],
+    "basis": {
+      "knee": "recorded injury or pain",
+      "back": "loaded by recent exercises",
+      "shoulder": "loaded by recent exercises",
+      "hamstring": "loaded by recent exercises"
+    },
+    "overall_risk": null,
+    "relative_risk": null,
+    "overall_threshold": null,
+    "overall_elevated": false,
+    "imputed": [],
+    "source": "fallback",
+    "model_version": "rules-only",
+    "disclaimer": "Informational injury-risk indicator, not a medical diagnosis. Body regions are flagged by fixed rules, not predicted.",
+    "stub": true
+  }
+
+────────────────────────────────────────────────────────────────────────
+  8. Evaluation evidence (models/reports, written by the training scripts)
+────────────────────────────────────────────────────────────────────────
+  Test athletes: 14, injuries 118
+  model        ROC-AUC [95% CI]          PR-AUC     F1  recall
+  XGB-APP      0.589 [0.482, 0.667]       0.022  0.042   0.364
+  LogReg-APP   0.669 [0.563, 0.747]       0.031  0.083   0.195
+  Rule-APP     0.605 [0.534, 0.674]       0.018    nan     nan
+  XGB-FULL     0.602 [0.513, 0.695]       0.022  0.040   0.483
+  LogReg-FULL  0.671 [0.599, 0.729]       0.029  0.050   0.458
+  Rule-FULL    0.519 [0.457, 0.630]       0.014    nan     nan
+  Prevalence   0.500                      0.014    nan     nan
+  XGB-APP minus LogReg-APP     ΔAUC -0.080 [-0.131, -0.010]
+  XGB-APP minus Rule-APP       ΔAUC -0.016 [-0.128, +0.084]
+  XGB-FULL minus XGB-APP       ΔAUC +0.013 [-0.022, +0.055]
+  XGB-FULL minus LogReg-FULL   ΔAUC -0.069 [-0.125, +0.003]
+  Decision: {'rule': 'serve XGB-APP iff the lower bound of its test ROC-AUC 95% CI > 0.50', 'xgb_app_roc_auc_ci_low': 0.4823, 'serve': False, 'logreg_significantly_better': True, 'slide_target_f1_over_0_75_met': False}
+  Part B (SoccerMon knee, exploratory): 10 episodes from 5 players
+    XGBoost    ROC-AUC 0.659 [0.172, 0.933]
+    LogReg     ROC-AUC 0.661 [0.233, 0.953]
+    ACWR rule  ROC-AUC 0.433 [0.032, 0.722]
+    Prevalence ROC-AUC 0.500
+
+[saved] C:\Users\Sathv\OneDrive\Desktop\fitfusion-ai-wb\ml-service\demos\model3_injury\outputs\demo_output.json

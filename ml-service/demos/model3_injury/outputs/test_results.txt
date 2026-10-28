@@ -1,0 +1,65 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-8.3.3, pluggy-1.6.0 -- C:\Users\Sathv\OneDrive\Desktop\fitfusion-ai-wb\ml-service\.venv\Scripts\python.exe
+rootdir: C:\Users\Sathv\OneDrive\Desktop\fitfusion-ai-wb\ml-service
+plugins: anyio-4.15.1
+collecting ... collected 34 items
+
+tests/test_model3_injury.py::test_shoulder_matcher_handles_joined_and_hyphenated_names[Pullups] PASSED [  2%]
+tests/test_model3_injury.py::test_shoulder_matcher_handles_joined_and_hyphenated_names[Pull-Up] PASSED [  5%]
+tests/test_model3_injury.py::test_shoulder_matcher_handles_joined_and_hyphenated_names[pull up] PASSED [  8%]
+tests/test_model3_injury.py::test_shoulder_matcher_handles_joined_and_hyphenated_names[Wide Grip Pull-ups] PASSED [ 11%]
+tests/test_model3_injury.py::test_shoulder_matcher_handles_joined_and_hyphenated_names[Pushups] PASSED [ 14%]
+tests/test_model3_injury.py::test_matcher_matches_word_starts_only[Crunch-knee-False] PASSED [ 17%]
+tests/test_model3_injury.py::test_matcher_matches_word_starts_only[Bicycle Crunches-knee-False] PASSED [ 20%]
+tests/test_model3_injury.py::test_matcher_matches_word_starts_only[Running-knee-True] PASSED [ 23%]
+tests/test_model3_injury.py::test_matcher_matches_word_starts_only[Situps-back-True] PASSED [ 26%]
+tests/test_model3_injury.py::test_matcher_matches_word_starts_only[Romanian Deadlift-hamstring-True] PASSED [ 29%]
+tests/test_model3_injury.py::test_matcher_matches_word_starts_only[Barbell Curl-shoulder-False] PASSED [ 32%]
+tests/test_model3_injury.py::test_app_features_are_a_subset_of_full_features PASSED [ 35%]
+tests/test_model3_injury.py::test_features_from_days_orders_yesterday_as_d1_and_clips PASSED [ 38%]
+tests/test_model3_injury.py::test_features_from_days_needs_seven_days PASSED [ 41%]
+tests/test_model3_injury.py::test_build_recent_days_matches_the_typescript_mapping PASSED [ 44%]
+tests/test_model3_injury.py::test_platt_is_monotone PASSED               [ 47%]
+tests/test_model3_injury.py::test_region_levels_follow_the_protocol_table PASSED [ 50%]
+tests/test_model3_injury.py::test_artifact_matches_its_report PASSED     [ 52%]
+tests/test_model3_injury.py::test_artifact_predicts_a_probability PASSED [ 55%]
+tests/test_model3_injury.py::test_runner_suffixes_map_day_before_to_dot_six PASSED [ 58%]
+tests/test_model3_injury.py::test_runners_data_matches_recorded_counts PASSED [ 61%]
+tests/test_model3_injury.py::test_test_split_shares_no_athlete_with_development PASSED [ 64%]
+tests/test_model3_injury.py::test_soccermon_knee_episodes PASSED         [ 67%]
+tests/test_smoke.py::test_injury_risk_returns_overall_and_all_four_regions PASSED [ 70%]
+tests/test_smoke.py::test_injury_region_flag_needs_recorded_injury_and_elevated_load PASSED [ 73%]
+tests/test_smoke.py::test_injury_risk_rejects_wrong_number_of_days PASSED [ 76%]
+tests/test_smoke.py::test_injury_risk_without_days_reports_imputed PASSED [ 79%]
+tests/test_smoke.py::test_endpoints_fall_back_when_models_absent PASSED  [ 82%]
+tests/test_model2_exercises.py::test_keyword_pattern[pullups-pull up-True] PASSED [ 85%]
+tests/test_model2_exercises.py::test_keyword_pattern[v-bar pullup-pull up-True] PASSED [ 88%]
+tests/test_model2_exercises.py::test_keyword_pattern[chin-up-chin up-True] PASSED [ 91%]
+tests/test_model2_exercises.py::test_keyword_pattern[crunches-run-False] PASSED [ 94%]
+tests/test_model2_exercises.py::test_keyword_pattern[cable crunch-run-False] PASSED [ 97%]
+tests/test_model2_exercises.py::test_keyword_pattern[barbell squat-squat-True] PASSED [100%]
+
+============================== warnings summary ===============================
+.venv\Lib\site-packages\starlette\testclient.py:40
+  C:\Users\Sathv\OneDrive\Desktop\fitfusion-ai-wb\ml-service\.venv\Lib\site-packages\starlette\testclient.py:40: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = typing.Callable[[], typing.ContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================= 34 passed, 1 warning in 12.73s ========================
+
+> web@0.1.0 test
+> node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test "src/**/*.test.mjs"
+
+✔ matcher tolerates missing and hyphenated gaps (1.0856ms)
+✔ matcher only matches at word starts (0.3487ms)
+✔ a shoulder flag now strips pull-ups from the plan (1.6723ms)
+✔ buildRecentDays maps FitFusion rows onto runners units (0.4802ms)
+✔ region levels follow the PROTOCOL.md table (1.1099ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 107.603

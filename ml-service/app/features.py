@@ -180,10 +180,22 @@ INJURY_MUSCLE_KEYWORDS: dict[str, list[str]] = {
 INJURY_RISK_THRESHOLD = 0.7
 
 
+def keyword_pattern(keyword: str) -> re.Pattern:
+    """Word-start match that tolerates a missing or hyphenated gap:
+    "pull up" matches "Pullups" and "Pull-Up", while "run" does not match "crunch"."""
+    words = re.split(r"[\s-]+", keyword.strip().lower())
+    return re.compile(r"\b" + r"[\s-]?".join(map(re.escape, words)))
+
+
+INJURY_PATTERNS: dict[str, list[re.Pattern]] = {
+    group: [keyword_pattern(k) for k in keywords] for group, keywords in INJURY_MUSCLE_KEYWORDS.items()
+}
+
+
 def exercise_targets_muscle_group(exercise_name: str, group: str) -> bool:
     """True when an exercise loads the muscle group flagged as at-risk."""
-    text = re.sub(r"[^a-z0-9 ]+", " ", str(exercise_name or "").lower())
-    return any(kw in text for kw in INJURY_MUSCLE_KEYWORDS.get(group, []))
+    text = str(exercise_name or "").lower()
+    return any(p.search(text) for p in INJURY_PATTERNS.get(group, []))
 
 
 # ── Model 4: transformer trajectory ───────────────────────────────────────────

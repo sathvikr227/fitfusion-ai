@@ -1,4 +1,5 @@
 import { callMLService, type MLCallResult } from "./client"
+import { injuryRegionLevels } from "./injury-rules"
 import type {
   CalorieRequest,
   CalorieResponse,
@@ -131,19 +132,25 @@ export function recommendExercises(req: ExerciseRequest): Promise<MLCallResult<E
 
 export function predictInjury(req: InjuryRequest): Promise<MLCallResult<InjuryResponse>> {
   return callMLService<InjuryRequest, InjuryResponse>("/predict/injury-risk", req, () => {
-    // Neutral, sub-threshold scores: with no model we must not invent risk, and
-    // must not silently clear a user who might have some.
-    const risk = { knee: 0.1, back: 0.1, shoulder: 0.1, hamstring: 0.1 }
+    // The service's own rules with no load model: recorded and loaded regions
+    // keep their levels, but nothing claims elevated training-load risk and
+    // nothing reaches the 0.7 flag, so a missing model never invents risk.
+    const { risk, basis } = injuryRegionLevels(req.prior_injuries ?? [], req.recent_exercises ?? [], false)
     return {
-      risk,
+      risk: risk as InjuryResponse["risk"],
       threshold: 0.7,
       flagged: [],
+      basis,
+      overall_risk: null,
+      relative_risk: null,
+      overall_threshold: null,
+      overall_elevated: false,
       features_used: {},
       imputed: [],
       source: "fallback",
-      model_version: "fallback-neutral",
+      model_version: "fallback-rules",
       disclaimer:
-        "Proxy injury-risk scores derived from biomechanical thresholds. Not a clinical diagnosis.",
+        "Informational injury-risk indicator, not a medical diagnosis. Body regions are flagged by fixed rules, not predicted.",
       stub: true,
     }
   })

@@ -208,32 +208,60 @@ class ExerciseResponse(MLModel):
 
 
 # ── 3. Injury risk ────────────────────────────────────────────────────────────
+class DayLoad(MLModel):
+    """One calendar day of training, in the units of the runners dataset."""
+
+    date: str | None = None
+    sessions: float = Field(default=0, ge=0, le=10, description="Trainings that day (clipped to 2)")
+    total_km: float = Field(default=0, ge=0, le=300, description="Running distance, km")
+    strength: float = Field(default=0, ge=0, le=5, description="1 if a strength session (clipped to 1)")
+    alt_hours: float = Field(default=0, ge=0, le=24, description="Non-running cardio, hours")
+
+
 class InjuryRequest(MLModel):
     """Either supply the features, or supply user_id and let the service read
-    Supabase. Next.js sends features because it already owns the DB session."""
+    Supabase. Next.js sends features because it already owns the DB session.
+
+    The retired Gym Members inputs (age, bmi, resting_bpm, ...) are no longer
+    read; older clients that still send them are not rejected (extra fields are
+    ignored)."""
 
     user_id: str
-    age: float | None = Field(default=None, ge=10, le=100)
-    bmi: float | None = Field(default=None, gt=5, le=70)
-    resting_bpm: float | None = Field(default=None, ge=30, le=140)
-    session_duration_hours: float | None = Field(default=None, ge=0, le=8)
-    workout_frequency: float | None = Field(default=None, ge=0, le=7)
-    experience_level: int | None = Field(default=None, ge=1, le=3)
-    sleep_avg_hours: float | None = Field(default=None, ge=0, le=24)
-    prior_injuries: list[str] = Field(default_factory=list)
+    recent_days: list[DayLoad] | None = Field(
+        default=None, description="Exactly 7 days, oldest first, ending yesterday"
+    )
+    recent_exercises: list[str] = Field(default_factory=list, description="Exercise names from the last 7 days")
+    prior_injuries: list[str] = Field(
+        default_factory=list, description="Profile injuries, active injuries and reported pain, free text"
+    )
+    sleep_avg_hours: float | None = Field(default=None, ge=0, le=24, description="Accepted, not used")
+
+    @field_validator("recent_days")
+    @classmethod
+    def seven_days(cls, value: list[DayLoad] | None) -> list[DayLoad] | None:
+        if value is not None and len(value) != 7:
+            raise ValueError("recent_days must hold exactly 7 days (oldest first, ending yesterday)")
+        return value
 
 
 class InjuryResponse(MLModel):
     risk: dict[str, float]
     threshold: float
     flagged: list[str] = Field(default_factory=list)
+    basis: dict[str, str] = Field(default_factory=dict, description="Why each region has its rule level")
+    overall_risk: float | None = Field(
+        default=None, description="Calibrated probability of an injury on the next day (runners model)"
+    )
+    relative_risk: float | None = Field(default=None, description="overall_risk / training prevalence")
+    overall_threshold: float | None = None
+    overall_elevated: bool = False
     features_used: dict[str, float] = Field(default_factory=dict)
     imputed: list[str] = Field(default_factory=list)
     source: Literal["request", "supabase", "fallback"] = "request"
     model_version: str
     disclaimer: str = (
-        "Proxy injury-risk scores derived from biomechanical thresholds. "
-        "Not a clinical diagnosis."
+        "Informational injury-risk indicator, not a medical diagnosis. Body regions "
+        "are flagged by fixed rules, not predicted."
     )
     stub: bool = False
 

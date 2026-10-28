@@ -13,7 +13,7 @@ in Next.js before the call reaches this service.
 from __future__ import annotations
 
 import logging
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 
 import httpx
 
@@ -45,108 +45,43 @@ def _get(client: httpx.Client, table: str, params: dict[str, str]) -> list[dict]
 
 
 def fetch_injury_features(user_id: str) -> dict:
-    """Assemble the injury model's inputs from the live FitFusion tables.
+    """Assemble the injury endpoint's inputs from the live FitFusion tables.
 
-    Returns whatever it can find; missing pieces come back as None and the
-    router imputes them from the training-set medians.
+    Returns the 7 days before today in runners units (see
+    app.injury_load.build_recent_days), the exercise names logged in those
+    days, and the user's recorded injuries as free text.
     """
     if not settings.supabase_enabled:
         raise SupabaseUnavailable("SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not configured")
 
-    since = (datetime.now(timezone.utc).date() - timedelta(days=LOOKBACK_DAYS)).isoformat()
-    result: dict = {
-        "age": None,
-        "bmi": None,
-        "resting_bpm": None,
-        "session_duration_hours": None,
-        "workout_frequency": None,
-        "experience_level": None,
-        "sleep_avg_hours": None,
-        "prior_injuries": [],
-    }
+    from .injury_load import build_recent_days
+
+    today = datetime.now(timezone.utc).date()
+    since = (today - timedelta(days=LOOKBACK_DAYS)).isoformat()
+    user = f"eq.{user_id}"
 
     with httpx.Client(timeout=settings.SUPABASE_TIMEOUT_SECONDS) as client:
-        profiles = _get(
-            client,
-            "profiles",
-            {
-                "select": "age,height,weight,training_style,activity_level",
-                "id": f"eq.{user_id}",
-                "limit": "1",
-            },
-        )
-        if profiles:
-            profile = profiles[0]
-            result["age"] = _number(profile.get("age"))
-            height = _number(profile.get("height"))
-            weight = _number(profile.get("weight"))
-            if height and weight:
-                metres = height / 100.0 if height > 3 else height
-                if metres > 0:
-                    result["bmi"] = round(weight / (metres * metres), 2)
-            result["experience_level"] = _experience_from_activity(profile.get("activity_level"))
+        workouts = _get(client, "workout_logs", {"select": "id,date", "user_id": user, "date": f"gte.{since}"})
+        exercises_by_log: dict[str, list[str]] = {}
+        ids = [str(row["id"]) for row in workouts if row.get("id")]
+        if ids:
+            rows = _get(client, "exercise_logs",
+                        {"select": "workout_log_id,exercise_name", "workout_log_id": f"in.({','.join(ids)})"})
+            for row in rows:
+                exercises_by_log.setdefault(str(row.get("workout_log_id")), []).append(str(row.get("exercise_name") or ""))
+        cardio = _get(client, "cardio_logs",
+                      {"select": "date,activity,distance_km,duration_minutes", "user_id": user, "date": f"gte.{since}"})
+        profiles = _get(client, "profiles", {"select": "injuries", "id": user, "limit": "1"})
+        injuries = _get(client, "injuries", {"select": "body_part,name", "user_id": user, "status": "eq.active"})
 
-        workouts = _get(
-            client,
-            "workout_logs",
-            {"select": "date", "user_id": f"eq.{user_id}", "date": f"gte.{since}"},
-        )
-        if workouts:
-            result["workout_frequency"] = float(len({row["date"] for row in workouts if row.get("date")}))
+    prior: list[str] = []
+    if profiles and profiles[0].get("injuries"):
+        prior.append(str(profiles[0]["injuries"]))
+    for row in injuries:
+        prior.extend(str(row[k]) for k in ("body_part", "name") if row.get(k))
 
-        sleep = _get(
-            client,
-            "sleep_logs",
-            {"select": "sleep_hours", "user_id": f"eq.{user_id}", "date": f"gte.{since}"},
-        )
-        hours = [_number(row.get("sleep_hours")) for row in sleep]
-        hours = [h for h in hours if h is not None]
-        if hours:
-            result["sleep_avg_hours"] = round(sum(hours) / len(hours), 2)
-
-        vitals = _get(
-            client,
-            "vitals_logs",
-            {
-                "select": "resting_heart_rate",
-                "user_id": f"eq.{user_id}",
-                "order": "date.desc",
-                "limit": "1",
-            },
-        )
-        if vitals:
-            result["resting_bpm"] = _number(vitals[0].get("resting_heart_rate"))
-
-        injuries = _get(
-            client,
-            "injuries",
-            {"select": "body_part", "user_id": f"eq.{user_id}", "status": "eq.active"},
-        )
-        result["prior_injuries"] = [
-            str(row.get("body_part")) for row in injuries if row.get("body_part")
-        ]
-
-    return result
-
-
-def _number(value) -> float | None:
-    try:
-        if value is None or value == "":
-            return None
-        return float(value)
-    except (TypeError, ValueError):
-        return None
-
-
-def _experience_from_activity(activity_level) -> int | None:
-    """Map FitFusion's activity_level onto the dataset's 1-3 experience scale."""
-    text = str(activity_level or "").strip().lower().replace("-", "_").replace(" ", "_")
-    if not text:
-        return None
-    if text in {"sedentary", "lightly_active", "light"}:
-        return 1
-    if text in {"moderately_active", "moderate"}:
-        return 2
-    if text in {"very_active", "extremely_active", "athlete", "active"}:
-        return 3
-    return None
+    return {
+        "recent_days": build_recent_days(workouts, exercises_by_log, cardio, today),
+        "recent_exercises": [name for names in exercises_by_log.values() for name in names if name],
+        "prior_injuries": prior,
+    }

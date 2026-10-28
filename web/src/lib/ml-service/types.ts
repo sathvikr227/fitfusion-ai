@@ -141,16 +141,29 @@ export type ExerciseResponse = {
 }
 
 // ── 3. Injury risk ───────────────────────────────────────────────────────────
+/** One calendar day of training, in the units of the runners training data. */
+export type DayLoad = {
+  date?: string
+  /** Trainings that day: 1 for any workout log, plus each cardio session. */
+  sessions: number
+  /** Running / jogging / treadmill distance, km. */
+  total_km: number
+  /** 1 if the day's logged exercises include a strength exercise. */
+  strength: number
+  /** Non-running cardio, hours. */
+  alt_hours: number
+}
+
 export type InjuryRequest = {
   user_id: string
-  age?: number
-  bmi?: number
-  resting_bpm?: number
-  session_duration_hours?: number
-  workout_frequency?: number
-  experience_level?: number
-  sleep_avg_hours?: number
+  /** Exactly 7 days, oldest first, ending yesterday. */
+  recent_days?: DayLoad[]
+  /** Exercise names logged in the last 7 days. */
+  recent_exercises?: string[]
+  /** Profile injuries, active injuries and reported pain, free text. */
   prior_injuries?: string[]
+  /** Accepted, not used by the model. */
+  sleep_avg_hours?: number
 }
 
 export type InjuryRisk = {
@@ -162,9 +175,18 @@ export type InjuryRisk = {
 }
 
 export type InjuryResponse = {
+  /** Rule level per region (ordinal, not a probability). */
   risk: InjuryRisk
   threshold: number
   flagged: string[]
+  /** Why each region has its level. */
+  basis: Record<string, string>
+  /** Calibrated probability of an injury on the next day; null without the model. */
+  overall_risk: number | null
+  /** overall_risk divided by the training data's injury rate. */
+  relative_risk: number | null
+  overall_threshold: number | null
+  overall_elevated: boolean
   features_used: Record<string, number>
   imputed: string[]
   source: "request" | "supabase" | "fallback"

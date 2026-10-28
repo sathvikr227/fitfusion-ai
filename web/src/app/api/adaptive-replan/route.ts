@@ -153,9 +153,19 @@ export async function POST(req: NextRequest) {
     const { avgSleep, streak, activeInjuries, profile, sessions } = history
 
     // ══ STEP 1 — Injury risk classifier ═══════════════════════════════════════
+    // Pain the user told us about. Check-in notes are this week's pain; the
+    // profile and injury tracker hold ongoing injuries. Both count for the RL
+    // state and both strip exercises that load the area.
+    const notePainGroups = painGroupsFromText(userNotes)
+    const ongoingPainGroups = painGroupsFromText("", injuryListFromProfile(profile, activeInjuries))
+    const reportedPainGroups = Array.from(new Set([...notePainGroups, ...ongoingPainGroups]))
+
+    // Overall risk comes from the training-load model; this week's pain joins
+    // the recorded injuries so the region rules can flag it.
     const injuryResult = await predictInjury({
       user_id: userId,
       ...history.injuryFeatures,
+      prior_injuries: [...history.injuryFeatures.prior_injuries, ...notePainGroups],
     })
     const injury: InjuryResponse = injuryResult.data
     if (injuryResult.fromFallback) {
@@ -164,15 +174,13 @@ export async function POST(req: NextRequest) {
 
     const flaggedGroups = injury.flagged ?? []
 
-    // Pain the user told us about. Check-in notes are this week's pain; the
-    // profile and injury tracker hold ongoing injuries. Both count for the RL
-    // state and both strip exercises that load the area.
-    const notePainGroups = painGroupsFromText(userNotes)
-    const ongoingPainGroups = painGroupsFromText("", injuryListFromProfile(profile, activeInjuries))
-    const reportedPainGroups = Array.from(new Set([...notePainGroups, ...ongoingPainGroups]))
-
     const injuryFlag =
-      flaggedGroups.length > 0 || activeInjuries.length > 0 || reportedPainGroups.length > 0 ? 1 : 0
+      flaggedGroups.length > 0 ||
+      injury.overall_elevated === true ||
+      activeInjuries.length > 0 ||
+      reportedPainGroups.length > 0
+        ? 1
+        : 0
 
     // ══ STEP 2 — Transformer trajectory ═══════════════════════════════════════
     let trajectory: TrajectoryResponse | null = null
@@ -221,10 +229,14 @@ export async function POST(req: NextRequest) {
 
     const injuryDirective =
       flaggedGroups.length > 0
-        ? `\nINJURY RISK ALERT: elevated predicted risk for ${flaggedGroups.join(", ")}. ` +
+        ? `\nINJURY RISK ALERT: recent training load is high and ${flaggedGroups.join(", ")} ` +
+          `${flaggedGroups.length === 1 ? "is a" : "are"} recorded injury area${flaggedGroups.length === 1 ? "" : "s"}. ` +
           `Avoid exercises that load ${flaggedGroups.join(" or ")}. Include an extra rest day. ` +
-          `These are predicted risk scores, not diagnosed injuries.`
-        : ""
+          `This is a risk indicator, not a diagnosed injury.`
+        : injury.overall_elevated
+          ? `\nTRAINING LOAD: the last 7 days are in the high-risk range for injury. Prefer ` +
+            `recovery-friendly sessions. This is a risk indicator, not a diagnosed injury.`
+          : ""
 
     const painDirective =
       reportedPainGroups.length > 0
@@ -327,6 +339,10 @@ TASK: Modify the workout_plan section for next week based on the directive above
         risk: injury.risk,
         threshold: injury.threshold,
         flagged: flaggedGroups,
+        basis: injury.basis,
+        overall_risk: injury.overall_risk,
+        relative_risk: injury.relative_risk,
+        overall_elevated: injury.overall_elevated,
         model_version: injury.model_version,
         from_fallback: injuryResult.fromFallback,
         disclaimer: injury.disclaimer,

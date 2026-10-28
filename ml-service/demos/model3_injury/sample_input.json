@@ -1,0 +1,15 @@
+{
+  "_label": "ILLUSTRATIVE INPUT, not a real user. A FitFusion member's last 7 days (oldest first, ending yesterday), the exercises they logged, and the injury they recorded at onboarding.",
+  "user_id": "demo-user",
+  "recent_days": [
+    {"date": "2026-10-21", "sessions": 1, "total_km": 0,   "strength": 1, "alt_hours": 0},
+    {"date": "2026-10-22", "sessions": 1, "total_km": 6,   "strength": 0, "alt_hours": 0},
+    {"date": "2026-10-23", "sessions": 2, "total_km": 0,   "strength": 1, "alt_hours": 0.75},
+    {"date": "2026-10-24", "sessions": 0, "total_km": 0,   "strength": 0, "alt_hours": 0},
+    {"date": "2026-10-25", "sessions": 1, "total_km": 10,  "strength": 0, "alt_hours": 0},
+    {"date": "2026-10-26", "sessions": 2, "total_km": 5,   "strength": 1, "alt_hours": 0},
+    {"date": "2026-10-27", "sessions": 1, "total_km": 0,   "strength": 1, "alt_hours": 0}
+  ],
+  "recent_exercises": ["Back Squat", "Pullups", "Romanian Deadlift", "Bench Press", "Walking Lunge"],
+  "prior_injuries": ["Left knee pain (patellar tendinopathy)"]
+}

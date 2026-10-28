@@ -33,7 +33,7 @@ from typing import Any
 
 import numpy as np
 
-from .features import INJURY_MUSCLE_KEYWORDS
+from .features import INJURY_MUSCLE_KEYWORDS, INJURY_PATTERNS, keyword_pattern  # noqa: F401 - keyword_pattern re-exported
 
 LEVELS = ["beginner", "intermediate", "expert"]
 
@@ -144,16 +144,6 @@ def query_vector(index: dict, focus: str, goal: str, level: str) -> np.ndarray:
     if f"level:{level}" in idx:
         q[idx[f"level:{level}"]] = WEIGHTS["level"]
     return q / max(float(np.linalg.norm(q)), 1e-9)
-
-
-def keyword_pattern(keyword: str) -> re.Pattern:
-    """Word-start match that tolerates a missing or hyphenated gap:
-    "pull up" matches "Pullups" and "Pull-Up", while "run" does not match "crunch"."""
-    words = re.split(r"[\s-]+", keyword.strip().lower())
-    return re.compile(r"\b" + r"[\s-]?".join(map(re.escape, words)))
-
-
-INJURY_PATTERNS = {g: [keyword_pattern(k) for k in kws] for g, kws in INJURY_MUSCLE_KEYWORDS.items()}
 
 
 def loads_injury(ex: dict, group: str) -> bool:

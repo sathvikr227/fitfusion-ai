@@ -9,7 +9,8 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 
 import { normalizeWorkoutType } from "./index"
 import type { SessionFeatures } from "./types"
-import { experienceLevelFromProfile, injuryListFromProfile } from "./profile"
+import { buildRecentDays, type RecentDay } from "./injury-rules"
+import { injuryListFromProfile } from "./profile"
 
 export const SESSION_WINDOW = 4
 
@@ -26,12 +27,10 @@ export type UserHistory = {
   streak: number
   activeInjuries: Array<{ body_part?: string | null; name?: string | null }>
   profile: Record<string, any> | null
+  /** Inputs for /predict/injury-risk: the last 7 days of training load. */
   injuryFeatures: {
-    age?: number
-    bmi?: number
-    resting_bpm?: number
-    workout_frequency?: number
-    experience_level?: number
+    recent_days: RecentDay[]
+    recent_exercises: string[]
     sleep_avg_hours?: number
     prior_injuries: string[]
   }
@@ -121,11 +120,11 @@ export async function buildUserHistory(
   const since = daysAgo(7)
   const sinceMonth = daysAgo(30)
 
-  const [weekLogsRes, profileRes, sleepRes, execRes, injuriesRes, recentLogsRes, vitalsRes, planRes] =
+  const [weekLogsRes, profileRes, sleepRes, execRes, injuriesRes, recentLogsRes, cardioRes, planRes] =
     await Promise.all([
       supabase
         .from("workout_logs")
-        .select("date")
+        .select("id, date")
         .eq("user_id", userId)
         .gte("date", since),
 
@@ -163,12 +162,10 @@ export async function buildUserHistory(
         .limit(SESSION_WINDOW * 2),
 
       supabase
-        .from("vitals_logs")
-        .select("heart_rate")
+        .from("cardio_logs")
+        .select("date, activity, distance_km, duration_minutes")
         .eq("user_id", userId)
-        .order("date", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
+        .gte("date", since),
 
       supabase
         .from("workout_plans")
@@ -236,12 +233,15 @@ export async function buildUserHistory(
     executionByDate.set(key, entry)
   }
 
+  // One read covers the Transformer's sessions and the injury model's week.
+  const weekLogs = weekLogsRes.data ?? []
+  const logIds = Array.from(new Set([...recentLogs, ...weekLogs].map((r) => String(r.id))))
   const exerciseByLog = new Map<string, { duration: number; names: string[] }>()
-  if (recentLogs.length > 0) {
+  if (logIds.length > 0) {
     const { data: exerciseRows } = await supabase
       .from("exercise_logs")
       .select("workout_log_id, exercise_name, duration")
-      .in("workout_log_id", recentLogs.map((r: any) => r.id))
+      .in("workout_log_id", logIds)
 
     for (const row of exerciseRows ?? []) {
       const key = String(row.workout_log_id)
@@ -270,6 +270,21 @@ export async function buildUserHistory(
   const activeInjuries = injuriesRes.data ?? []
   const bmi = bmiFrom(profile?.height, profile?.weight)
 
+  // ── Training load for the injury model ─────────────────────────────────────
+  // The 7 days before today, oldest first, in the runners data's units.
+  const loadDays = Array.from({ length: 7 }, (_, i) => daysAgo(7 - i))
+  const namesByLog = new Map(Array.from(exerciseByLog, ([id, entry]) => [id, entry.names]))
+  const recentDays = buildRecentDays(
+    loadDays,
+    weekLogs,
+    namesByLog,
+    cardioRes.data ?? [],
+    (name) => normalizeWorkoutType(name) === "Strength"
+  )
+  const recentExercises = weekLogs
+    .filter((r) => String(r.date) < daysAgo(0))
+    .flatMap((r) => namesByLog.get(String(r.id)) ?? [])
+
   return {
     sessions,
     completionRate,
@@ -280,14 +295,8 @@ export async function buildUserHistory(
     profile,
     bmi,
     injuryFeatures: {
-      age: Number(profile?.age) || undefined,
-      bmi: bmi ?? undefined,
-      resting_bpm: Number(vitalsRes.data?.heart_rate) || undefined,
-      // Distinct training days in the last 7. Clamped because the model's
-      // feature is days-per-week: a stray extra date would otherwise fail
-      // validation and drop the call to its fallback for no good reason.
-      workout_frequency: Math.min(7, new Set(weekDates).size),
-      experience_level: experienceLevelFromProfile(profile),
+      recent_days: recentDays,
+      recent_exercises: recentExercises,
       sleep_avg_hours: avgSleep ?? undefined,
       prior_injuries: injuryListFromProfile(profile, activeInjuries),
     },

@@ -43,7 +43,7 @@ fitfusion-ai-wb/
 |---|---|---|---|---|
 | 1 | Session energy expenditure: calibrated XGBoost HR model + SHAP (Keytel, then MET fallback) | `POST /predict/calories` | MET-only estimate | `/api/workout-log` (Cardio + Workout tabs) |
 | 2 | Hybrid meal recommender (0.5 popularity + 0.25 ALS + 0.25 ingredient TF-IDF) within dietary filters + calorie bands; content-based exercise recommender | `POST /recommend`, `POST /recommend/exercises` | LLM-invented meals, calories and exercises | `/api/generate-plan` |
-| 3 | Injury risk multi-label XGB (knee/back/shoulder/hamstring) | `POST /predict/injury-risk` | reactive injury logging | `/api/adaptive-replan` |
+| 3 | Training-load injury risk (XGBoost on 74 runners' real injuries; not served, failed its pre-registered rule) + rule-based body regions (knee/back/shoulder/hamstring) | `POST /predict/injury-risk` | reactive injury logging | `/api/adaptive-replan`, `/api/ml-insights` |
 | 4 | PyTorch transformer trajectory (improve/plateau/regress) | `POST /predict/trajectory` | single-week completion rate | `/api/adaptive-replan` |
 | 5 | PPO RL agent over `FitFusionEnv` | `POST /rl/action` | the if/else block in `/api/adaptive-replan` | `/api/adaptive-replan` |
 
@@ -89,6 +89,20 @@ cosine recommender over free-exercise-db (876 exercises, public domain) after
 hard filters for equipment, injuries, level and target muscles
 (`app/exercise_recommender.py`). **Vegetarian = no meat and no egg** (the app
 offers Eggetarian separately). Teacher demo: `ml-service/demos/model2_recommender/`.
+
+Stage 3 was rebuilt on 2026-10-28. The old multi-label model labelled Gym Members
+rows with rules over its own inputs (F1 = 1.0 was circular) and is retired. No open
+dataset has real knee/back/shoulder/hamstring labels (SoccerMon: knee 10 episodes
+from 5 players, no shoulder), so the design is: an overall training-load risk model
+on the Lövdal et al. runners data (CC0, 583 injuries; last 7 days of sessions, run
+km, strength sessions, other cardio hours) plus a fixed rule table for regions
+(`app/injury_load.py`, mirrored in `web/src/lib/ml-service/injury-rules.ts`). The
+protocol was committed before training (`demos/model3_injury/PROTOCOL.md`). XGB-APP
+scored test ROC-AUC 0.589 [0.482, 0.667], so by that rule it is **not served**;
+logistic regression scored 0.669 on test but lower on development, and the choice
+is pending with the user. The exercise matcher is word-boundary based on both sides
+(`keyword_pattern` / `keywordPattern`): "Pullups" loads shoulder, "Crunch" no
+longer loads knee. Teacher demo: `ml-service/demos/model3_injury/`.
 
 Dietary flags are a safety feature, not a nicety. They are built from ingredient
 lists (the dataset's own "vegetarian" tag is wrong on 631 recipes), guarded a
@@ -167,11 +181,10 @@ Read by the ML layer:
   left average sleep permanently null.
 - `injuries` — `body_part`, `name`, `severity`, `status`
 - `vitals_logs` — `heart_rate` (verified live 2026-10-26; the migration file now
-  matches, along with `blood_sugar`, `spo2`, `body_temp`). Currently **empty**, so the injury model
-  imputes resting BPM from the training-set median and reports it in `imputed`.
-  Stage 1 no longer uses resting BPM.
-- `cardio_logs` — `activity`, `duration_minutes`, `avg_heart_rate`, `calories_burned`.
-  The Cardio tab sends `avg_heart_rate` to Stage 1.
+  matches, along with `blood_sugar`, `spo2`, `body_temp`). Currently **empty**. No model
+  reads it any more (Stage 1 and Stage 3 both stopped using resting BPM).
+- `cardio_logs` — `activity`, `duration_minutes`, `distance_km`, `avg_heart_rate`, `calories_burned`.
+  The Cardio tab sends `avg_heart_rate` to Stage 1; Stage 3 reads distance and duration.
 
 Written by the ML layer:
 

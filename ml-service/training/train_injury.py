@@ -1,3 +1,10 @@
+"""RETIRED 2026-10-28 — kept only as the record of the old design.
+
+Its labels are rules over its own inputs, so its F1 = 1.0 is circular. Nothing loads
+its artifact. The served Model 3 is training/train_injury_load.py; see
+demos/model3_injury/RESULTS.md.
+"""
+
 """Model 3 — Multi-label injury risk classifier (XGBoost + MultiOutputClassifier).
 
 Labels are PROXY INJURY-RISK LABELS derived from biomechanical thresholds, not

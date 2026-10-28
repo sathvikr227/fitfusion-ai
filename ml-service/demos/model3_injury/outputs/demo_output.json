@@ -1,0 +1,57 @@
+{
+  "data": {
+    "rows": 42766,
+    "athletes": 74,
+    "injury_days": 583,
+    "prevalence": 0.01363,
+    "athletes_with_injury": 63,
+    "min_days_between_injuries_same_athlete": 22,
+    "missing_values": 0
+  },
+  "sample": {
+    "overall_risk": 0.012664764790196344,
+    "elevated": false,
+    "risk": {
+      "knee": 0.6,
+      "back": 0.2,
+      "shoulder": 0.2,
+      "hamstring": 0.2
+    },
+    "basis": {
+      "knee": "recorded injury or pain",
+      "back": "loaded by recent exercises",
+      "shoulder": "loaded by recent exercises",
+      "hamstring": "loaded by recent exercises"
+    }
+  },
+  "held_out": {
+    "mean_risk_injury_days": 0.014685623683301171,
+    "mean_risk_other_days": 0.013418250379222783
+  },
+  "api_response": {
+    "risk": {
+      "knee": 0.6,
+      "back": 0.2,
+      "shoulder": 0.2,
+      "hamstring": 0.2
+    },
+    "threshold": 0.7,
+    "flagged": [],
+    "basis": {
+      "knee": "recorded injury or pain",
+      "back": "loaded by recent exercises",
+      "shoulder": "loaded by recent exercises",
+      "hamstring": "loaded by recent exercises"
+    },
+    "overall_risk": null,
+    "relative_risk": null,
+    "overall_threshold": null,
+    "overall_elevated": false,
+    "features_used": {},
+    "imputed": [],
+    "source": "fallback",
+    "model_version": "rules-only",
+    "disclaimer": "Informational injury-risk indicator, not a medical diagnosis. Body regions are flagged by fixed rules, not predicted.",
+    "stub": true
+  }
+}

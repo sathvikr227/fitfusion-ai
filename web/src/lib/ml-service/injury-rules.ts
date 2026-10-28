@@ -40,10 +40,28 @@ function normalize(name: string) {
   return name.toLowerCase().replace(/[^a-z0-9 ]+/g, " ")
 }
 
+function escapeRegExp(text: string) {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+}
+
+/**
+ * Word-start match that tolerates a missing or hyphenated gap, mirroring
+ * keyword_pattern() in ml-service/app/features.py: "pull up" matches "Pullups"
+ * and "Pull-Up", while "run" does not match "crunch".
+ */
+export function keywordPattern(keyword: string): RegExp {
+  const words = keyword.trim().toLowerCase().split(/[\s-]+/)
+  return new RegExp("\\b" + words.map(escapeRegExp).join("[\\s-]?"))
+}
+
+const INJURY_PATTERNS: Record<string, RegExp[]> = Object.fromEntries(
+  Object.entries(INJURY_MUSCLE_KEYWORDS).map(([group, keywords]) => [group, keywords.map(keywordPattern)])
+)
+
 /** True when an exercise loads one of the flagged muscle groups. */
 export function exerciseTargetsGroup(exerciseName: string, group: string) {
-  const text = normalize(String(exerciseName ?? ""))
-  return (INJURY_MUSCLE_KEYWORDS[group] ?? []).some((kw) => text.includes(kw))
+  const text = String(exerciseName ?? "").toLowerCase()
+  return (INJURY_PATTERNS[group] ?? []).some((pattern) => pattern.test(text))
 }
 
 export function isRestDay(day: PlanDay) {
@@ -199,6 +217,88 @@ export function painGroupsFromText(notes: string, injuryText: string[] = []): st
     }
   }
   return Array.from(groups)
+}
+
+// ── Training load in runners units ─────────────────────────────────────────────
+
+export type RecentDay = {
+  date: string
+  sessions: number
+  total_km: number
+  strength: number
+  alt_hours: number
+}
+
+const RUNNING = /\b(run|jog|treadmill)/
+
+/**
+ * FitFusion rows -> one entry per day in `dayKeys` (oldest first), in the units
+ * of the runners data the injury model learned from. Mirrors build_recent_days()
+ * in ml-service/app/injury_load.py:
+ *   sessions  = 1 if any workout log that day (duplicate rows collapsed) + cardio sessions
+ *   total_km  = running / jogging / treadmill distance
+ *   strength  = 1 if that day's logged exercises include a strength exercise
+ *   alt_hours = duration of non-running cardio
+ */
+export function buildRecentDays(
+  dayKeys: string[],
+  workoutLogs: Array<{ id?: unknown; date?: unknown }>,
+  exercisesByLog: Map<string, string[]>,
+  cardioLogs: Array<{ date?: unknown; activity?: unknown; distance_km?: unknown; duration_minutes?: unknown }>,
+  isStrength: (exerciseName: string) => boolean
+): RecentDay[] {
+  const days = new Map<string, RecentDay>(
+    dayKeys.map((date) => [date, { date, sessions: 0, total_km: 0, strength: 0, alt_hours: 0 }])
+  )
+  for (const log of workoutLogs) {
+    const day = days.get(String(log.date ?? "").slice(0, 10))
+    if (!day) continue
+    day.sessions = Math.max(day.sessions, 1)
+    const names = exercisesByLog.get(String(log.id)) ?? []
+    if (names.some(isStrength)) day.strength = 1
+  }
+  for (const row of cardioLogs) {
+    const day = days.get(String(row.date ?? "").slice(0, 10))
+    if (!day) continue
+    day.sessions += 1
+    if (RUNNING.test(String(row.activity ?? "").toLowerCase())) {
+      day.total_km += Number(row.distance_km) || 0
+    } else {
+      day.alt_hours += (Number(row.duration_minutes) || 0) / 60
+    }
+  }
+  return dayKeys.map((date) => days.get(date)!)
+}
+
+// ── Region rule levels ─────────────────────────────────────────────────────────
+
+export const INJURY_REGIONS = ["knee", "back", "shoulder", "hamstring"] as const
+
+/**
+ * Mirrors region_levels() in ml-service/app/injury_load.py, fixed in
+ * demos/model3_injury/PROTOCOL.md: a region's level comes from whether it is a
+ * recorded injury/pain area, whether recent exercises load it, and whether the
+ * training-load model says overall risk is elevated. Levels are ordinal, not
+ * probabilities; >= 0.7 flags the region.
+ */
+export function injuryRegionLevels(priorInjuries: string[], recentExercises: string[], elevated: boolean) {
+  const recorded = new Set(painGroupsFromText("", priorInjuries))
+  const risk: Record<string, number> = {}
+  const basis: Record<string, string> = {}
+  const suffix = elevated ? " + elevated training-load risk" : ""
+  for (const region of INJURY_REGIONS) {
+    if (recorded.has(region)) {
+      risk[region] = elevated ? 0.9 : 0.6
+      basis[region] = "recorded injury or pain" + suffix
+    } else if (recentExercises.some((name) => exerciseTargetsGroup(name, region))) {
+      risk[region] = elevated ? 0.5 : 0.2
+      basis[region] = "loaded by recent exercises" + suffix
+    } else {
+      risk[region] = 0.1
+      basis[region] = "not recorded, not loaded recently"
+    }
+  }
+  return { risk, basis }
 }
 
 // ── Progression cap ────────────────────────────────────────────────────────────
