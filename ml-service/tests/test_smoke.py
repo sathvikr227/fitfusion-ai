@@ -42,7 +42,7 @@ def test_healthz_is_open():
     body = response.json()
     assert body["ok"] is True
     assert set(body["models_status"]) == {
-        "calorie", "calorie_xgboost", "recommender", "exercise_recommender", "injury", "trajectory", "rl"
+        "calorie", "calorie_xgboost", "recommender", "recommender_hybrid", "exercise_recommender", "injury", "trajectory", "rl"
     }
 
 

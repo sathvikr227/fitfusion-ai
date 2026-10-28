@@ -1,6 +1,6 @@
 {
   "model": "meal_catalog",
-  "trained_at": "2026-09-17T00:45:27+00:00",
+  "trained_at": "2026-10-28T02:54:15+00:00",
   "python": "3.12.10",
   "artifact": "meal_catalog.pkl",
   "method": "popularity_last_365d",

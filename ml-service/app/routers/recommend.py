@@ -1,11 +1,18 @@
 """Stage 2 — POST /recommend (meal recommendations from real recipes).
 
-For each requested meal slot, returns the most popular recent Food.com recipes
-that pass the user's dietary restrictions and fit the slot's calorie band.
+For each requested meal slot, returns Food.com recipes that pass the user's
+dietary restrictions and fit the slot's calorie band, ranked by the hybrid:
 
-Why popularity: in a rolling yearly evaluation (2012-2017, 20,031 user-years)
-it beat an implicit-ALS collaborative filter on Recall@10 (0.0197 vs 0.0164,
-difference CI entirely below zero). See training/evaluate_meal_rolling.py.
+    0.5·popularity + 0.25·ALS (collaborative) + 0.25·ingredient/tag TF-IDF (content)
+
+The personal signals come from `liked_recipe_ids` (plan meals the user ate).
+Without history the ranking is popularity — the cold-start strategy, and the
+behaviour when the hybrid artifact is not loaded.
+
+Why this blend: chosen on 2012-13, then tested once on 2014-2017 (9,146
+user-years); it beat popularity on Recall@10, 0.0235 vs 0.0198, CI of the
+difference [+0.0016, +0.0057]. Pure ALS lost to popularity in the same test.
+See training/train_meal_hybrid.py and app/meal_hybrid.py.
 
 Safety: dietary flags are ingredient-based and manually audited. A restriction
 the flags cannot verify (halal, kosher, pescatarian, low sodium, ...) returns no
@@ -17,10 +24,13 @@ from __future__ import annotations
 import logging
 import re
 
+import numpy as np
 import pandas as pd
 from fastapi import APIRouter, Depends
 
 from ..auth import require_bearer
+from ..meal_hybrid import explain
+from ..meal_hybrid import score as hybrid_score
 from ..model_registry import ModelRegistry, get_registry
 from ..schemas import MealRecommendation, RecommendedRecipe, RecommendRequest, RecommendResponse
 
@@ -115,19 +125,34 @@ def recommend(
         )
 
     catalog: pd.DataFrame = bundle["catalog"]  # already sorted by popularity
-    used: set[int] = set(req.exclude_recipe_ids)
+    used: set[int] = set(req.exclude_recipe_ids) | set(req.liked_recipe_ids)
     meals: list[MealRecommendation] = []
+
+    hybrid, scores = reg.meal_hybrid, None
+    if hybrid is not None:
+        scores = hybrid_score(hybrid, req.liked_recipe_ids)
+        if not scores.cold_start:
+            method, version = "hybrid_popularity_als_content", f"{version}+{hybrid.get('model_version', 'hybrid')}"
+
+    def ranked(frame: pd.DataFrame) -> pd.DataFrame:
+        """Hybrid order when there is history; popularity order otherwise."""
+        if scores is None or scores.cold_start or frame.empty:
+            return frame
+        ids = frame["recipe_id"].to_numpy()
+        pos = np.clip(np.searchsorted(hybrid["ids"], ids), 0, len(hybrid["ids"]) - 1)
+        value = np.where(hybrid["ids"][pos] == ids, scores.blended[pos], -1.0)
+        return frame.assign(_hybrid=value).sort_values("_hybrid", ascending=False, kind="stable")
 
     for meal in req.meals:
         pool = candidates_for(catalog, meal.slot, restrictions, meal.min_protein_g, used)
         widened = False
         low, high = meal.kcal_target * (1 - KCAL_BAND), meal.kcal_target * (1 + KCAL_BAND)
-        picks = pool[pool["kcal"].between(low, high)].head(req.per_meal)
+        picks = ranked(pool[pool["kcal"].between(low, high)]).head(req.per_meal)
         if len(picks) < req.per_meal:
             widened = True
             low = meal.kcal_target * (1 - KCAL_BAND_WIDENED)
             high = meal.kcal_target * (1 + KCAL_BAND_WIDENED)
-            picks = pool[pool["kcal"].between(low, high)].head(req.per_meal)
+            picks = ranked(pool[pool["kcal"].between(low, high)]).head(req.per_meal)
 
         used.update(int(r) for r in picks["recipe_id"])
         meals.append(
@@ -145,6 +170,7 @@ def recommend(
                         minutes=int(r.minutes),
                         likes_last_year=int(r.likes_last_year),
                         likes_all_time=int(r.likes_all_time),
+                        score_breakdown=explain(hybrid, scores, int(r.recipe_id)) if scores else {},
                     )
                     for r in picks.itertuples()
                 ],
@@ -156,4 +182,6 @@ def recommend(
         applied_restrictions=restrictions,
         method=method,
         model_version=version,
+        history_used=scores.history_used if scores else [],
+        cold_start=scores.cold_start if scores else True,
     )

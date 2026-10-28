@@ -23,6 +23,7 @@ CALORIE_ARTIFACT = "calorie_energy.json"
 CALORIE_MODEL_ARTIFACT = "calorie_hr_model.pkl"
 MEAL_CATALOG_ARTIFACT = "meal_catalog.pkl"
 EXERCISE_INDEX_ARTIFACT = "exercise_index.pkl"
+MEAL_HYBRID_ARTIFACT = "meal_hybrid_serving.pkl"
 INJURY_ARTIFACT = "injury_risk_model.pkl"
 TRAJECTORY_ARTIFACT = "transformer_model.pt"
 TRAJECTORY_META_ARTIFACT = "transformer_meta.json"
@@ -41,6 +42,7 @@ class ModelRegistry:
         self.calorie_model: dict[str, Any] | None = None
         self.recommender: dict[str, Any] | None = None
         self.exercise_index: dict[str, Any] | None = None
+        self.meal_hybrid: dict[str, Any] | None = None
         self.injury: dict[str, Any] | None = None
         self.trajectory_model: Any | None = None
         self.trajectory_meta: dict[str, Any] | None = None
@@ -56,6 +58,7 @@ class ModelRegistry:
             self._load_calorie()
             self._load_recommender()
             self._load_exercise_index()
+            self._load_meal_hybrid()
             self._load_injury()
             self._load_trajectory()
             self._load_rl()
@@ -119,6 +122,26 @@ class ModelRegistry:
         except Exception as exc:  # noqa: BLE001
             self.errors["recommender"] = str(exc)
             log.exception("failed to load %s", MEAL_CATALOG_ARTIFACT)
+
+    def _load_meal_hybrid(self) -> None:
+        # Optional: without it /recommend ranks by popularity, as before.
+        path = self._path(MEAL_HYBRID_ARTIFACT)
+        if not path.exists():
+            self.errors["recommender_hybrid"] = f"{MEAL_HYBRID_ARTIFACT} not found"
+            return
+        try:
+            import joblib
+
+            bundle = joblib.load(path)
+            n = len(bundle["ids"])
+            for key in ("factors", "tfidf", "popularity", "recommendable", "has_factor"):
+                if bundle[key].shape[0] != n:
+                    raise ValueError(f"{MEAL_HYBRID_ARTIFACT}: '{key}' has {bundle[key].shape[0]} rows, ids has {n}")
+            self.meal_hybrid = bundle
+            log.info("loaded meal hybrid (%d recipes, weights %s)", n, bundle.get("weights"))
+        except Exception as exc:  # noqa: BLE001
+            self.errors["recommender_hybrid"] = str(exc)
+            log.exception("failed to load %s", MEAL_HYBRID_ARTIFACT)
 
     def _load_exercise_index(self) -> None:
         path = self._path(EXERCISE_INDEX_ARTIFACT)
@@ -198,6 +221,7 @@ class ModelRegistry:
             "calorie": self.calorie is not None,
             "calorie_xgboost": self.calorie_model is not None,
             "recommender": self.recommender is not None,
+            "recommender_hybrid": self.meal_hybrid is not None,
             "exercise_recommender": self.exercise_index is not None,
             "injury": self.injury is not None,
             "trajectory": self.trajectory_model is not None,

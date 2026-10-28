@@ -1,0 +1,13 @@
+{
+  "_label": "EXAMPLE PROFILE, not a real user: the QA test profile (21 y, male, 175 cm, 72 kg, vegetarian, muscle gain, gym, mild knee pain)",
+  "age": 21,
+  "gender": "Male",
+  "height_cm": 175,
+  "weight_kg": 72,
+  "activity_level": "Moderately Active",
+  "goal": "Muscle Gain",
+  "diet": "Vegetarian",
+  "training_style": "Gym",
+  "injuries": ["knee"],
+  "example_history_search": ["paneer", "dal", "chana masala", "palak", "aloo gobi"]
+}

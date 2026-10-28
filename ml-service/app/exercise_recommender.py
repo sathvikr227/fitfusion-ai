@@ -232,7 +232,7 @@ def recommend_exercises(
             "level": ex.get("level"), "category": ex.get("category"), "mechanic": ex.get("mechanic"),
             "why": (f"targets {', '.join(matched) or 'supporting muscles'}; "
                     f"{ex.get('category')}/{ex.get('mechanic') or 'n/a'} fits goal '{goal_key}'; "
-                    f"{ex.get('equipment')} is available; level {ex.get('level')}"),
+                    f"{ex.get('equipment') or 'no special equipment'} is available; level {ex.get('level')}"),
         })
 
     return {

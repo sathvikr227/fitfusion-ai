@@ -1,0 +1,165 @@
+============================================================================
+  FitFusion Model 2 — hybrid meal recommender + content-based exercise recommender
+============================================================================
+
+────────────────────────────────────────────────────────────────────────────
+  1. Trained artifacts loaded from disk
+────────────────────────────────────────────────────────────────────────────
+  meal_catalog.pkl         98,325 Food.com recipes (popularity window 2017-12-20..2018-12-20)
+  meal_hybrid_serving.pkl  230,974 recipes, ALS factors (230974, 64), TF-IDF (230974, 8493), weights {'popularity': 0.5, 'als': 0.25, 'text': 0.25, 'nutrition': 0.0}
+  exercise_index.pkl       876 exercises x 44 features (free-exercise-db f00c92c7dc)
+
+────────────────────────────────────────────────────────────────────────────
+  2. Profile (sample_profile.json) — EXAMPLE PROFILE, not a real user: the QA test profile (21 y, male, 175 cm, 72 kg, vegetarian, muscle gain, gym, mild knee pain)
+────────────────────────────────────────────────────────────────────────────
+  age             21
+  gender          Male
+  height_cm       175
+  weight_kg       72
+  activity_level  Moderately Active
+  goal            Muscle Gain
+  diet            Vegetarian
+  training_style  Gym
+  injuries        ['knee']
+  targets         BMR 1714  TDEE 2656  daily 2922 kcal  →  breakfast 731, lunch 1023, dinner 877, snack 292
+
+────────────────────────────────────────────────────────────────────────────
+  3. Meals for a NEW user (no history → cold start = popularity within the filters)
+────────────────────────────────────────────────────────────────────────────
+  method: popularity_last_365d   restrictions applied: ['vegetarian']
+  BREAKFAST band 548-914 kcal
+    1. Baked Homemade Granola Lower Fat                 610 kcal   16 g protein    1 likes/yr
+    2. Seitan Bacon                                     646 kcal   36 g protein    1 likes/yr
+    3. Chocolate Smoothie W Blueberries And Pineapple   639 kcal   19 g protein    1 likes/yr
+    4. Peanut Butter Overnight Oats                     662 kcal   20 g protein    1 likes/yr
+    5. Crock Pot Cheesy Hash Browns                     565 kcal   18 g protein    0 likes/yr
+  LUNCH     band 767-1279 kcal
+    1. Fannie Farmer S Classic Baked Macaroni Cheese    836 kcal   28 g protein    6 likes/yr
+    2. Super Easy Cheese Enchiladas                     900 kcal   46 g protein    1 likes/yr
+    3. Roast Vegetable Lasagne With Spinach And Ricot  1061 kcal   48 g protein    1 likes/yr
+    4. Greek Macaroni And Cheese                        914 kcal   34 g protein    1 likes/yr
+    5. Crock Pot Macaroni And Cheese                    793 kcal   30 g protein    1 likes/yr
+  DINNER    band 658-1096 kcal
+    1. Yummiest Ever Baked Mac And Cheese               710 kcal   30 g protein    6 likes/yr
+    2. Creamy Macaroni Cheese For Two Or One            701 kcal   30 g protein    3 likes/yr
+    3. Olive Garden Five Cheese Ziti Al Forno           733 kcal   36 g protein    2 likes/yr
+    4. Macaroni With Fontina And Gorgonzola Cheeses     726 kcal   29 g protein    1 likes/yr
+    5. Mac Cheese Noodles And Co Style                  963 kcal   40 g protein    1 likes/yr
+  SNACK     band 219-365 kcal
+    1. 20 Minute Honey Granola Easy                     341 kcal    7 g protein    6 likes/yr
+    2. Puppy Chow Or Monkey Munch                       268 kcal    4 g protein    3 likes/yr
+    3. Mozzarella Tomato And Basil Salad                320 kcal   14 g protein    2 likes/yr
+    4. Spicy Hot Crackers                               363 kcal    4 g protein    2 likes/yr
+    5. Fast And Easy Caramel Popcorn                    332 kcal    3 g protein    2 likes/yr
+
+────────────────────────────────────────────────────────────────────────────
+  4. Meals WITH history — the hybrid (0.5 popularity + 0.25 ALS + 0.25 content)
+────────────────────────────────────────────────────────────────────────────
+  example history (recipes this profile 'ate' — chosen by name for the demo, not a real user):
+    - Palak Paneer Indian Fresh Spinach With Paneer Cheese
+    - Carol S Dal Curry Curried Lentils
+    - Indian Chana Masala
+    - Palak Paneer Indian Fresh Spinach With Paneer Cheese
+    - Aloo Gobi
+  method: hybrid_popularity_als_content   history used: 4 recipes
+  BREAKFAST band 548-914 kcal
+    1. East Indian Farina Hot Cereal Payasam            689 kcal   18 g protein    0 likes/yr  [pop 0.00 + CF 0.13 + content 0.08 = 0.21]
+    2. Ful Medames Egyptian Fava Beans                  704 kcal   44 g protein    0 likes/yr  [pop 0.00 + CF 0.13 + content 0.07 = 0.21]
+    3. Vegan Spinach Mushroom Quiche                    746 kcal   25 g protein    0 likes/yr  [pop 0.00 + CF 0.13 + content 0.07 = 0.20]
+    4. Vegan Shepherd S Omelet                          649 kcal   32 g protein    0 likes/yr  [pop 0.00 + CF 0.13 + content 0.06 = 0.19]
+    5. Peruvian Home Fries                              615 kcal   21 g protein    0 likes/yr  [pop 0.00 + CF 0.13 + content 0.05 = 0.18]
+  LUNCH     band 767-1279 kcal
+    1. Indian Spiced Chickpea And Fire Roasted Tomato   917 kcal   29 g protein    0 likes/yr  [pop 0.00 + CF 0.13 + content 0.16 = 0.29]
+    2. Curried Red Kidney Beans And Cauliflower Rajma  1010 kcal   32 g protein    0 likes/yr  [pop 0.00 + CF 0.14 + content 0.14 = 0.28]
+    3. Chickpea And Paneer Curry                       1204 kcal   34 g protein    0 likes/yr  [pop 0.00 + CF 0.13 + content 0.15 = 0.28]
+    4. Spinach Dal                                      784 kcal   32 g protein    0 likes/yr  [pop 0.00 + CF 0.14 + content 0.13 = 0.27]
+    5. Totally Easy Totally Yummy Jeera Rice And Daal   994 kcal   38 g protein    0 likes/yr  [pop 0.00 + CF 0.13 + content 0.13 = 0.26]
+  DINNER    band 658-1096 kcal
+    1. Dal                                              704 kcal   30 g protein    0 likes/yr  [pop 0.00 + CF 0.14 + content 0.16 = 0.30]
+    2. Nimbu Masoor Dal Curried Lentils                 736 kcal   29 g protein    0 likes/yr  [pop 0.00 + CF 0.13 + content 0.14 = 0.27]
+    3. Fannie Farmer S Classic Baked Macaroni Cheese    836 kcal   28 g protein    6 likes/yr  [pop 0.01 + CF 0.19 + content 0.03 = 0.23]
+    4. Megaddara Lentil Lebanese Dish                   707 kcal   26 g protein    0 likes/yr  [pop 0.00 + CF 0.13 + content 0.09 = 0.22]
+    5. Quickie Pasta Bake                               704 kcal   28 g protein    0 likes/yr  [pop 0.00 + CF 0.13 + content 0.08 = 0.22]
+  SNACK     band 219-365 kcal
+    1. Onion Bhajis                                     294 kcal   19 g protein    0 likes/yr  [pop 0.00 + CF 0.13 + content 0.16 = 0.29]
+    2. Potatoes In Yogurt                               229 kcal    6 g protein    0 likes/yr  [pop 0.00 + CF 0.14 + content 0.15 = 0.29]
+    3. Vegetable Samosa Filling                         248 kcal    4 g protein    0 likes/yr  [pop 0.00 + CF 0.13 + content 0.15 = 0.28]
+    4. Khasta Aloo Spicy Pan Fried Potatoes             273 kcal    6 g protein    0 likes/yr  [pop 0.00 + CF 0.14 + content 0.13 = 0.27]
+    5. Homemade Paneer Panir Indian Cheese              276 kcal   14 g protein    0 likes/yr  [pop 0.00 + CF 0.14 + content 0.12 = 0.26]
+  20 of 20 picks differ from the cold-start list
+
+────────────────────────────────────────────────────────────────────────────
+  5. Exercises per session type (content-based cosine, after hard filters)
+────────────────────────────────────────────────────────────────────────────
+  PUSH  candidates after filters 279 (removed: {'equipment': 0, 'injury': 168, 'level': 0, 'off_target': 429})
+    1. Decline Push-Up                        cos 0.881  targets chest; strength/compound fits goal 'muscle_gain'; no special equipment is available; level beginner
+    2. Smith Machine Decline Press            cos 0.869  targets chest; strength/compound fits goal 'muscle_gain'; machine is available; level beginner
+    3. Barbell Shoulder Press                 cos 0.868  targets shoulders; strength/compound fits goal 'muscle_gain'; barbell is available; level intermediate
+    4. Decline Close-Grip Bench To Skull Crus cos 0.868  targets triceps; strength/compound fits goal 'muscle_gain'; barbell is available; level intermediate
+    5. Lying Dumbbell Tricep Extension        cos 0.868  targets triceps; strength/isolation fits goal 'muscle_gain'; dumbbell is available; level intermediate
+  PULL  candidates after filters 140 (removed: {'equipment': 0, 'injury': 168, 'level': 0, 'off_target': 568})
+    1. Seated One-arm Cable Pulley Rows       cos 0.867  targets middle back; strength/compound fits goal 'muscle_gain'; cable is available; level intermediate
+    2. Lying Cambered Barbell Row             cos 0.860  targets middle back; strength/isolation fits goal 'muscle_gain'; barbell is available; level beginner
+    3. Scapular Pull-Up                       cos 0.778  targets traps; strength/isolation fits goal 'muscle_gain'; no special equipment is available; level beginner
+    4. Elevated Cable Rows                    cos 0.767  targets lats; strength/compound fits goal 'muscle_gain'; cable is available; level intermediate
+    5. Gironda Sternum Chins                  cos 0.767  targets lats; strength/compound fits goal 'muscle_gain'; other is available; level intermediate
+  LEGS  candidates after filters 118 (removed: {'equipment': 0, 'injury': 168, 'level': 0, 'off_target': 590})
+    1. Kettlebell Dead Clean                  cos 0.807  targets hamstrings; strength/compound fits goal 'muscle_gain'; kettlebells is available; level intermediate
+    2. Snatch Pull                            cos 0.807  targets hamstrings; strength/compound fits goal 'muscle_gain'; barbell is available; level intermediate
+    3. Balance Board                          cos 0.768  targets calves; strength/compound fits goal 'muscle_gain'; other is available; level beginner
+    4. One-Legged Cable Kickback              cos 0.660  targets glutes; strength/isolation fits goal 'muscle_gain'; cable is available; level intermediate
+    5. Glute Kickback                         cos 0.652  targets glutes; strength/compound fits goal 'muscle_gain'; body only is available; level beginner
+  CORE  candidates after filters 118 (removed: {'equipment': 0, 'injury': 168, 'level': 0, 'off_target': 590})
+    1. Russian Twist                          cos 0.881  targets abdominals; strength/compound fits goal 'muscle_gain'; body only is available; level intermediate
+    2. Barbell Side Bend                      cos 0.871  targets abdominals; strength/isolation fits goal 'muscle_gain'; barbell is available; level beginner
+    3. Barbell Ab Rollout                     cos 0.844  targets abdominals; strength/compound fits goal 'muscle_gain'; barbell is available; level intermediate
+    4. Hyperextensions With No Hyperextension cos 0.663  targets lower back; strength/compound fits goal 'muscle_gain'; body only is available; level intermediate
+    5. Hyperextensions (Back Extensions)      cos 0.653  targets lower back; strength/isolation fits goal 'muscle_gain'; other is available; level beginner
+
+────────────────────────────────────────────────────────────────────────────
+  6. Change one profile field → the recommendations change
+────────────────────────────────────────────────────────────────────────────
+  diet Vegetarian → vegan: 16 of 20 meals change; e.g. breakfast #1 'Baked Homemade Granola Lower Fat' → 'Baked Homemade Granola Lower Fat'
+  legs with knee injury → without: removed by the filter 168 vs 0; list becomes ['Bodyweight Walking Lunge', 'Barbell Lunge', 'Lunge Pass Through', 'Kettlebell Dead Clean', 'Balance Board']
+  push day, Gym → Home Workouts: ['Clock Push-Up', 'Leg-Over Floor Press', 'Lying Dumbbell Tricep Extension', 'Push-Ups - Close Triceps Position', 'Alternating Kettlebell Press']
+
+────────────────────────────────────────────────────────────────────────────
+  7. The hybrid on a REAL held-out Food.com user (demo model trained only on likes before 2018)
+────────────────────────────────────────────────────────────────────────────
+  Food.com user 7676 (real, public data; first eligible user by ID): 15 likes before 2018-01-01, 3 recommendable likes after it
+  last 5 recipes they liked before the cutoff:
+    - Braised Beef Heart
+    - Large Pearl Tapioca Pudding Aka Eyeball Pudding
+    - Mushroom Leek Frittata
+    - Tsr Version Of Jimmy Dean Pork Breakfast Sausage By Todd Wilbur
+    - Roasted Brussels Sprouts
+
+  hybrid top-10                                        popularity top-10
+     Best Banana Bread                                   Best Banana Bread
+     Easy Stove Top Macaroni Cheese                      Soft Peanut Butter Cookies
+     Pete S Scratch Pancakes                             Easy Stove Top Macaroni Cheese
+     Roasted Cauliflower 16 Roasted Cloves Of Garlic     Yes Virginia There Is A Great Meatloaf
+     The Best Belgian Waffles                            Soft Snickerdoodle Cookies
+     Yes Virginia There Is A Great Meatloaf              Pete S Scratch Pancakes
+     Greek Potatoes Oven Roasted And Delicious           Moist Delicious Banana Nut Bread
+     Parmesan Onion Bake                                 Southern Buttermilk Biscuits
+     Hide The Zucchini                                   The Best Belgian Waffles
+     Soft Snickerdoodle Cookies                          Microwave Chocolate Mug Brownie
+  ✓ = the user actually liked it after 2018-01-01 (held out from training)
+
+  All 131 eligible users, Recall@10 on their held-out likes: hybrid 0.0076  vs popularity 0.0075
+  (one year, small sample: the pre-registered test over 2014-2017 is in section 8)
+
+────────────────────────────────────────────────────────────────────────────
+  8. Evaluation (from models/reports, produced by the training scripts)
+────────────────────────────────────────────────────────────────────────────
+  Meals — pre-registered rolling test 2014-2017, 9,146 user-years, relevance = rated >= 4 stars:
+    hybrid         Recall@10 0.0235  Precision@5 0.0039  NDCG@10 0.0130
+    popularity     Recall@10 0.0198  Precision@5 0.0033  NDCG@10 0.0106
+    als            Recall@10 0.0151  Precision@5 0.0034  NDCG@10 0.0090
+    content_text   Recall@10 0.0007  Precision@5 0.0002  NDCG@10 0.0005
+    hybrid − popularity: +0.0037 [95% CI +0.0016, +0.0057] → SERVE HYBRID: beats popularity with CI above zero
+  Exercises — 4,200 profile/session combinations, rule-defined relevance:
+    constraint satisfaction 1.000; goal alignment@5 0.889 vs 0.774 random-within-filters
+
+[saved] C:\Users\Sathv\OneDrive\Desktop\fitfusion-ai-wb\ml-service\demos\model2_recommender\outputs\sample_recommendations.json

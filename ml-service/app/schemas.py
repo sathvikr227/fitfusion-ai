@@ -124,6 +124,9 @@ class RecommendRequest(MLModel):
     dietary_restrictions: list[str] = Field(default_factory=list)
     per_meal: int = Field(default=5, ge=1, le=20)
     exclude_recipe_ids: list[int] = Field(default_factory=list)
+    # Food.com recipe IDs the user has eaten (plan meals marked eaten). Drives
+    # the personal part of the hybrid ranking; empty = cold start (popularity).
+    liked_recipe_ids: list[int] = Field(default_factory=list, max_length=500)
     user_id: str | None = None
 
 
@@ -135,6 +138,9 @@ class RecommendedRecipe(MLModel):
     minutes: int
     likes_last_year: int
     likes_all_time: int
+    # Weighted contribution of each hybrid signal (popularity, als, text) to
+    # this recipe's score; empty when the hybrid is not loaded.
+    score_breakdown: dict[str, float] = Field(default_factory=dict)
 
 
 class MealRecommendation(MLModel):
@@ -151,6 +157,9 @@ class RecommendResponse(MLModel):
     unsupported_restrictions: list[str] = Field(default_factory=list)
     reason: str | None = None  # why no recipes were returned
     method: str = "popularity_last_365d"
+    # Liked recipes the hybrid could use, and whether it fell back to popularity.
+    history_used: list[int] = Field(default_factory=list)
+    cold_start: bool = True
     model_version: str
     stub: bool = False
 

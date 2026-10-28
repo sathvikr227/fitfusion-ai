@@ -254,6 +254,16 @@ def name_mentions_meat(name: str) -> bool:
     return bool(NAME_MEAT.search(text)) and not NAME_MEAT_FREE.search(text)
 
 
+# "Egg Foo Yung", "Parsee Eggs", "Egg Salad"; not "eggplant", "eggless", "egg-free".
+NAME_EGG = re.compile(r"\beggs?\b|\bfrittata|\bomelet|\bquiche|\bshakshuka|\bmeringue")
+NAME_EGG_FREE = re.compile(r"\begg[\s-]?(?:less|free)\b|\bno[\s-]egg|\bwithout eggs?\b|\bvegan\b")
+
+
+def name_mentions_egg(name: str) -> bool:
+    text = str(name or "").lower()
+    return bool(NAME_EGG.search(text)) and not NAME_EGG_FREE.search(text)
+
+
 def dietary_flags(ingredients: list[str], name: str = "") -> dict[str, bool]:
     """Restriction flags for one recipe (True = allowed).
 
@@ -264,8 +274,11 @@ def dietary_flags(ingredients: list[str], name: str = "") -> dict[str, bool]:
     items = [str(i) for i in ingredients]
     has = {name_: any(rule.found(i) for i in items) for name_, rule in RULES.items()}
     has["meat"] = has["meat"] or name_mentions_meat(name)
+    has["egg"] = has["egg"] or name_mentions_egg(name)
+    # FitFusion offers both "Vegetarian" and "Eggetarian", so vegetarian means
+    # lacto-vegetarian: no meat AND no egg. Eggetarian allows eggs.
     return {
-        "is_vegetarian": not has["meat"],
+        "is_vegetarian": not (has["meat"] or has["egg"]),
         "is_vegan": not (has["meat"] or has["dairy"] or has["egg"] or has["honey"]),
         "is_eggetarian": not has["meat"],
         "is_dairy_free": not has["dairy"],
@@ -406,7 +419,7 @@ def main() -> None:
 
     tagged = recipes[recipes["tagged_vegetarian"]]
     rejected = tagged[~tagged["is_vegetarian"]]
-    print(f"\n  Tag check: {len(rejected)} of {len(tagged)} recipes tagged 'vegetarian' contain meat/fish "
+    print(f"\n  Tag check: {len(rejected)} of {len(tagged)} recipes tagged 'vegetarian' contain meat, fish or egg "
           "ingredients and are NOT treated as vegetarian. Examples:")
     for _, row in rejected.sample(min(5, len(rejected)), random_state=RANDOM_SEED).iterrows():
         meaty = [i for i in row["ingredients"] if RULES["meat"].found(str(i).lower())]

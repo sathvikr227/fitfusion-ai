@@ -75,6 +75,9 @@ Run in this order — later models assume the earlier artifacts exist.
 |---|---|
 | `train_calorie_hr.py` | `calorie_hr_model.pkl` (served, with calibration), `reports/calorie_hr.json`, `reports/calorie_hr_bland_altman.png` |
 | `train_calorie_gym_comparison.py` | `calorie_gym_comparison.pkl` (comparison only, not served), `reports/calorie_gym_comparison.json`, `reports/calorie_gym_*.png` |
+| `train_meal_hybrid.py` | `meal_hybrid.pkl` (weights + decision), `reports/meal_hybrid.json`, `reports/meal_hybrid_rolling.png` |
+| `build_meal_hybrid_serving.py` | `meal_hybrid_serving.pkl` (served; `--cutoff 2018-01-01 --out meal_hybrid_demo.pkl` for the demo) |
+| `build_exercise_index.py` | `exercise_index.pkl` (served), `reports/exercise_recommender.json` |
 | `calibrate_calorie_hr.py` | `calorie_energy.json` (served calibration: XGBoost + Keytel fallback), `reports/calorie_hr_calibration.json`, `reports/calorie_hr_calibration.png` |
 | `data_foodcom.py` | `data/processed/foodcom_*.pkl`, vegetarian audit sheets |
 | `train_meal_recommender.py` | `meal_recommender.pkl` (evaluated, not served), `reports/meal_recommender.json` |

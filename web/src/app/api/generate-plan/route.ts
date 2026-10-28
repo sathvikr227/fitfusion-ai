@@ -5,6 +5,7 @@ import { createClient } from "@supabase/supabase-js"
 import { recommend, recommendExercises } from "../../../lib/ml-service"
 import type { ExerciseFocus, ExerciseResponse, MealSlot, RecommendResponse } from "../../../lib/ml-service"
 import { dietaryRestrictionsFromProfile, injuryListFromProfile } from "../../../lib/ml-service/profile"
+import { likedRecipeIds } from "../../../lib/ml-service/meal-history"
 import {
   INJURY_MUSCLE_KEYWORDS,
   applyInjuryAdjustments,
@@ -1000,6 +1001,7 @@ export async function POST(req: Request) {
         user_id: userId,
         meals: targets.meals,
         dietary_restrictions: dietaryRestrictionsFromProfile(profile),
+        liked_recipe_ids: await likedRecipeIds(supabase, userId),
         per_meal: 5,
       })
       recommendation = recResult.data
@@ -1087,6 +1089,8 @@ export async function POST(req: Request) {
           bmr: targets?.bmr ?? null,
           maintenance_calories: targets?.tdee ?? null,
           method: recommendation?.method ?? null,
+          cold_start: recommendation?.cold_start ?? null,
+          history_size: recommendation?.history_used?.length ?? 0,
           model_version: recommendation?.model_version ?? null,
           from_fallback: recommendationFromFallback,
           applied_restrictions: recommendation?.applied_restrictions ?? [],

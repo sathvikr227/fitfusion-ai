@@ -42,7 +42,7 @@ fitfusion-ai-wb/
 | # | Model | Endpoint | Replaces | Consumed by |
 |---|---|---|---|---|
 | 1 | Session energy expenditure: calibrated XGBoost HR model + SHAP (Keytel, then MET fallback) | `POST /predict/calories` | MET-only estimate | `/api/workout-log` (Cardio + Workout tabs) |
-| 2 | Meal recommender: popularity within ingredient-checked dietary filters + calorie bands (non-ML) | `POST /recommend` | LLM-invented meals and calories | `/api/generate-plan` |
+| 2 | Hybrid meal recommender (0.5 popularity + 0.25 ALS + 0.25 ingredient TF-IDF) within dietary filters + calorie bands; content-based exercise recommender | `POST /recommend`, `POST /recommend/exercises` | LLM-invented meals, calories and exercises | `/api/generate-plan` |
 | 3 | Injury risk multi-label XGB (knee/back/shoulder/hamstring) | `POST /predict/injury-risk` | reactive injury logging | `/api/adaptive-replan` |
 | 4 | PyTorch transformer trajectory (improve/plateau/regress) | `POST /predict/trajectory` | single-week completion rate | `/api/adaptive-replan` |
 | 5 | PPO RL agent over `FitFusionEnv` | `POST /rl/action` | the if/else block in `/api/adaptive-replan` | `/api/adaptive-replan` |
@@ -77,6 +77,18 @@ ingredient-checked dietary flags and a per-meal calorie band. The daily target
 comes from Mifflin-St Jeor x activity factor (`web/src/lib/meal-targets.ts`), and
 `/api/generate-plan` enforces that every meal in `diet_plan` is one of the
 returned recipes, so meal calories are real instead of invented.
+
+Stage 2 was extended on 2026-10-28 into a hybrid (the user's spec). A blend of
+popularity, ALS and ingredient TF-IDF, tuned on 2012-13 and tested once on
+2014-2017 (9,146 user-years), beat popularity on Recall@10 (0.0235 vs 0.0198,
+CI [+0.0016, +0.0057]) and is served (`training/train_meal_hybrid.py`,
+`app/meal_hybrid.py`). Personal history = plan recipes marked eaten
+(`web/src/lib/ml-service/meal-history.ts`), folded into ALS per request;
+no history = popularity (cold start). Exercises come from a content-based
+cosine recommender over free-exercise-db (876 exercises, public domain) after
+hard filters for equipment, injuries, level and target muscles
+(`app/exercise_recommender.py`). **Vegetarian = no meat and no egg** (the app
+offers Eggetarian separately). Teacher demo: `ml-service/demos/model2_recommender/`.
 
 Dietary flags are a safety feature, not a nicety. They are built from ingredient
 lists (the dataset's own "vegetarian" tag is wrong on 631 recipes), guarded a

@@ -89,11 +89,10 @@ def test_dietary_flags(ingredients, flag, allowed):
         ("gluten free fried chicken", ["rice flour", "salt"], False),
         ("soy glazed salmon", ["soy sauce", "honey"], False),
         # Substitutions stay vegetarian.
-        ("chickpea burger", ["chickpeas", "egg", "flour"], True),
+        ("chickpea burger", ["chickpeas", "flax meal", "flour"], True),
         ("walnut taco meat", ["walnuts", "cumin"], True),
         ("vegan bacon", ["firm tofu", "liquid smoke"], True),
         ("anchovy free black olive tapenade", ["olives", "capers"], True),
-        ("the best belgian waffles", ["flour", "eggs", "milk"], True),
         # New ingredient words from the name audit.
         ("honey baked", ["fryer", "honey"], False),
         ("hawaiian", ["spareribs", "pineapple"], False),
@@ -102,6 +101,31 @@ def test_dietary_flags(ingredients, flag, allowed):
 )
 def test_recipe_name_is_a_second_vegetarian_guard(name, ingredients, vegetarian):
     assert fc.dietary_flags(ingredients, name)["is_vegetarian"] is vegetarian
+
+
+# FitFusion offers "Vegetarian" and "Eggetarian" separately, so vegetarian means
+# no meat AND no egg; eggetarian allows eggs. Found by the Model 2 demo
+# ("Parsee Eggs" and "Egg Foo Yung" were served to a vegetarian).
+@pytest.mark.parametrize(
+    "name, ingredients, vegetarian, eggetarian",
+    [
+        ("the best belgian waffles", ["flour", "eggs", "milk"], False, True),
+        ("chickpea burger", ["chickpeas", "egg", "flour"], False, True),
+        ("parsee eggs", ["onion", "tomato", "chili"], False, True),
+        ("ramen noodle egg foo yung", ["ramen noodles", "bean sprouts"], False, True),
+        ("spinach frittata", ["spinach", "feta cheese"], False, True),
+        ("potato salad", ["potatoes", "mayonnaise"], False, True),
+        ("eggless chocolate cake", ["flour", "cocoa", "yogurt"], True, True),
+        ("egg-free pancakes", ["flour", "milk", "egg replacer"], True, True),
+        ("roasted eggplant dip", ["eggplant", "tahini"], True, True),
+        ("bacon and eggs", ["bacon", "eggs"], False, False),
+        ("paneer tikka", ["paneer", "yogurt", "spices"], True, True),
+    ],
+)
+def test_vegetarian_excludes_egg_but_eggetarian_allows_it(name, ingredients, vegetarian, eggetarian):
+    flags = fc.dietary_flags(ingredients, name)
+    assert flags["is_vegetarian"] is vegetarian
+    assert flags["is_eggetarian"] is eggetarian
 
 
 needs_foodcom = pytest.mark.skipif(

@@ -57,6 +57,8 @@ export type RecommendRequest = {
   dietary_restrictions?: string[]
   per_meal?: number
   exclude_recipe_ids?: number[]
+  /** Food.com recipe IDs the user ate (plan meals marked eaten); drives the hybrid ranking. */
+  liked_recipe_ids?: number[]
   user_id?: string
 }
 
@@ -68,6 +70,8 @@ export type RecommendedRecipe = {
   minutes: number
   likes_last_year: number
   likes_all_time: number
+  /** Weighted contribution of each hybrid signal (popularity, als, text). */
+  score_breakdown?: Record<string, number>
 }
 
 export type MealRecommendation = {
@@ -87,6 +91,9 @@ export type RecommendResponse = {
   reason: string | null
   method: string
   model_version: string
+  /** Liked recipes the hybrid used; cold_start = ranked by popularity alone. */
+  history_used?: number[]
+  cold_start?: boolean
   stub: boolean
 }
 

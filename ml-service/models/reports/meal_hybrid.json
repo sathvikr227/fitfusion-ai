@@ -1,0 +1,236 @@
+{
+  "model": "meal_hybrid",
+  "trained_at": "2026-10-28T02:16:19+00:00",
+  "python": "3.12.10",
+  "protocol": "weights tuned on validation (train<2012, eval 2012-13); rolling test 2014-2017; user-resampling bootstrap; serve hybrid only if Recall@10 CI vs popularity > 0",
+  "relevance": "rated >= 4 stars by the user in the evaluation year (Food.com)",
+  "signals": [
+    "popularity",
+    "als",
+    "text",
+    "nutrition"
+  ],
+  "weight_grid_size": 35,
+  "validation_top10": {
+    "hybrid(pop=0.5,als=0.25,tex=0.25)": {
+      "recall_at_10": 0.02591614368004124,
+      "ndcg_at_10": 0.01522719311240167,
+      "precision_at_5": 0.006845721424109931,
+      "hit_rate_at_10": 0.060587133041848845,
+      "users": 8005
+    },
+    "hybrid(pop=0.75,tex=0.25)": {
+      "recall_at_10": 0.025915053091817613,
+      "ndcg_at_10": 0.015209703222710634,
+      "precision_at_5": 0.007095565271705184,
+      "hit_rate_at_10": 0.060462211118051216,
+      "users": 8005
+    },
+    "hybrid(pop=0.5,tex=0.25,nut=0.25)": {
+      "recall_at_10": 0.025505785074804437,
+      "ndcg_at_10": 0.015771270272684424,
+      "precision_at_5": 0.007470331043098064,
+      "hit_rate_at_10": 0.05921299188007495,
+      "users": 8005
+    },
+    "hybrid(pop=0.75,als=0.25)": {
+      "recall_at_10": 0.02545621288282125,
+      "ndcg_at_10": 0.015018215606413029,
+      "precision_at_5": 0.006970643347907558,
+      "hit_rate_at_10": 0.060587133041848845,
+      "users": 8005
+    },
+    "hybrid(pop=0.5,als=0.25,nut=0.25)": {
+      "recall_at_10": 0.02505413283364564,
+      "ndcg_at_10": 0.015459498081501452,
+      "precision_at_5": 0.007245471580262336,
+      "hit_rate_at_10": 0.060961898813241724,
+      "users": 8005
+    },
+    "hybrid(pop=0.5,als=0.5)": {
+      "recall_at_10": 0.024895303530531515,
+      "ndcg_at_10": 0.015211809379435242,
+      "precision_at_5": 0.007095565271705184,
+      "hit_rate_at_10": 0.05921299188007495,
+      "users": 8005
+    },
+    "hybrid(pop=0.75,nut=0.25)": {
+      "recall_at_10": 0.024585179897484707,
+      "ndcg_at_10": 0.014867405677563741,
+      "precision_at_5": 0.007295440349781387,
+      "hit_rate_at_10": 0.05908806995627733,
+      "users": 8005
+    },
+    "hybrid(pop=1)": {
+      "recall_at_10": 0.024223798617927284,
+      "ndcg_at_10": 0.014682228748001245,
+      "precision_at_5": 0.00707058088694566,
+      "hit_rate_at_10": 0.05883822610868207,
+      "users": 8005
+    },
+    "hybrid(pop=0.25,als=0.5,tex=0.25)": {
+      "recall_at_10": 0.024024815839306785,
+      "ndcg_at_10": 0.014775099749274776,
+      "precision_at_5": 0.007095565271705184,
+      "hit_rate_at_10": 0.0589631480324797,
+      "users": 8005
+    },
+    "hybrid(pop=0.5,nut=0.5)": {
+      "recall_at_10": 0.023977573540346808,
+      "ndcg_at_10": 0.01450172807187036,
+      "precision_at_5": 0.007120549656464709,
+      "hit_rate_at_10": 0.056339787632729545,
+      "users": 8005
+    }
+  },
+  "validation_popularity_only": {
+    "recall_at_10": 0.024223798617927284,
+    "ndcg_at_10": 0.014682228748001245,
+    "precision_at_5": 0.00707058088694566,
+    "hit_rate_at_10": 0.05883822610868207,
+    "users": 8005
+  },
+  "selected_weights": {
+    "popularity": 0.5,
+    "als": 0.25,
+    "text": 0.25,
+    "nutrition": 0.0
+  },
+  "test_years": [
+    2014,
+    2015,
+    2016,
+    2017
+  ],
+  "per_year_recall_at_10": {
+    "2014": {
+      "users": 3573,
+      "popularity": 0.013250169925232896,
+      "als": 0.015303488687199853,
+      "content_text": 0.00033585222502099076,
+      "content_nutrition": 0.0003078645396025749,
+      "hybrid": 0.017176886614334138
+    },
+    "2015": {
+      "users": 2146,
+      "popularity": 0.02266416662968387,
+      "als": 0.015892431840707703,
+      "content_text": 0.001460080770425598,
+      "content_nutrition": 0.00023299161230195712,
+      "hybrid": 0.025457477181615114
+    },
+    "2016": {
+      "users": 1764,
+      "popularity": 0.025677122700932226,
+      "als": 0.012962063132131161,
+      "content_text": 0.0011810279667422523,
+      "content_nutrition": 0.0,
+      "hybrid": 0.02869110607205845
+    },
+    "2017": {
+      "users": 1663,
+      "popularity": 0.023855816128816727,
+      "als": 0.01564441771898176,
+      "content_text": 0.0,
+      "content_nutrition": 0.0,
+      "hybrid": 0.02891193960045433
+    }
+  },
+  "pooled": {
+    "popularity": {
+      "recall_at_10": 0.0197842581890253,
+      "precision_at_5": 0.0032801224579050953,
+      "ndcg_at_10": 0.010645458224669477
+    },
+    "als": {
+      "recall_at_10": 0.015052074113412403,
+      "precision_at_5": 0.0034113273562212994,
+      "ndcg_at_10": 0.008958261950568605
+    },
+    "content_text": {
+      "recall_at_10": 0.0007015817479408121,
+      "precision_at_5": 0.00021867483052700635,
+      "ndcg_at_10": 0.000532366152882765
+    },
+    "content_nutrition": {
+      "recall_at_10": 0.00017493986442160508,
+      "precision_at_5": 2.1867483052700635e-05,
+      "ndcg_at_10": 0.00010690990341443159
+    },
+    "hybrid": {
+      "recall_at_10": 0.02347435256630533,
+      "precision_at_5": 0.0039361469494861145,
+      "ndcg_at_10": 0.013036297985164223
+    }
+  },
+  "pooled_by_prior_likes": {
+    "1": {
+      "popularity": 0.03105515587529976,
+      "als": 0.013709032773780975,
+      "content_text": 0.0014388489208633094,
+      "content_nutrition": 0.00023980815347721823,
+      "hybrid": 0.031270983213429256,
+      "user_years": 2085
+    },
+    "2-4": {
+      "popularity": 0.02177587582060249,
+      "als": 0.016497068181220584,
+      "content_text": 0.0010123320449107306,
+      "content_nutrition": 0.0,
+      "hybrid": 0.02677158107859378,
+      "user_years": 1811
+    },
+    "5-19": {
+      "popularity": 0.01829298297411672,
+      "als": 0.018693850436543088,
+      "content_text": 0.0005240625922645408,
+      "content_nutrition": 0.0004428697962798937,
+      "hybrid": 0.023683692549945873,
+      "user_years": 2258
+    },
+    "20+": {
+      "popularity": 0.011849986206603854,
+      "als": 0.012364983872336813,
+      "content_text": 0.00013368983957219252,
+      "content_nutrition": 3.342245989304813e-05,
+      "hybrid": 0.015887472413207707,
+      "user_years": 2992
+    }
+  },
+  "comparisons": {
+    "hybrid_vs_popularity_recall": {
+      "difference": 0.003690094377280033,
+      "ci95": [
+        0.001637191543550349,
+        0.005692404095292779
+      ],
+      "relative_pct": 18.651669130192598,
+      "user_years": 9146,
+      "users": 6610
+    },
+    "hybrid_vs_popularity_precision5": {
+      "difference": 0.000656024491581019,
+      "ci95": [
+        0.00023823644977886746,
+        0.0010898381307028633
+      ],
+      "relative_pct": 20.0,
+      "user_years": 9146,
+      "users": 6610
+    },
+    "hybrid_vs_als_recall": {
+      "difference": 0.00842227845289293,
+      "ci95": [
+        0.005767192925859482,
+        0.011041710846143098
+      ],
+      "relative_pct": 55.95427174643073,
+      "user_years": 9146,
+      "users": 6610
+    }
+  },
+  "hybrid_served": true,
+  "decision": "SERVE HYBRID: beats popularity with CI above zero",
+  "figure": "meal_hybrid_rolling.png",
+  "precision_at_5_target_70pct_met": false
+}
