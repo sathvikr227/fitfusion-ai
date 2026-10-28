@@ -1,0 +1,29 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-8.3.3, pluggy-1.6.0 -- C:\Users\Sathv\OneDrive\Desktop\fitfusion-ai-wb\ml-service\.venv\Scripts\python.exe
+rootdir: C:\Users\Sathv\OneDrive\Desktop\fitfusion-ai-wb\ml-service
+plugins: anyio-4.15.1
+collecting ... collected 15 items
+
+tests/test_model5_rl.py::test_safety_mask_blocks_increase_only_when_unsafe[state0-2] PASSED [  6%]
+tests/test_model5_rl.py::test_safety_mask_blocks_increase_only_when_unsafe[state1-1] PASSED [ 13%]
+tests/test_model5_rl.py::test_safety_mask_blocks_increase_only_when_unsafe[state2-1] PASSED [ 20%]
+tests/test_model5_rl.py::test_threshold_rule_is_masked PASSED            [ 26%]
+tests/test_model5_rl.py::test_env_contract_and_determinism PASSED        [ 33%]
+tests/test_model5_rl.py::test_env_applies_the_mask_inside_step PASSED    [ 40%]
+tests/test_model5_rl.py::test_episode_ends_at_26_weeks_or_churn PASSED   [ 46%]
+tests/test_model5_rl.py::test_stressed_assumptions_stay_within_25_percent PASSED [ 53%]
+tests/test_model5_rl.py::test_calibration_curves_are_real_and_ordered PASSED [ 60%]
+tests/test_model5_rl.py::test_rl_endpoint_falls_back_to_masked_rule_without_agent PASSED [ 66%]
+tests/test_model5_rl.py::test_endpoint_never_increases_while_injured_or_short_of_sleep PASSED [ 73%]
+tests/test_model5_rl.py::test_artifact_matches_report PASSED             [ 80%]
+tests/test_smoke.py::test_rl_action_returns_valid_action PASSED          [ 86%]
+tests/test_smoke.py::test_rl_state_construction_matches_documented_formula PASSED [ 93%]
+tests/test_smoke.py::test_rl_rejects_out_of_range_completion PASSED      [100%]
+
+============================== warnings summary ===============================
+.venv\Lib\site-packages\starlette\testclient.py:40
+  C:\Users\Sathv\OneDrive\Desktop\fitfusion-ai-wb\ml-service\.venv\Lib\site-packages\starlette\testclient.py:40: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = typing.Callable[[], typing.ContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================== 15 passed, 1 warning in 7.76s ========================

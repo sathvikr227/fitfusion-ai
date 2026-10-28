@@ -27,7 +27,8 @@ MEAL_HYBRID_ARTIFACT = "meal_hybrid_serving.pkl"
 INJURY_ARTIFACT = "injury_load_model.pkl"
 TRAJECTORY_ARTIFACT = "trajectory_runs.pt"
 TRAJECTORY_META_ARTIFACT = "trajectory_runs_meta.json"
-RL_ARTIFACT = "fitfusion_rl_agent.zip"
+RL_ARTIFACT = "rl_ppo_agent.zip"
+RL_META_ARTIFACT = "rl_ppo_meta.json"
 
 
 class ModelRegistry:
@@ -47,6 +48,7 @@ class ModelRegistry:
         self.trajectory_model: Any | None = None
         self.trajectory_meta: dict[str, Any] | None = None
         self.rl_agent: Any | None = None
+        self.rl_meta: dict[str, Any] | None = None
 
         self.errors: dict[str, str] = {}
 
@@ -222,8 +224,12 @@ class ModelRegistry:
         try:
             from stable_baselines3 import PPO
 
+            meta_path = self._path(RL_META_ARTIFACT)
+            if not meta_path.exists():
+                raise FileNotFoundError(f"{RL_META_ARTIFACT} not found")
+            self.rl_meta = json.loads(meta_path.read_text(encoding="utf-8"))
             self.rl_agent = PPO.load(str(path), device="cpu")
-            log.info("loaded PPO agent")
+            log.info("loaded PPO agent (%s, serve=%s)", self.rl_meta.get("model_version"), self.rl_meta.get("serve"))
         except Exception as exc:  # noqa: BLE001
             self.errors["rl"] = str(exc)
             log.exception("failed to load %s", RL_ARTIFACT)

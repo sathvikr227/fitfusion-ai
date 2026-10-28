@@ -1,0 +1,180 @@
+{
+  "model": "rl_calibration",
+  "trained_at": "2026-10-28T13:24:39+00:00",
+  "python": "3.12.10",
+  "adaptation": {
+    "source": "Strava logs (Afonseca et al., CC BY 4.0)",
+    "athlete_weeks": 2559635,
+    "overall_mean_4wk_gain": -0.0039243784961072465,
+    "bins": [
+      {
+        "bin": "0-0.5",
+        "lo": 0.0,
+        "hi": 0.5,
+        "n": 466171,
+        "mean_4wk_gain": -0.019604783139538697,
+        "weekly_gain": -0.004901195784884674,
+        "se": 0.000179204289341592
+      },
+      {
+        "bin": "0.5-0.7",
+        "lo": 0.5,
+        "hi": 0.7,
+        "n": 226796,
+        "mean_4wk_gain": -0.010895359124700313,
+        "weekly_gain": -0.0027238397811750782,
+        "se": 0.00019639626985639265
+      },
+      {
+        "bin": "0.7-0.85",
+        "lo": 0.7,
+        "hi": 0.85,
+        "n": 235620,
+        "mean_4wk_gain": -0.008296338247566058,
+        "weekly_gain": -0.0020740845618915146,
+        "se": 0.00017466317267965874
+      },
+      {
+        "bin": "0.85-1",
+        "lo": 0.85,
+        "hi": 1.0,
+        "n": 307781,
+        "mean_4wk_gain": -0.00579496085353334,
+        "weekly_gain": -0.001448740213383335,
+        "se": 0.0001371265501975027
+      },
+      {
+        "bin": "1-1.15",
+        "lo": 1.0,
+        "hi": 1.15,
+        "n": 341782,
+        "mean_4wk_gain": -0.0026110201464745767,
+        "weekly_gain": -0.0006527550366186442,
+        "se": 0.00012108092466470968
+      },
+      {
+        "bin": "1.15-1.3",
+        "lo": 1.15,
+        "hi": 1.3,
+        "n": 265309,
+        "mean_4wk_gain": 0.00010183600517635441,
+        "weekly_gain": 2.5459001294088603e-05,
+        "se": 0.0001438334441871396
+      },
+      {
+        "bin": "1.3-1.5",
+        "lo": 1.3,
+        "hi": 1.5,
+        "n": 227606,
+        "mean_4wk_gain": 0.002215890661497291,
+        "weekly_gain": 0.0005539726653743227,
+        "se": 0.00016625474330700442
+      },
+      {
+        "bin": "1.5-2",
+        "lo": 1.5,
+        "hi": 2.0,
+        "n": 260575,
+        "mean_4wk_gain": 0.006116437924716359,
+        "weekly_gain": 0.0015291094811790897,
+        "se": 0.00017417526874848665
+      },
+      {
+        "bin": ">=2",
+        "lo": 2.0,
+        "hi": null,
+        "n": 227995,
+        "mean_4wk_gain": 0.01785491610924861,
+        "weekly_gain": 0.004463729027312152,
+        "se": 0.00023421862315723603
+      }
+    ]
+  },
+  "injury": {
+    "source": "Lovdal et al. runners, week-approach file (CC0)",
+    "acwr_definition": "last week km / mean km of the last 3 weeks (21-day chronic)",
+    "days_with_acwr": 40063,
+    "reference_band": [
+      0.8,
+      1.3
+    ],
+    "reference_daily_rate": 0.014203266341942614,
+    "overall_daily_rate": 0.01343520725267536,
+    "baseline_weekly_probability": 0.09033959805468139,
+    "bins": [
+      {
+        "bin": "0-0.6",
+        "lo": 0.0,
+        "hi": 0.6,
+        "n": 4018,
+        "injuries": 34,
+        "daily_rate": 0.008461921353907416,
+        "relative_risk": 0.5957729123841847
+      },
+      {
+        "bin": "0.6-0.8",
+        "lo": 0.6,
+        "hi": 0.8,
+        "n": 4606,
+        "injuries": 74,
+        "daily_rate": 0.01606600086843248,
+        "relative_risk": 1.1311483205091466
+      },
+      {
+        "bin": "0.8-1",
+        "lo": 0.8,
+        "hi": 1.0,
+        "n": 9858,
+        "injuries": 130,
+        "daily_rate": 0.013187259078920674,
+        "relative_risk": 0.9284666471386483
+      },
+      {
+        "bin": "1-1.3",
+        "lo": 1.0,
+        "hi": 1.3,
+        "n": 14573,
+        "injuries": 217,
+        "daily_rate": 0.014890551019007754,
+        "relative_risk": 1.0483891986898515
+      },
+      {
+        "bin": "1.3-1.5",
+        "lo": 1.3,
+        "hi": 1.5,
+        "n": 3276,
+        "injuries": 58,
+        "daily_rate": 0.017704517704517704,
+        "relative_risk": 1.2465102940607262
+      },
+      {
+        "bin": "1.5-2",
+        "lo": 1.5,
+        "hi": 2.0,
+        "n": 2228,
+        "injuries": 29,
+        "daily_rate": 0.013016157989228007,
+        "relative_risk": 0.9164200456335142
+      },
+      {
+        "bin": ">=2",
+        "lo": 2.0,
+        "hi": null,
+        "n": 1504,
+        "injuries": 17,
+        "daily_rate": 0.011303191489361703,
+        "relative_risk": 0.7958163437365872
+      }
+    ]
+  },
+  "sleep": {
+    "source": "SoccerMon sleep_duration (CC BY 4.0)",
+    "player_weeks": 3071,
+    "mean": 8.113254562652152,
+    "sd": 0.6477393500411878,
+    "lag1_autocorrelation": 0.5172103731780526
+  },
+  "min_bin_n": 200,
+  "note": "Observational associations used to calibrate a simulator; not causal estimates.",
+  "figure": "rl_calibration.png"
+}

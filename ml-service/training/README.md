@@ -69,7 +69,9 @@ Run in this order — later models assume the earlier artifacts exist.
 .venv/Scripts/python.exe -m training.train_injury_load            # ~25 min (Model 3, runners; bootstrap CIs)
 .venv/Scripts/python.exe -m training.train_injury_soccermon_knee  # ~3 min  (Model 3 Part B, exploratory)
 .venv/Scripts/python.exe -u -m training.train_trajectory_runs  # ~3.5 h (Model 4, Strava; 4 seeds)
-.venv/Scripts/python.exe -m training.train_rl_agent     # ~25 min
+.venv/Scripts/python.exe -u -m training.calibrate_rl_env      # ~5 min  (Model 5 real-data curves)
+.venv/Scripts/python.exe -u -m training.train_rl_ppo          # ~25 min (Model 5 round 1)
+.venv/Scripts/python.exe -u -m training.train_rl_ppo_round2   # ~50 min (Model 5 round 2)
 ```
 
 | Script | Artifacts |
@@ -89,7 +91,10 @@ Run in this order — later models assume the earlier artifacts exist.
 | `train_injury.py` | RETIRED (circular proxy labels); `injury_risk_model.pkl` is no longer loaded |
 | `train_trajectory_runs.py` | `trajectory_runs.pt` + `trajectory_runs_meta.json` (served), `reports/trajectory_runs.json` + `.png` |
 | `train_transformer.py` | RETIRED (pseudo-sequences); `transformer_model.pt` is no longer loaded |
-| `train_rl_agent.py` | `fitfusion_rl_agent.zip` |
+| `calibrate_rl_env.py` | `rl_calibration.json` (read by the trainers), `reports/rl_calibration.json` + `.png` |
+| `train_rl_ppo.py` | `rl_ppo_agent.zip` + `rl_ppo_meta.json` (serve=false), `reports/rl_ppo.json` + `.png`, `reports/rl_ppo_logs/` |
+| `train_rl_ppo_round2.py` | `rl_ppo_agent_round2.zip` (not served), `reports/rl_ppo_round2.json` + `.png` |
+| `train_rl_agent.py` | RETIRED (completion reward, seeded pilot calibration); `fitfusion_rl_agent.zip` is no longer loaded |
 
 Everything in `models/` is gitignored — artifacts are produced by training and
 shipped out of band.

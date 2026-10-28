@@ -248,5 +248,9 @@ export type RLActionResponse = {
   confidence: number
   state: number[]
   model_version: string
+  /** INCREASE was replaced by MAINTAIN by the service's safety mask. */
+  masked?: boolean
+  /** Why the threshold rule answered instead of the PPO agent. */
+  reason?: string | null
   stub: boolean
 }

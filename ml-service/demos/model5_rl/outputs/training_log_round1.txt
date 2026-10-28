@@ -1,0 +1,33 @@
+
+========================================================================
+  Model 5 — PPO agent on the rebuilt FitFusionEnv (simulated)
+========================================================================
+[train] seed 42: 100,000 timesteps
+[train] seed 0: 100,000 timesteps
+[train] seed 1: 100,000 timesteps
+[train] seed 2: 100,000 timesteps
+
+[standard]
+  PPO seed 42                  return -23.285 [-23.4742, -23.0937]  injuries 0.55  churn 1.000  fitness -1.65%  {'REDUCE': 0.0, 'MAINTAIN': 0.1073, 'INCREASE': 0.8927}
+  PPO seed 0                   return -23.285 [-23.4742, -23.0937]  injuries 0.55  churn 1.000  fitness -1.65%  {'REDUCE': 0.0, 'MAINTAIN': 0.1073, 'INCREASE': 0.8927}
+  PPO seed 1                   return -23.285 [-23.4742, -23.0937]  injuries 0.55  churn 1.000  fitness -1.65%  {'REDUCE': 0.0, 'MAINTAIN': 0.1073, 'INCREASE': 0.8927}
+  PPO seed 2                   return -23.285 [-23.4742, -23.0937]  injuries 0.55  churn 1.000  fitness -1.65%  {'REDUCE': 0.0, 'MAINTAIN': 0.1073, 'INCREASE': 0.8927}
+  Threshold rule               return -9.439 [-9.8358, -9.0274]  injuries 2.03  churn 0.022  fitness -2.92%  {'REDUCE': 0.1827, 'MAINTAIN': 0.6167, 'INCREASE': 0.2006}
+  Always MAINTAIN              return -9.205 [-9.5963, -8.8307]  injuries 2.01  churn 0.012  fitness -2.95%  {'REDUCE': 0.0, 'MAINTAIN': 1.0, 'INCREASE': 0.0}
+  Random                       return -11.953 [-12.5691, -11.3421]  injuries 1.91  churn 0.150  fitness -3.22%  {'REDUCE': 0.3403, 'MAINTAIN': 0.3714, 'INCREASE': 0.2883}
+  PPO seed 42, no trajectory   return -23.285 [-23.4742, -23.0937]  injuries 0.55  churn 1.000  fitness -1.65%  {'REDUCE': 0.0, 'MAINTAIN': 0.1073, 'INCREASE': 0.8927}
+
+[stressed]
+  PPO seed 42                  return -23.438 [-23.6236, -23.2516]  injuries 0.60  churn 1.000  fitness -1.64%  {'REDUCE': 0.0, 'MAINTAIN': 0.1227, 'INCREASE': 0.8773}
+  PPO seed 0                   return -23.438 [-23.6236, -23.2516]  injuries 0.60  churn 1.000  fitness -1.64%  {'REDUCE': 0.0, 'MAINTAIN': 0.1227, 'INCREASE': 0.8773}
+  PPO seed 1                   return -23.438 [-23.6236, -23.2516]  injuries 0.60  churn 1.000  fitness -1.64%  {'REDUCE': 0.0, 'MAINTAIN': 0.1227, 'INCREASE': 0.8773}
+  PPO seed 2                   return -23.438 [-23.6236, -23.2516]  injuries 0.60  churn 1.000  fitness -1.64%  {'REDUCE': 0.0, 'MAINTAIN': 0.1227, 'INCREASE': 0.8773}
+  Threshold rule               return -10.404 [-10.9208, -9.9224]  injuries 2.07  churn 0.060  fitness -2.98%  {'REDUCE': 0.1811, 'MAINTAIN': 0.6454, 'INCREASE': 0.1735}
+  Always MAINTAIN              return -11.257 [-11.8986, -10.6548]  injuries 2.02  churn 0.118  fitness -2.84%  {'REDUCE': 0.0, 'MAINTAIN': 1.0, 'INCREASE': 0.0}
+  Random                       return -12.915 [-13.6376, -12.2548]  injuries 1.89  churn 0.206  fitness -3.12%  {'REDUCE': 0.3384, 'MAINTAIN': 0.3718, 'INCREASE': 0.2898}
+  PPO seed 42, no trajectory   return -23.438 [-23.6236, -23.2516]  injuries 0.60  churn 1.000  fitness -1.64%  {'REDUCE': 0.0, 'MAINTAIN': 0.1227, 'INCREASE': 0.8773}
+
+[decision] {'rule': 'serve PPO seed 42 iff paired return vs best baseline has CI low > 0 AND injuries not significantly higher than the threshold rule (standard scenarios)', 'best_baseline': 'Always MAINTAIN', 'return_vs_best': {'difference': -14.0799, 'ci95': [-14.4353, -13.7267]}, 'injuries_vs_rule': {'difference': -1.482, 'ci95': [-1.58, -1.386]}, 'serve': False, 'wins_on_stressed_too': False}
+[artifact] wrote C:\Users\Sathv\OneDrive\Desktop\fitfusion-ai-wb\ml-service\models\rl_ppo_agent.zip and rl_ppo_meta.json
+[report] wrote C:\Users\Sathv\OneDrive\Desktop\fitfusion-ai-wb\ml-service\models\reports\rl_ppo.json
+exit 0

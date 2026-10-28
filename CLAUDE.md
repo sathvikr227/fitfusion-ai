@@ -45,7 +45,7 @@ fitfusion-ai-wb/
 | 2 | Hybrid meal recommender (0.5 popularity + 0.25 ALS + 0.25 ingredient TF-IDF) within dietary filters + calorie bands; content-based exercise recommender | `POST /recommend`, `POST /recommend/exercises` | LLM-invented meals, calories and exercises | `/api/generate-plan` |
 | 3 | Training-load injury risk (XGBoost on 74 runners' real injuries; not served, failed its pre-registered rule) + rule-based body regions (knee/back/shoulder/hamstring) | `POST /predict/injury-risk` | reactive injury logging | `/api/adaptive-replan`, `/api/ml-insights` |
 | 4 | PyTorch Transformer running trajectory (improve/plateau/regress of 10 km-equivalent pace), trained on 34,753 Strava runners; completion-slope rule for non-runners | `POST /predict/trajectory` | single-week completion rate | `/api/adaptive-replan`, `/api/ml-insights` |
-| 5 | PPO RL agent over `FitFusionEnv` | `POST /rl/action` | the if/else block in `/api/adaptive-replan` | `/api/adaptive-replan` |
+| 5 | PPO agent over a real-data-calibrated `FitFusionEnv` (not served: failed its rule twice); the masked threshold rule serves | `POST /rl/action` | the if/else block in `/api/adaptive-replan` | `/api/adaptive-replan` |
 
 `/predict/calorie` and `/predict/injury` remain as aliases for the Step 1 paths.
 
@@ -118,6 +118,19 @@ baseline, so it is **served**; the 65% target is not met. In the app it reads th
 4 running `cardio_logs` days (`web/src/lib/ml-service/run-sessions.ts`); anyone else
 gets the completion-slope rule with `stub: true` and a `reason`. Teacher demo:
 `ml-service/demos/model4_trajectory/`.
+
+Stage 5 was rebuilt on 2026-10-28 (design decisions delegated by the user). The old
+env paid +1 for any completion rise (so PPO learned REDUCE) and was calibrated on 2
+seeded users. The new `app/rl_env.py` is calibrated on real data
+(`training/calibrate_rl_env.py`): fitness vs load ratio from Strava, injury relative risk
+vs ACWR from the runners data (nearly flat), sleep from SoccerMon; adherence/churn are
+labelled assumptions, stress-tested ±25%. Reward = 100·Δfitness − 3·injury − 20·churn.
+`safe_action` (never INCREASE while injured or on < 5.5 h sleep) is enforced in the env,
+in evaluation and in `POST /rl/action`. Two pre-registered rounds (1b3c057, 1b6e228):
+PPO always converged to INCREASE-until-churn (return ≈ −23 vs ≈ −9 for the rule and
+always-MAINTAIN, 100% churn), so it is **not served**; the masked threshold rule answers
+with `stub: true` and a `reason`. All Model 5 numbers are simulated. Teacher demo:
+`ml-service/demos/model5_rl/`.
 
 Dietary flags are a safety feature, not a nicety. They are built from ingredient
 lists (the dataset's own "vegetarian" tag is wrong on 631 recipes), guarded a

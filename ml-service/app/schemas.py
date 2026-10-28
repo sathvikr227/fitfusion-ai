@@ -317,6 +317,8 @@ class RLActionResponse(MLModel):
     confidence: float
     state: list[float]
     model_version: str
+    masked: bool = Field(default=False, description="INCREASE was replaced by MAINTAIN by the safety mask")
+    reason: str | None = Field(default=None, description="Why the threshold rule answered instead of PPO")
     stub: bool = False
 
 

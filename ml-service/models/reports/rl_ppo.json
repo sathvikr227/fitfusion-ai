@@ -1,0 +1,441 @@
+{
+  "model": "rl_ppo",
+  "trained_at": "2026-10-28T13:47:01+00:00",
+  "python": "3.12.10",
+  "status": "SIMULATED \u2014 every number comes from FitFusionEnv, not from real users",
+  "protocol": "demos/model5_rl/PROTOCOL.md (committed 1b3c057 before training)",
+  "calibration": "models/reports/rl_calibration.json",
+  "calibration_source": "C:\\Users\\Sathv\\OneDrive\\Desktop\\fitfusion-ai-wb\\ml-service\\models\\rl_calibration.json",
+  "assumptions_default": {
+    "adherence": 0.85,
+    "overload_drop": 0.6,
+    "sleep_effect": 0.04,
+    "noise": 0.07,
+    "injury_weeks": 2.0,
+    "capacity_per_fitness": 5.0,
+    "weeks": 26
+  },
+  "churn_penalty": 20.0,
+  "ppo": {
+    "algorithm": "PPO MlpPolicy (stable-baselines3 defaults)",
+    "timesteps": 100000,
+    "seeds": [
+      42,
+      0,
+      1,
+      2
+    ]
+  },
+  "evaluation": {
+    "episodes": 500,
+    "standard_seeds": [
+      100000,
+      100499
+    ],
+    "stressed_seeds": [
+      100500,
+      100999
+    ]
+  },
+  "results": {
+    "standard": {
+      "PPO seed 42": {
+        "mean_return": -23.2846,
+        "return_ci95": [
+          -23.4742,
+          -23.0937
+        ],
+        "injuries_per_episode": 0.546,
+        "churn_rate": 1.0,
+        "mean_fitness_change_pct": -1.647,
+        "action_distribution": {
+          "REDUCE": 0.0,
+          "MAINTAIN": 0.1073,
+          "INCREASE": 0.8927
+        }
+      },
+      "PPO seed 0": {
+        "mean_return": -23.2846,
+        "return_ci95": [
+          -23.4742,
+          -23.0937
+        ],
+        "injuries_per_episode": 0.546,
+        "churn_rate": 1.0,
+        "mean_fitness_change_pct": -1.647,
+        "action_distribution": {
+          "REDUCE": 0.0,
+          "MAINTAIN": 0.1073,
+          "INCREASE": 0.8927
+        }
+      },
+      "PPO seed 1": {
+        "mean_return": -23.2846,
+        "return_ci95": [
+          -23.4742,
+          -23.0937
+        ],
+        "injuries_per_episode": 0.546,
+        "churn_rate": 1.0,
+        "mean_fitness_change_pct": -1.647,
+        "action_distribution": {
+          "REDUCE": 0.0,
+          "MAINTAIN": 0.1073,
+          "INCREASE": 0.8927
+        }
+      },
+      "PPO seed 2": {
+        "mean_return": -23.2846,
+        "return_ci95": [
+          -23.4742,
+          -23.0937
+        ],
+        "injuries_per_episode": 0.546,
+        "churn_rate": 1.0,
+        "mean_fitness_change_pct": -1.647,
+        "action_distribution": {
+          "REDUCE": 0.0,
+          "MAINTAIN": 0.1073,
+          "INCREASE": 0.8927
+        }
+      },
+      "Threshold rule": {
+        "mean_return": -9.4394,
+        "return_ci95": [
+          -9.8358,
+          -9.0274
+        ],
+        "injuries_per_episode": 2.028,
+        "churn_rate": 0.022,
+        "mean_fitness_change_pct": -2.915,
+        "action_distribution": {
+          "REDUCE": 0.1827,
+          "MAINTAIN": 0.6167,
+          "INCREASE": 0.2006
+        }
+      },
+      "Always MAINTAIN": {
+        "mean_return": -9.2047,
+        "return_ci95": [
+          -9.5963,
+          -8.8307
+        ],
+        "injuries_per_episode": 2.006,
+        "churn_rate": 0.012,
+        "mean_fitness_change_pct": -2.947,
+        "action_distribution": {
+          "REDUCE": 0.0,
+          "MAINTAIN": 1.0,
+          "INCREASE": 0.0
+        }
+      },
+      "Random": {
+        "mean_return": -11.9533,
+        "return_ci95": [
+          -12.5691,
+          -11.3421
+        ],
+        "injuries_per_episode": 1.91,
+        "churn_rate": 0.15,
+        "mean_fitness_change_pct": -3.223,
+        "action_distribution": {
+          "REDUCE": 0.3403,
+          "MAINTAIN": 0.3714,
+          "INCREASE": 0.2883
+        }
+      },
+      "PPO seed 42, no trajectory": {
+        "mean_return": -23.2846,
+        "return_ci95": [
+          -23.4742,
+          -23.0937
+        ],
+        "injuries_per_episode": 0.546,
+        "churn_rate": 1.0,
+        "mean_fitness_change_pct": -1.647,
+        "action_distribution": {
+          "REDUCE": 0.0,
+          "MAINTAIN": 0.1073,
+          "INCREASE": 0.8927
+        }
+      }
+    },
+    "stressed": {
+      "PPO seed 42": {
+        "mean_return": -23.4377,
+        "return_ci95": [
+          -23.6236,
+          -23.2516
+        ],
+        "injuries_per_episode": 0.6,
+        "churn_rate": 1.0,
+        "mean_fitness_change_pct": -1.638,
+        "action_distribution": {
+          "REDUCE": 0.0,
+          "MAINTAIN": 0.1227,
+          "INCREASE": 0.8773
+        }
+      },
+      "PPO seed 0": {
+        "mean_return": -23.4377,
+        "return_ci95": [
+          -23.6236,
+          -23.2516
+        ],
+        "injuries_per_episode": 0.6,
+        "churn_rate": 1.0,
+        "mean_fitness_change_pct": -1.638,
+        "action_distribution": {
+          "REDUCE": 0.0,
+          "MAINTAIN": 0.1227,
+          "INCREASE": 0.8773
+        }
+      },
+      "PPO seed 1": {
+        "mean_return": -23.4377,
+        "return_ci95": [
+          -23.6236,
+          -23.2516
+        ],
+        "injuries_per_episode": 0.6,
+        "churn_rate": 1.0,
+        "mean_fitness_change_pct": -1.638,
+        "action_distribution": {
+          "REDUCE": 0.0,
+          "MAINTAIN": 0.1227,
+          "INCREASE": 0.8773
+        }
+      },
+      "PPO seed 2": {
+        "mean_return": -23.4377,
+        "return_ci95": [
+          -23.6236,
+          -23.2516
+        ],
+        "injuries_per_episode": 0.6,
+        "churn_rate": 1.0,
+        "mean_fitness_change_pct": -1.638,
+        "action_distribution": {
+          "REDUCE": 0.0,
+          "MAINTAIN": 0.1227,
+          "INCREASE": 0.8773
+        }
+      },
+      "Threshold rule": {
+        "mean_return": -10.4039,
+        "return_ci95": [
+          -10.9208,
+          -9.9224
+        ],
+        "injuries_per_episode": 2.074,
+        "churn_rate": 0.06,
+        "mean_fitness_change_pct": -2.982,
+        "action_distribution": {
+          "REDUCE": 0.1811,
+          "MAINTAIN": 0.6454,
+          "INCREASE": 0.1735
+        }
+      },
+      "Always MAINTAIN": {
+        "mean_return": -11.2569,
+        "return_ci95": [
+          -11.8986,
+          -10.6548
+        ],
+        "injuries_per_episode": 2.02,
+        "churn_rate": 0.118,
+        "mean_fitness_change_pct": -2.837,
+        "action_distribution": {
+          "REDUCE": 0.0,
+          "MAINTAIN": 1.0,
+          "INCREASE": 0.0
+        }
+      },
+      "Random": {
+        "mean_return": -12.9147,
+        "return_ci95": [
+          -13.6376,
+          -12.2548
+        ],
+        "injuries_per_episode": 1.892,
+        "churn_rate": 0.206,
+        "mean_fitness_change_pct": -3.119,
+        "action_distribution": {
+          "REDUCE": 0.3384,
+          "MAINTAIN": 0.3718,
+          "INCREASE": 0.2898
+        }
+      },
+      "PPO seed 42, no trajectory": {
+        "mean_return": -23.4377,
+        "return_ci95": [
+          -23.6236,
+          -23.2516
+        ],
+        "injuries_per_episode": 0.6,
+        "churn_rate": 1.0,
+        "mean_fitness_change_pct": -1.638,
+        "action_distribution": {
+          "REDUCE": 0.0,
+          "MAINTAIN": 0.1227,
+          "INCREASE": 0.8773
+        }
+      }
+    }
+  },
+  "comparisons": {
+    "standard": {
+      "PPO seed 42 minus Threshold rule": {
+        "return": {
+          "difference": -13.8453,
+          "ci95": [
+            -14.2294,
+            -13.4562
+          ]
+        },
+        "injuries": {
+          "difference": -1.482,
+          "ci95": [
+            -1.58,
+            -1.386
+          ]
+        }
+      },
+      "PPO seed 42 minus Always MAINTAIN": {
+        "return": {
+          "difference": -14.0799,
+          "ci95": [
+            -14.4353,
+            -13.7267
+          ]
+        },
+        "injuries": {
+          "difference": -1.46,
+          "ci95": [
+            -1.556,
+            -1.364
+          ]
+        }
+      },
+      "PPO seed 42 minus Random": {
+        "return": {
+          "difference": -11.3313,
+          "ci95": [
+            -11.9756,
+            -10.7129
+          ]
+        },
+        "injuries": {
+          "difference": -1.364,
+          "ci95": [
+            -1.462,
+            -1.268
+          ]
+        }
+      },
+      "PPO seed 42 minus PPO seed 42, no trajectory": {
+        "return": {
+          "difference": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ]
+        },
+        "injuries": {
+          "difference": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ]
+        }
+      }
+    },
+    "stressed": {
+      "PPO seed 42 minus Threshold rule": {
+        "return": {
+          "difference": -13.0337,
+          "ci95": [
+            -13.5078,
+            -12.5266
+          ]
+        },
+        "injuries": {
+          "difference": -1.474,
+          "ci95": [
+            -1.5681,
+            -1.382
+          ]
+        }
+      },
+      "PPO seed 42 minus Always MAINTAIN": {
+        "return": {
+          "difference": -12.1807,
+          "ci95": [
+            -12.7782,
+            -11.5292
+          ]
+        },
+        "injuries": {
+          "difference": -1.42,
+          "ci95": [
+            -1.51,
+            -1.33
+          ]
+        }
+      },
+      "PPO seed 42 minus Random": {
+        "return": {
+          "difference": -10.523,
+          "ci95": [
+            -11.1756,
+            -9.7964
+          ]
+        },
+        "injuries": {
+          "difference": -1.292,
+          "ci95": [
+            -1.386,
+            -1.206
+          ]
+        }
+      },
+      "PPO seed 42 minus PPO seed 42, no trajectory": {
+        "return": {
+          "difference": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ]
+        },
+        "injuries": {
+          "difference": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ]
+        }
+      }
+    }
+  },
+  "decision": {
+    "rule": "serve PPO seed 42 iff paired return vs best baseline has CI low > 0 AND injuries not significantly higher than the threshold rule (standard scenarios)",
+    "best_baseline": "Always MAINTAIN",
+    "return_vs_best": {
+      "difference": -14.0799,
+      "ci95": [
+        -14.4353,
+        -13.7267
+      ]
+    },
+    "injuries_vs_rule": {
+      "difference": -1.482,
+      "ci95": [
+        -1.58,
+        -1.386
+      ]
+    },
+    "serve": false,
+    "wins_on_stressed_too": false
+  },
+  "figure": "rl_ppo.png"
+}

@@ -369,7 +369,10 @@ def test_rl_action_returns_valid_action():
     )
     assert response.status_code == 200
     body = response.json()
-    assert body["stub"] is False
+    served = bool((registry.rl_meta or {}).get("serve"))
+    assert body["stub"] is (not served)
+    if not served:
+        assert body["reason"]
     assert body["action"] in {"REDUCE", "MAINTAIN", "INCREASE"}
     assert body["intensity_delta"] in {-0.15, 0.0, 0.15}
     assert len(body["state"]) == 5
