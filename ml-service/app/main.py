@@ -5,7 +5,7 @@ from fastapi import FastAPI
 
 from .config import settings
 from .model_registry import registry
-from .routers import calorie, injury, recommend, rl_action, trajectory
+from .routers import calorie, exercise, injury, recommend, rl_action, trajectory
 from .schemas import HealthResponse
 
 logging.basicConfig(level=settings.LOG_LEVEL.upper())
@@ -62,6 +62,7 @@ def health() -> HealthResponse:
 
 app.include_router(calorie.router)
 app.include_router(recommend.router)
+app.include_router(exercise.router)
 app.include_router(injury.router)
 app.include_router(trajectory.router)
 app.include_router(rl_action.router)

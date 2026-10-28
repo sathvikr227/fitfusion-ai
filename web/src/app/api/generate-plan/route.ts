@@ -2,8 +2,8 @@ import { NextResponse } from "next/server"
 import Groq from "groq-sdk"
 import { createClient } from "@supabase/supabase-js"
 
-import { recommend } from "../../../lib/ml-service"
-import type { MealSlot, RecommendResponse } from "../../../lib/ml-service"
+import { recommend, recommendExercises } from "../../../lib/ml-service"
+import type { ExerciseFocus, ExerciseResponse, MealSlot, RecommendResponse } from "../../../lib/ml-service"
 import { dietaryRestrictionsFromProfile, injuryListFromProfile } from "../../../lib/ml-service/profile"
 import {
   INJURY_MUSCLE_KEYWORDS,
@@ -639,6 +639,26 @@ function hasRecipes(rec: RecommendResponse | null): boolean {
  * meal, the real recipes it may choose from. Food.com recipes carry nutrition
  * per serving, so the plan's numbers stop being invented.
  */
+// Session types the exercise recommender is asked about for every plan.
+const EXERCISE_FOCUSES: ExerciseFocus[] = ["push", "pull", "legs", "core"]
+
+/**
+ * Model 2b output for the prompt: per session type, exercises already filtered
+ * for the user's equipment, injuries and level, ranked by content similarity.
+ */
+function buildExerciseSeed(options: ExerciseResponse[]): string {
+  const usable = options.filter((o) => o.recommendations.length > 0)
+  if (usable.length === 0) return ""
+  const lines = [
+    "EXERCISE OPTIONS — from FitFusion's exercise recommender, already filtered for this user's equipment, injuries and level:",
+  ]
+  for (const o of usable) {
+    lines.push(`${o.focus.toUpperCase()}: ${o.recommendations.map((r) => r.name).join("; ")}`)
+  }
+  lines.push("Prefer these exercises when building matching days. Do not add exercises that load an injured area.")
+  return lines.join("\n")
+}
+
 function buildMealSeed(targets: CalorieTargets | null, rec: RecommendResponse | null): string {
   if (!targets) return ""
 
@@ -989,12 +1009,31 @@ export async function POST(req: Request) {
       }
     }
 
+    // ── Stage 2b: exercise options per session type (content-based) ──────────
+    const exerciseResults = await Promise.all(
+      EXERCISE_FOCUSES.map((focus) =>
+        recommendExercises({
+          focus,
+          goal: profile?.goal ?? undefined,
+          training_style: profile?.training_style ?? undefined,
+          activity_level: profile?.activity_level ?? undefined,
+          injuries: profilePainGroups(profile),
+          k: 5,
+        })
+      )
+    )
+    const exerciseFromFallback = exerciseResults.some((r) => r.fromFallback)
+    if (exerciseFromFallback) {
+      console.warn(`[generate-plan] exercise recommender fallback: ${exerciseResults.find((r) => r.fromFallback)?.reason}`)
+    }
+    const exerciseOptions = exerciseResults.map((r) => r.data)
+
     const prompt = buildPrompt(
       profile,
       restDays,
       metrics,
       difficultyBoost,
-      buildMealSeed(targets, recommendation)
+      [buildMealSeed(targets, recommendation), buildExerciseSeed(exerciseOptions)].filter(Boolean).join("\n\n")
     )
 
     const response = await groq.chat.completions.create({
@@ -1038,6 +1077,11 @@ export async function POST(req: Request) {
         injuries: training.injuries,
         injury_groups: painGroups,
         removed_for_injury: injuryStrip.removedExercises,
+        exercise_recommender: {
+          from_fallback: exerciseFromFallback,
+          model_version: exerciseOptions[0]?.model_version ?? null,
+          options: Object.fromEntries(exerciseOptions.map((o) => [o.focus, o.recommendations.map((r) => r.name)])),
+        },
         meal_recommender: {
           daily_calorie_target: targets?.daily ?? null,
           bmr: targets?.bmr ?? null,

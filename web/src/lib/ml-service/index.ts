@@ -2,6 +2,8 @@ import { callMLService, type MLCallResult } from "./client"
 import type {
   CalorieRequest,
   CalorieResponse,
+  ExerciseRequest,
+  ExerciseResponse,
   InjuryRequest,
   InjuryResponse,
   RLActionResponse,
@@ -98,6 +100,27 @@ export function recommend(req: RecommendRequest): Promise<MLCallResult<Recommend
     applied_restrictions: [],
     unsupported_restrictions: [],
     reason: `ML service unavailable (${reason})`,
+    method: "none",
+    model_version: "fallback-empty",
+    stub: true,
+  }))
+}
+
+// ── 2b. Exercise recommender ─────────────────────────────────────────────────
+
+// Fallback returns no exercises: the plan is then written from the prompt's
+// own exercise knowledge, exactly as before this stage existed.
+export function recommendExercises(req: ExerciseRequest): Promise<MLCallResult<ExerciseResponse>> {
+  return callMLService<ExerciseRequest, ExerciseResponse>("/recommend/exercises", req, (reason) => ({
+    focus: req.focus,
+    goal: req.goal ?? "",
+    level: "",
+    allowed_equipment: [],
+    injury_groups_excluded: [],
+    excluded_counts: {},
+    candidates_after_filters: 0,
+    recommendations: [],
+    note: `ML service unavailable (${reason})`,
     method: "none",
     model_version: "fallback-empty",
     stub: true,

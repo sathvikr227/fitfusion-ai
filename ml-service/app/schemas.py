@@ -155,6 +155,49 @@ class RecommendResponse(MLModel):
     stub: bool = False
 
 
+# ── 2b. Exercise recommender (content-based) ──────────────────────────────────
+ExerciseFocus = Literal["push", "pull", "legs", "upper", "lower", "core", "full_body"]
+
+
+class ExerciseRequest(MLModel):
+    """One session. Profile fields are passed as stored ("Muscle Gain", "Home Workouts")."""
+
+    focus: ExerciseFocus
+    goal: str | None = None
+    training_style: str | None = None
+    activity_level: str | None = None
+    injuries: list[str] = Field(default_factory=list, max_length=10)
+    equipment: list[str] | None = Field(default=None, max_length=20, description="Overrides the style's equipment")
+    k: int = Field(default=5, ge=1, le=10)
+
+
+class RecommendedExercise(MLModel):
+    id: str
+    name: str
+    score: float  # cosine similarity between the session profile and the exercise
+    primary_muscles: list[str]
+    equipment: str | None = None
+    level: str | None = None
+    category: str | None = None
+    mechanic: str | None = None
+    why: str
+
+
+class ExerciseResponse(MLModel):
+    focus: str
+    goal: str
+    level: str
+    allowed_equipment: list[str]
+    injury_groups_excluded: list[str]
+    excluded_counts: dict[str, int]
+    candidates_after_filters: int
+    recommendations: list[RecommendedExercise]
+    note: str | None = None
+    method: str = "content_cosine"
+    model_version: str
+    stub: bool = False
+
+
 # ── 3. Injury risk ────────────────────────────────────────────────────────────
 class InjuryRequest(MLModel):
     """Either supply the features, or supply user_id and let the service read

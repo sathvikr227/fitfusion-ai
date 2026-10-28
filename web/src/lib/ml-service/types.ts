@@ -90,6 +90,49 @@ export type RecommendResponse = {
   stub: boolean
 }
 
+// ── 2b. Exercise recommender (content-based) ─────────────────────────────────
+export type ExerciseFocus = "push" | "pull" | "legs" | "upper" | "lower" | "core" | "full_body"
+
+export type ExerciseRequest = {
+  focus: ExerciseFocus
+  /** Profile values as stored, e.g. "Muscle Gain", "Home Workouts", "Moderately Active". */
+  goal?: string
+  training_style?: string
+  activity_level?: string
+  /** Injury groups: "knee" | "back" | "shoulder" | "hamstring". */
+  injuries?: string[]
+  equipment?: string[]
+  k?: number
+}
+
+export type RecommendedExercise = {
+  id: string
+  name: string
+  /** Cosine similarity between the session profile and the exercise. */
+  score: number
+  primary_muscles: string[]
+  equipment: string | null
+  level: string | null
+  category: string | null
+  mechanic: string | null
+  why: string
+}
+
+export type ExerciseResponse = {
+  focus: string
+  goal: string
+  level: string
+  allowed_equipment: string[]
+  injury_groups_excluded: string[]
+  excluded_counts: Record<string, number>
+  candidates_after_filters: number
+  recommendations: RecommendedExercise[]
+  note: string | null
+  method: string
+  model_version: string
+  stub: boolean
+}
+
 // ── 3. Injury risk ───────────────────────────────────────────────────────────
 export type InjuryRequest = {
   user_id: string
