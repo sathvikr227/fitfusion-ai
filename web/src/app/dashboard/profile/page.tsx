@@ -6,6 +6,14 @@ import { supabase } from "../../../lib/supabase/client"
 import { Share2, Copy } from "lucide-react"
 import { toast } from "../../../components/Toast"
 import { firstRangeError } from "../../../lib/validation"
+import { localDateStr } from "../../../lib/dates"
+
+function titleGender(value: unknown) {
+  const v = String(value ?? "").trim().toLowerCase()
+  if (v === "male" || v === "m") return "Male"
+  if (v === "female" || v === "f") return "Female"
+  return v ? "Other" : ""
+}
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -21,6 +29,7 @@ export default function ProfilePage() {
   const [email, setEmail] = useState("")
   const [fullName, setFullName] = useState("")
   const [age, setAge] = useState("")
+  const [gender, setGender] = useState("")
 
   const [goal, setGoal] = useState("")
   const [activityLevel, setActivityLevel] = useState("")
@@ -62,6 +71,7 @@ export default function ProfilePage() {
       if (data) {
         setFullName(data.full_name || "")
         setAge(data.age?.toString() || "")
+        setGender(titleGender(data.gender))
         setHeight(data.height?.toString() || "")
         setWeight(data.weight?.toString() || "")
         setGoal(data.goal || "")
@@ -69,9 +79,9 @@ export default function ProfilePage() {
         setDietPreference(data.diet_preference || "")
         setTrainingStyle(data.training_style || "")
         setInjuries(data.injuries || "")
-        setDailyTimeAvailable(data.workout_time || "")
+        setDailyTimeAvailable(data.workout_time || data.daily_time_available || "")
         setSleepHours(data.sleep_hours || "")
-        setRestDaysPerWeek(data.days_off?.toString() || "")
+        setRestDaysPerWeek((data.days_off ?? data.rest_days_per_week)?.toString() || "")
         setDietaryRestrictions(Array.isArray(data.dietary_restrictions) ? data.dietary_restrictions : [])
       }
 
@@ -85,6 +95,7 @@ export default function ProfilePage() {
     const fields = [
       fullName,
       age,
+      gender,
       height,
       weight,
       goal,
@@ -100,6 +111,7 @@ export default function ProfilePage() {
   }, [
     fullName,
     age,
+    gender,
     height,
     weight,
     goal,
@@ -139,6 +151,7 @@ export default function ProfilePage() {
         id: user.id,
         full_name: fullName || null,
         age: age ? Number(age) : null,
+        gender: gender || null,
         height: height || null,
         weight: weight || null,
         goal: goal || null,
@@ -147,8 +160,10 @@ export default function ProfilePage() {
         training_style: trainingStyle || null,
         injuries: injuries || null,
         workout_time: dailyTimeAvailable || null,
+        daily_time_available: dailyTimeAvailable || null,
         sleep_hours: sleepHours || null,
         days_off: restDaysPerWeek ? Number(restDaysPerWeek) : null,
+        rest_days_per_week: restDaysPerWeek ? Number(restDaysPerWeek) : null,
         dietary_restrictions: dietaryRestrictions.length > 0 ? dietaryRestrictions : null,
       })
 
@@ -160,7 +175,7 @@ export default function ProfilePage() {
         const weightNum = weight ? Number(weight) : null
         if (weightNum && Number.isFinite(weightNum) && weightNum > 0) {
           await supabase.from("weight_logs").upsert(
-            { user_id: user.id, weight: weightNum, date: new Date().toISOString().split("T")[0] },
+            { user_id: user.id, weight: weightNum, date: localDateStr() },
             { onConflict: "user_id,date" }
           )
         }
@@ -308,6 +323,12 @@ export default function ProfilePage() {
                   onChange={setAge}
                   placeholder="e.g. 25"
                   type="number"
+                />
+                <SelectField
+                  label="Gender"
+                  value={gender}
+                  onChange={setGender}
+                  options={["Male", "Female", "Other"]}
                 />
                 <Field
                   label="Height (cm)"
@@ -477,6 +498,7 @@ export default function ProfilePage() {
               <div className="space-y-3">
                 <SummaryRow label="Name" value={fullName} />
                 <SummaryRow label="Age" value={age ? `${age} yrs` : ""} />
+                <SummaryRow label="Gender" value={gender} />
                 <SummaryRow label="Height" value={height ? `${height} cm` : ""} />
                 <SummaryRow label="Weight" value={weight ? `${weight} kg` : ""} />
                 <SummaryRow label="Goal" value={goal} />

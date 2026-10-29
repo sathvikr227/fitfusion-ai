@@ -3,6 +3,9 @@
 import { useEffect, useMemo, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "../../../lib/supabase/client"
+import { currentStreak, daysAgoStr, localDateStr, plural } from "../../../lib/dates"
+import { saveWater, waterGoalMl as waterGoalFor } from "../../../lib/water"
+import { isRestDay } from "../../../lib/plan-structure"
 import {
   Activity,
   Flame,
@@ -83,38 +86,11 @@ function safePlan(value: unknown): LatestPlan | null {
 }
 
 function todayStr() {
-  return new Date().toISOString().split("T")[0]
+  return localDateStr()
 }
 
 function sevenDaysAgo() {
-  const d = new Date()
-  d.setDate(d.getDate() - 7)
-  return d.toISOString().split("T")[0]
-}
-
-function calcStreak(dates: string[]): number {
-  const unique = Array.from(
-    new Set(dates.map((d) => new Date(d).toISOString().split("T")[0]))
-  ).sort().reverse()
-
-  if (unique.length === 0) return 0
-
-  const today = todayStr()
-  const yesterday = new Date()
-  yesterday.setDate(yesterday.getDate() - 1)
-  const yesterdayStr = yesterday.toISOString().split("T")[0]
-
-  if (unique[0] !== today && unique[0] !== yesterdayStr) return 0
-
-  let streak = 1
-  for (let i = 1; i < unique.length; i++) {
-    const prev = new Date(unique[i - 1])
-    const curr = new Date(unique[i])
-    const diffDays = Math.round((prev.getTime() - curr.getTime()) / 86400000)
-    if (diffDays === 1) streak++
-    else break
-  }
-  return streak
+  return daysAgoStr(7)
 }
 
 function computeFallbackMetrics(profile: {
@@ -269,6 +245,7 @@ export default function HomeDashboard() {
   const [latestWeight, setLatestWeight] = useState<number | null>(null)
   const [metrics, setMetrics] = useState<BodyMetrics | null>(null)
   const [workoutLogs, setWorkoutLogs] = useState<WorkoutLogRow[]>([])
+  const [streakDates, setStreakDates] = useState<string[]>([])
   const [mealLogs, setMealLogs] = useState<MealLogRow[]>([])
   const [latestPlan, setLatestPlan] = useState<LatestPlan | null>(null)
   const [loading, setLoading] = useState(true)
@@ -280,10 +257,8 @@ export default function HomeDashboard() {
   // Tracked in 250ml steps, displayed in liters.
   const STEP_ML = 250
   const waterKey = `water-ml-${todayStr()}`
-  const waterGoalL = latestWeight
-    ? Math.min(4, Math.max(2, Math.round(latestWeight * 0.033 * 10) / 10))
-    : 2.5
-  const waterGoalMl = Math.round(waterGoalL * 1000)
+  const waterGoalMl = waterGoalFor(latestWeight)
+  const waterGoalL = waterGoalMl / 1000
   const [waterMl, setWaterMl] = useState(0)
   const [reminderTime, setReminderTime] = useState("")
   const [reminderSet, setReminderSet] = useState(false)
@@ -330,20 +305,11 @@ export default function HomeDashboard() {
   }, [])
 
   const addWater = useCallback((delta: number) => {
-    setWaterMl((prev) => {
-      const next = Math.max(0, Math.min(waterGoalMl + 1000, prev + delta * STEP_ML))
-      // Persist to localStorage as fast fallback
-      localStorage.setItem(waterKey, String(next))
-      // Persist to Supabase if logged in
-      if (userId) {
-        supabase.from("water_logs").upsert(
-          { user_id: userId, date: todayStr(), amount_ml: next },
-          { onConflict: "user_id,date" }
-        ).then(() => {}) // fire-and-forget
-      }
-      return next
-    })
-  }, [waterKey, waterGoalMl, userId])
+    const next = Math.max(0, Math.min(waterGoalMl + 1000, waterMl + delta * STEP_ML))
+    setWaterMl(next)
+    if (userId) void saveWater(userId, todayStr(), next)
+    else localStorage.setItem(waterKey, String(next))
+  }, [waterKey, waterGoalMl, waterMl, userId])
 
   useEffect(() => {
     const load = async () => {
@@ -351,7 +317,6 @@ export default function HomeDashboard() {
 
       if (!user) { router.push("/login"); return }
 
-      setUsername(user.email?.split("@")[0] ?? "User")
       setUserId(user.id)
 
       // Load today's water intake from Supabase
@@ -380,6 +345,7 @@ export default function HomeDashboard() {
         planRes,
         profileMacrosRes,
         todayMealRes,
+        streakRes,
       ] = await Promise.all([
         supabase
           .from("weight_logs")
@@ -412,17 +378,25 @@ export default function HomeDashboard() {
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle(),
-        supabase.from("profiles").select("calorie_target, protein_target, carbs_target, fat_target, height, weight, age, gender, goal").eq("id", user.id).maybeSingle(),
+        supabase.from("profiles").select("full_name, calorie_target, protein_target, carbs_target, fat_target, height, weight, age, gender, goal").eq("id", user.id).maybeSingle(),
         supabase.from("meal_logs").select("total_calories, total_protein, total_carbs, total_fat").eq("user_id", user.id).eq("date", todayStr()),
+        supabase.from("workout_logs").select("date").eq("user_id", user.id).gte("date", daysAgoStr(90)),
       ])
 
-      const latestWeightKg = weightRes.data?.weight ?? null
+      const profileData = profileMacrosRes.data
+      const firstName = String(profileData?.full_name ?? "").trim().split(/\s+/)[0]
+      setUsername(firstName || user.email?.split("@")[0] || "there")
+
+      // Onboarding stores weight on the profile; weight_logs is empty until the
+      // first weigh-in, so fall back to it instead of showing "--".
+      const profileWeight = Number(profileData?.weight)
+      const latestWeightKg = weightRes.data?.weight ?? (Number.isFinite(profileWeight) && profileWeight > 0 ? profileWeight : null)
       if (latestWeightKg != null) setLatestWeight(latestWeightKg)
       setWorkoutLogs(workoutRes.data ?? [])
+      setStreakDates((streakRes.data ?? []).map((r: { date: string | null }) => r.date ?? ""))
       setMealLogs(mealRes.data ?? [])
       if (planRes.data?.plan) setLatestPlan(safePlan(planRes.data.plan))
 
-      const profileData = profileMacrosRes.data
       if (profileData) {
         setMacroTargets({
           calories: profileData.calorie_target ?? 0,
@@ -457,8 +431,8 @@ export default function HomeDashboard() {
   // ── Derived stats ──────────────────────────────────────────────────────────
 
   const streak = useMemo(() => {
-    return calcStreak(workoutLogs.map((w) => w.date ?? w.created_at))
-  }, [workoutLogs])
+    return currentStreak(streakDates)
+  }, [streakDates])
 
   const weeklyCaloriesBurned = useMemo(() => {
     return workoutLogs.reduce((s, w) => s + safeNum(w.total_calories), 0)
@@ -476,9 +450,7 @@ export default function HomeDashboard() {
     if (!latestPlan) return null
     const meals = latestPlan.diet_plan?.meals ?? []
     const workoutDays = latestPlan.workout_plan ?? []
-    const activeWorkoutDays = workoutDays.filter(
-      (d) => d.type?.toLowerCase() !== "rest"
-    )
+    const activeWorkoutDays = workoutDays.filter((d) => !isRestDay(d))
     const dailyCalories =
       latestPlan.diet_plan?.daily_total_calories ??
       meals.reduce((s, m) => s + safeNum(m.total_calories), 0)
@@ -496,7 +468,7 @@ export default function HomeDashboard() {
 
   // ── Today's workout card ───────────────────────────────────────────────────
   const todayWorkout = planSummary?.todayWorkout
-  const isRestDay = todayWorkout?.type?.toLowerCase() === "rest"
+  const todayIsRest = isRestDay(todayWorkout)
 
   if (loading) {
     return (
@@ -578,7 +550,7 @@ export default function HomeDashboard() {
                 <Flame className="h-5 w-5 text-orange-500" />
                 <div>
                   <p className="text-xs text-orange-500">Streak</p>
-                  <p className="text-lg font-bold text-orange-700">{streak} days</p>
+                  <p className="text-lg font-bold text-orange-700">{plural(streak, "day")}</p>
                 </div>
               </div>
             )}
@@ -586,7 +558,7 @@ export default function HomeDashboard() {
               <Trophy className="h-5 w-5 text-purple-500" />
               <div>
                 <p className="text-xs text-purple-500">This week</p>
-                <p className="text-lg font-bold text-purple-700">{workoutSessionsThisWeek} sessions</p>
+                <p className="text-lg font-bold text-purple-700">{plural(workoutSessionsThisWeek, "session")}</p>
               </div>
             </div>
           </div>
@@ -680,14 +652,14 @@ export default function HomeDashboard() {
 
             {/* ── Today's workout ── */}
             {todayWorkout && (
-              <div className={`rounded-3xl border p-6 shadow-sm ${isRestDay ? "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800" : "border-purple-200 dark:border-purple-900 bg-gradient-to-br from-purple-50 to-cyan-50 dark:from-purple-900/30 dark:to-cyan-900/20"}`}>
+              <div className={`rounded-3xl border p-6 shadow-sm ${todayIsRest ? "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800" : "border-purple-200 dark:border-purple-900 bg-gradient-to-br from-purple-50 to-cyan-50 dark:from-purple-900/30 dark:to-cyan-900/20"}`}>
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-xs font-medium uppercase tracking-wide text-purple-600">Today</p>
                     <h2 className="mt-1 text-xl font-bold text-slate-900 dark:text-white">
-                      {isRestDay ? "Rest Day" : `${todayWorkout.day ?? "Workout"} — ${todayWorkout.type ?? "Training"}`}
+                      {todayIsRest ? "Rest Day" : `${todayWorkout.day ?? "Workout"} — ${todayWorkout.type ?? "Training"}`}
                     </h2>
-                    {!isRestDay && todayWorkout.estimated_calories_burned != null && (
+                    {!todayIsRest && todayWorkout.estimated_calories_burned != null && (
                       <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                         Est. {todayWorkout.estimated_calories_burned} kcal burn
                       </p>
@@ -701,7 +673,7 @@ export default function HomeDashboard() {
                   </button>
                 </div>
 
-                {!isRestDay && Array.isArray(todayWorkout.exercises) && todayWorkout.exercises.length > 0 && (
+                {!todayIsRest && Array.isArray(todayWorkout.exercises) && todayWorkout.exercises.length > 0 && (
                   <div className="mt-5 space-y-2">
                     {todayWorkout.exercises.map((ex, i) => (
                       <div
@@ -721,7 +693,7 @@ export default function HomeDashboard() {
                   </div>
                 )}
 
-                {isRestDay && (
+                {todayIsRest && (
                   <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
                     Recovery is part of the plan. Stretch, hydrate, and sleep well.
                   </p>

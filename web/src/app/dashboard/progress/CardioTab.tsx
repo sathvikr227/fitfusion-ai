@@ -11,6 +11,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts"
+import { localDateStr } from "../../../lib/dates"
 
 type CardioLog = {
   id: string
@@ -64,7 +65,7 @@ const ACTIVITY_EMOJI: Record<string, string> = {
 }
 
 function todayStr() {
-  return new Date().toISOString().split("T")[0]
+  return localDateStr()
 }
 
 function formatDate(val: string | null | undefined) {

@@ -11,13 +11,22 @@ function getGroqClient() {
   return new Groq({ apiKey })
 }
 
-function getSupabase() {
+function getSupabase(token?: string) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   if (!supabaseUrl || !supabaseAnonKey) {
     throw new Error("Supabase environment variables are missing")
   }
-  return createClient(supabaseUrl, supabaseAnonKey)
+  // With the user's token, reads run under their row-level security.
+  return createClient(supabaseUrl, supabaseAnonKey, token
+    ? { global: { headers: { Authorization: `Bearer ${token}` } } }
+    : undefined)
+}
+
+function trainingDaysFrom(profile: { days_off?: unknown; rest_days_per_week?: unknown } | null): number {
+  const rest = Number(profile?.days_off ?? profile?.rest_days_per_week)
+  if (!Number.isFinite(rest) || rest < 0 || rest > 6) return 4
+  return Math.max(1, 7 - rest)
 }
 
 function extractJson(text: string): string {
@@ -47,6 +56,19 @@ export async function POST(req: Request) {
 
     const groq = getGroqClient()
     const body = await req.json()
+
+    // The roadmap ignored the user's diet and injuries, and its "days per week"
+    // didn't match its own day list. Read them from the profile and enforce.
+    const { data: profile } = await getSupabase(token)
+      .from("profiles")
+      .select("diet_preference, dietary_restrictions, injuries, days_off, rest_days_per_week")
+      .eq("id", user.id)
+      .maybeSingle()
+    const trainingDays = trainingDaysFrom(profile)
+    const diet = String(profile?.diet_preference ?? "").trim() || "no preference"
+    const restrictions = Array.isArray(profile?.dietary_restrictions) ? profile.dietary_restrictions.join(", ") : ""
+    const injuryText = String(profile?.injuries ?? "").trim()
+    const hasInjury = injuryText !== "" && !["no", "none", "na", "n/a", "nil"].includes(injuryText.toLowerCase())
     const {
       currentWeight,
       currentBodyFat,
@@ -73,6 +95,14 @@ User Profile:
 - Activity level: ${activityLevel}
 - Primary goal: ${goal}
 - Timeframe: ${timeframeWeeks} weeks
+- Diet: ${diet}${restrictions ? ` (restrictions: ${restrictions})` : ""}
+- Injuries / limitations: ${hasInjury ? injuryText : "none"}
+- Training days per week available: ${trainingDays}
+
+Hard rules:
+- Every food suggestion and tip must fit the diet above (Vegetarian = no meat, fish or egg; Eggetarian allows egg; Vegan = no animal products).
+- ${hasInjury ? `Do not suggest exercises that load the injured area (${injuryText}); suggest safe alternatives.` : "No injury constraints."}
+- workoutSplit.daysPerWeek must be exactly ${trainingDays} and workoutSplit.structure must list exactly ${trainingDays} training days.
 
 Respond ONLY with valid JSON matching this exact schema:
 {
@@ -113,6 +143,12 @@ Respond ONLY with valid JSON matching this exact schema:
       roadmap = JSON.parse(jsonStr)
     } catch {
       throw new Error("Could not parse AI-generated roadmap as valid JSON")
+    }
+
+    if (roadmap?.workoutSplit) {
+      const structure = Array.isArray(roadmap.workoutSplit.structure) ? roadmap.workoutSplit.structure : []
+      roadmap.workoutSplit.structure = structure.slice(0, trainingDays)
+      roadmap.workoutSplit.daysPerWeek = roadmap.workoutSplit.structure.length || trainingDays
     }
 
     return NextResponse.json({ roadmap })

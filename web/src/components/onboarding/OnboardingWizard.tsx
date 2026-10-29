@@ -184,10 +184,13 @@ export default function OnboardingWizard() {
         training_style: formData.trainingStyle || null,
         injuries: formData.injuries || null,
         daily_time_available: formData.dailyTimeAvailable || null,
+        // Profile and plan generation read these names too.
+        workout_time: formData.dailyTimeAvailable || null,
         sleep_hours: formData.sleepHours || null,
         rest_days_per_week: formData.restDaysPerWeek
           ? Number(formData.restDaysPerWeek)
           : null,
+        days_off: formData.restDaysPerWeek ? Number(formData.restDaysPerWeek) : null,
         onboarding_completed: true,
       }
 

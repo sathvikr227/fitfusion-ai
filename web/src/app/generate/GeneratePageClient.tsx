@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { supabase } from "../../lib/supabase/client"
+import { isRestDay } from "../../lib/plan-structure"
 
 type DietItem = {
   food: string
@@ -86,7 +87,7 @@ function getWorkoutDayBurn(day: WorkoutDay) {
 }
 
 function getActualWorkoutDays(workoutDays: WorkoutDay[]) {
-  return workoutDays.filter((day) => String(day.type ?? "").toLowerCase() !== "rest").length
+  return workoutDays.filter((day) => !isRestDay(day)).length
 }
 
 export default function GeneratePage() {

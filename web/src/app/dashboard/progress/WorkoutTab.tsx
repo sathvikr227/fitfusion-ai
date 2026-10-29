@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import { currentStreak as streakFromDates, localDateStr, parseDbTimestamp } from "../../../lib/dates"
 import { supabase } from "../../../lib/supabase/client"
 import { MET_VALUES, estimateExerciseDurationMinutes } from "../../../lib/calories"
 
@@ -82,12 +83,12 @@ function safeParseJson(value: any) {
 }
 
 function todayDateString() {
-  return new Date().toISOString().split("T")[0]
+  return localDateStr()
 }
 
 function formatDateTime(value: string | null | undefined) {
   if (!value) return "Unknown date"
-  const d = new Date(value)
+  const d = parseDbTimestamp(value)
   if (Number.isNaN(d.getTime())) return "Unknown date"
   return d.toLocaleString()
 }
@@ -106,7 +107,7 @@ function getDateForDayIndex(index: number): string {
   const diff = index - dayIndexForToday()
   const target = new Date(today)
   target.setDate(today.getDate() + diff)
-  return target.toISOString().split("T")[0]
+  return localDateStr(target)
 }
 
 /**
@@ -359,29 +360,7 @@ function inferWeightFromRow(row: any) {
 }
 
 function calculateCurrentStreak(rows: WorkoutLogRow[]) {
-  const uniqueDates = Array.from(
-    new Set(
-      rows
-        .map((row) => row.date)
-        .filter((date): date is string => Boolean(date))
-    )
-  ).sort((a, b) => b.localeCompare(a))
-
-  let streak = 0
-  const cursor = new Date()
-  cursor.setHours(0, 0, 0, 0)
-
-  for (const date of uniqueDates) {
-    const expected = cursor.toISOString().split("T")[0]
-    if (date === expected) {
-      streak += 1
-      cursor.setDate(cursor.getDate() - 1)
-      continue
-    }
-    if (date < expected) break
-  }
-
-  return streak
+  return streakFromDates(rows.map((row) => row.date))
 }
 
 export default function WorkoutTab() {
@@ -825,7 +804,7 @@ export default function WorkoutTab() {
       console.error("Error saving custom workout:", error?.message || error)
       setStatusMessage(
         error?.message ||
-          "Could not save custom workout. Check your workout_logs and exercise_logs tables."
+          "Could not save your workout. Please try again."
       )
     } finally {
       setSaving(false)
@@ -879,7 +858,7 @@ export default function WorkoutTab() {
       console.error("Error completing assigned workout:", error?.message || error)
       setStatusMessage(
         error?.message ||
-          "Could not mark workout completed. Check your workout_logs and exercise_logs tables."
+          "Could not mark the workout completed. Please try again."
       )
     } finally {
       setSaving(false)

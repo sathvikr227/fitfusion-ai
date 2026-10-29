@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "../../../lib/supabase/client"
 import { Bot, Send, Loader2, Zap, Flame, Scale, Target, ChevronRight } from "lucide-react"
+import { localDateStr } from "../../../lib/dates"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -39,7 +40,7 @@ function generateId() {
 }
 
 function todayStr() {
-  return new Date().toISOString().split("T")[0]
+  return localDateStr()
 }
 
 function daysAgoStr(n: number) {

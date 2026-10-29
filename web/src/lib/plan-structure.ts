@@ -2,9 +2,13 @@
 
 type Day = { day?: string; type?: string | null; exercises?: unknown[] }
 
-function isRest(day: Day) {
-  return String(day?.type ?? "").toLowerCase() === "rest" || !Array.isArray(day?.exercises) || day.exercises.length === 0
+/** A rest day: typed as rest ("Rest", "Rest Day", "Rest / Recovery") or with no exercises. Every page counts workout days with this. */
+export function isRestDay(day: Day | null | undefined) {
+  if (!day) return true
+  return /\brest\b/i.test(String(day.type ?? "")) || !Array.isArray(day.exercises) || day.exercises.length === 0
 }
+
+const isRest = isRestDay
 
 /** Muscle-group family of a training day, from its type label. */
 export function dayFocus(day: Day): string {

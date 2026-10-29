@@ -2,6 +2,50 @@ import { NextResponse } from "next/server"
 import Groq from "groq-sdk"
 import { createClient } from "@supabase/supabase-js"
 import { GROQ_MODEL } from "../../../lib/groq-model"
+import { calculateWorkoutCalories, estimateExerciseDurationMinutes, type LoggedExercise } from "../../../lib/calories"
+import { applyInjuryAdjustments, painGroupsFromText, type PlanDay } from "../../../lib/ml-service/injury-rules"
+import { injuryListFromProfile } from "../../../lib/ml-service/profile"
+import { isRestDay } from "../../../lib/plan-structure"
+
+/**
+ * The LLM edits exercises but copies the old burn figures, so "Modify with AI"
+ * left the plan's calories stale. Recompute each day from its exercises (MET x
+ * body weight x estimated minutes), and strip anything that loads an area the
+ * profile lists as injured: the edit request must not bypass that constraint.
+ */
+type ChatPlan = {
+  workout_plan?: PlanDay[]
+  diet_plan?: { meals?: Array<{ total_calories?: unknown }>; [key: string]: unknown }
+  [key: string]: unknown
+}
+
+function enforcePlanRules(plan: ChatPlan, profile: { weight?: unknown; injuries?: string | null } | null) {
+  if (!plan || !Array.isArray(plan.workout_plan)) return plan
+  const bodyWeight = Number(profile?.weight)
+  const weightKg = bodyWeight > 0 ? bodyWeight : 70
+  const groups = painGroupsFromText("", injuryListFromProfile(profile ?? {}))
+  const stripped = applyInjuryAdjustments(plan.workout_plan, groups, { addRestDay: false }).workoutPlan
+  const workout_plan = stripped.map((day) => {
+    const exercises = Array.isArray(day?.exercises) ? day.exercises : []
+    const burn = isRestDay(day)
+      ? 0
+      : exercises.reduce(
+          (sum, ex) =>
+            sum + calculateWorkoutCalories(weightKg, estimateExerciseDurationMinutes(ex as LoggedExercise), String(ex?.name ?? "")),
+          0
+        )
+    return { ...day, estimated_calories_burned: Math.round(burn) }
+  })
+
+  const meals = Array.isArray(plan?.diet_plan?.meals) ? plan.diet_plan.meals : null
+  const diet_plan = meals
+    ? {
+        ...plan.diet_plan,
+        daily_total_calories: meals.reduce((sum, m) => sum + (Number(m?.total_calories) || 0), 0),
+      }
+    : plan.diet_plan
+  return { ...plan, workout_plan, diet_plan }
+}
 
 export const runtime = "nodejs"
 
@@ -75,7 +119,8 @@ export async function POST(req: Request) {
         .eq("id", validSessionId)
         .maybeSingle()
 
-      if (sessionError || !session) {
+      // A session id alone must not expose another user's chat history.
+      if (sessionError || !session || session.user_id !== authUser.id) {
         return NextResponse.json(
           { error: "Chat session not found" },
           { status: 404 }
@@ -162,7 +207,12 @@ Use exactly this structure:
       throw new Error("No response from AI")
     }
 
-    const plan = extractJson(raw)
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("weight, injuries")
+      .eq("id", authUser.id)
+      .maybeSingle()
+    const plan = enforcePlanRules(extractJson(raw), profile)
 
     // Note: plan persistence to workout_plans is handled by the client (dashboard)
     // to avoid double writes. We only persist the chat messages here.

@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "../../../lib/supabase/client"
 import { toast } from "../../../components/Toast"
+import { localDateStr, parseDbTimestamp } from "../../../lib/dates"
+import { isRestDay } from "../../../lib/plan-structure"
 
 type DietItem = {
   food: string
@@ -97,12 +99,12 @@ function getWorkoutDayBurn(day: WorkoutDay) {
 }
 
 function formatDateTime(value: string) {
-  return new Date(value).toLocaleString()
+  return parseDbTimestamp(value).toLocaleString()
 }
 
 function getActualWorkoutDays(workoutDays: WorkoutDay[]) {
   return workoutDays.filter(
-    (day) => String(day.type ?? "").toLowerCase() !== "rest"
+    (day) => !isRestDay(day)
   ).length
 }
 
@@ -145,7 +147,7 @@ function getTodayWorkoutDay(workoutDays: WorkoutDay[]): WorkoutDay | null {
 }
 
 function todayDateStr() {
-  return new Date().toISOString().split("T")[0]
+  return localDateStr()
 }
 
 function getExerciseTip(name: string): string {
@@ -257,7 +259,7 @@ export default function PlanPage() {
 
   const todayExercises = useMemo(() => {
     if (!todayWorkoutDay) return []
-    if (todayWorkoutDay.type?.toLowerCase() === "rest") return []
+    if (isRestDay(todayWorkoutDay)) return []
     return todayWorkoutDay.exercises ?? []
   }, [todayWorkoutDay])
 
@@ -595,6 +597,19 @@ export default function PlanPage() {
     }
   }
 
+  const reloadPlans = async (uid: string) => {
+    const { data: plans } = await supabase
+      .from("workout_plans")
+      .select("*")
+      .eq("user_id", uid)
+      .order("created_at", { ascending: false })
+      .limit(8)
+    if (plans && plans.length > 0) {
+      setPlanContent(plans[0].plan)
+      setHistory(plans as PlanHistoryItem[])
+    }
+  }
+
   const handleUpgradeDifficulty = async () => {
     setUpgradingDifficulty(true)
     setStatus(null)
@@ -615,7 +630,7 @@ export default function PlanPage() {
       if (!res.ok) throw new Error(data?.error || "Failed to upgrade plan")
       setStatus("🔥 Plan upgraded to higher difficulty!")
       setCompletionRate(0)
-      router.refresh()
+      await reloadPlans(user.id)
     } catch (err: any) {
       setStatus(err.message || "Failed to upgrade plan")
     } finally {
@@ -657,7 +672,7 @@ export default function PlanPage() {
       }
 
       setStatus("✅ Plan regenerated successfully")
-      router.refresh()
+      await reloadPlans(user.id)
     } catch (err: any) {
       setStatus(err.message || "Failed to regenerate plan")
     } finally {
@@ -723,14 +738,18 @@ export default function PlanPage() {
           <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm">
             <p className="text-sm text-slate-500 dark:text-slate-400">Workout Days</p>
             <h2 className="mt-2 text-3xl font-bold tracking-tight">
-              {workoutDays.length}
+              {activeWorkoutDays}
             </h2>
+            <p className="mt-1 text-xs text-slate-400">
+              {workoutDays.length - activeWorkoutDays} rest
+            </p>
           </div>
         </div>
 
         <div className="grid gap-6 xl:grid-cols-12">
           <div className="space-y-6 xl:col-span-8">
-            <div className="grid gap-6 md:grid-cols-2">
+            {/* Two side-by-side cards only once there is room (cramped at ~1,050 px). */}
+            <div className="grid gap-6 2xl:grid-cols-2">
               {/* Workout Plan */}
               <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm">
                 <div className="mb-5 flex items-center justify-between gap-3">

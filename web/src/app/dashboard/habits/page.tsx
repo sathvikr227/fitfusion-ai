@@ -11,6 +11,7 @@ import {
   X,
   Sparkles,
 } from "lucide-react"
+import { localDateStr, parseDbTimestamp } from "../../../lib/dates"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -46,14 +47,14 @@ const COLOR_OPTIONS = [
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function todayStr() {
-  return new Date().toISOString().split("T")[0]
+  return localDateStr()
 }
 
 function last7Days(): string[] {
   return Array.from({ length: 7 }, (_, i) => {
     const d = new Date()
     d.setDate(d.getDate() - (6 - i))
-    return d.toISOString().split("T")[0]
+    return localDateStr(d)
   })
 }
 
@@ -201,8 +202,14 @@ export default function HabitsPage() {
     ).length
     return acc + dayCount
   }, 0)
-  const weekPct = habits.length > 0
-    ? Math.round((weekDone / (habits.length * 7)) * 100)
+  // Only count the days each habit has existed: a habit added today and
+  // ticked once is 100%, not 1/7 = 14%.
+  const weekPossible = habits.reduce((acc, h) => {
+    const created = h.created_at ? localDateStr(parseDbTimestamp(h.created_at)) : days7[0]
+    return acc + days7.filter((day) => day >= created).length
+  }, 0)
+  const weekPct = weekPossible > 0
+    ? Math.round((weekDone / weekPossible) * 100)
     : 0
 
   // ── Render ────────────────────────────────────────────────────────────────────

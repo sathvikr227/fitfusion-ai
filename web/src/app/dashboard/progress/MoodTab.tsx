@@ -12,6 +12,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts"
+import { localDateStr } from "../../../lib/dates"
 
 type MoodLog = {
   id: string
@@ -29,7 +30,7 @@ const MOOD_EMOJIS   = ["", "😢", "😕", "😐", "😊", "😄"]
 const STRESS_EMOJIS = ["", "😌", "🙂", "😐", "😤", "🤯"]
 
 function todayStr() {
-  return new Date().toISOString().split("T")[0]
+  return localDateStr()
 }
 
 function getLast7Days(): string[] {

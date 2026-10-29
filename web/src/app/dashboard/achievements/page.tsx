@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
+import { currentStreak, parseDbTimestamp } from "../../../lib/dates"
 import { supabase } from "../../../lib/supabase/client"
 import { Lock, Star, Zap, Trophy } from "lucide-react"
 
@@ -46,21 +47,7 @@ type EarnedMap = Record<string, string> // achievementId -> unlocked_at ISO stri
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function calcStreak(dates: string[]): number {
-  const unique = Array.from(new Set(dates.map((d) => d.split("T")[0]))).sort().reverse()
-  if (!unique.length) return 0
-  const today = new Date().toISOString().split("T")[0]
-  const yesterday = new Date()
-  yesterday.setDate(yesterday.getDate() - 1)
-  const yest = yesterday.toISOString().split("T")[0]
-  if (unique[0] !== today && unique[0] !== yest) return 0
-  let streak = 1
-  for (let i = 1; i < unique.length; i++) {
-    const prev = new Date(unique[i - 1])
-    const curr = new Date(unique[i])
-    if (Math.round((prev.getTime() - curr.getTime()) / 86400000) === 1) streak++
-    else break
-  }
-  return streak
+  return currentStreak(dates)
 }
 
 function getDistinctDays(rows: { date?: string | null; created_at?: string }[]): string[] {
@@ -135,7 +122,7 @@ export default function AchievementsPage() {
     const hasPlan = (plans ?? []).length > 0
 
     const earlyBird = workouts.some((w) => {
-      const h = new Date(w.created_at).getHours()
+      const h = parseDbTimestamp(w.created_at).getHours()
       return h < 7
     })
 

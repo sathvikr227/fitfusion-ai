@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { authHeaders } from "../../../lib/supabase/client";
 import {
@@ -82,6 +82,12 @@ export default function HelpPage() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<HelpResult | null>(null);
   const [error, setError] = useState("");
+
+  // Results render below the search card; bring them into view when they arrive.
+  useEffect(() => {
+    if (!result) return;
+    document.getElementById("result-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [result]);
 
   const buildYoutubeUrl = (searchText: string) => {
     return `https://www.youtube.com/results?search_query=${encodeURIComponent(searchText)}`;

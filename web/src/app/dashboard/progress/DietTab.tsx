@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import type { ReactNode } from "react"
 import { supabase, authHeaders } from "../../../lib/supabase/client"
+import { localDateStr, plural } from "../../../lib/dates"
+import { mealTypeFromName } from "../../../lib/meal-type"
 import {
   Camera,
   CheckCircle2,
@@ -124,7 +126,15 @@ function asNumber(value: unknown, fallback = 0) {
 }
 
 function todayISO() {
-  return new Date().toISOString().slice(0, 10)
+  return localDateStr()
+}
+
+const SOURCE_LABEL: Record<FoodItem["source"], string> = {
+  manual: "Manual",
+  "ai-text": "AI (text)",
+  "ai-image": "AI (photo)",
+  assigned: "Plan",
+  db: "Logged",
 }
 
 function formatDate(dateStr: string) {
@@ -162,7 +172,9 @@ function normalizeAssignedDiet(raw: unknown): AssignedMeal[] {
 
     return meals.map((meal: any, index: number) => ({
       name: String(meal?.name ?? meal?.meal_name ?? `Meal ${index + 1}`),
-      meal_type: normalizeMealType(meal?.meal_type ?? meal?.mealType, index),
+      meal_type: (meal?.meal_type ?? meal?.mealType)
+        ? normalizeMealType(meal?.meal_type ?? meal?.mealType, index)
+        : mealTypeFromName(meal?.name ?? meal?.meal_name, index),
       target_calories: asNumber(meal?.target_calories, 0),
       target_protein: asNumber(meal?.target_protein, 0),
       target_carbs: asNumber(meal?.target_carbs, 0),
@@ -321,6 +333,20 @@ export default function DietTab() {
       { calories: 0, protein: 0, carbs: 0, fat: 0 }
     )
   }, [mealItems])
+
+  const pendingItems = useMemo(() => mealItems.filter((item) => item.source !== "db"), [mealItems])
+  const pendingTotals = useMemo(() => {
+    return pendingItems.reduce<MacroTotals>(
+      (acc, item) => {
+        acc.calories += asNumber(item.calories)
+        acc.protein += asNumber(item.protein)
+        acc.carbs += asNumber(item.carbs)
+        acc.fat += asNumber(item.fat)
+        return acc
+      },
+      { calories: 0, protein: 0, carbs: 0, fat: 0 }
+    )
+  }, [pendingItems])
 
   const assignedTotals = useMemo(() => {
     return assignedDiet.reduce<MacroTotals>(
@@ -786,11 +812,12 @@ export default function DietTab() {
           .eq("user_id", userId)
           .eq("date", selectedDate)
           .eq("meal_type", group.mealType)
-          .maybeSingle()
+          .order("created_at", { ascending: true })
+          .limit(1)
 
         if (existingError) throw existingError
 
-        let mealLogId = existingLog?.id
+        let mealLogId = existingLog?.[0]?.id
 
         if (!mealLogId) {
           const { data, error } = await supabase
@@ -901,12 +928,21 @@ export default function DietTab() {
             total_carbs: Math.round(totals.carbs),
             total_fat: Math.round(totals.fat),
             is_completed: true,
+            is_assigned: true,
           })
           .select("id")
           .single()
 
         if (logError) throw logError
         mealLogId = logRow?.id ?? ""
+
+        // Tick the same meal on the Today page.
+        if (assignedMeal?.name) {
+          await supabase.from("meal_execution").upsert(
+            { user_id: userId, date: selectedDate, meal_name: assignedMeal.name, eaten: true },
+            { onConflict: "user_id,date,meal_name" }
+          )
+        }
 
         if (mealLogId) {
           const { error: itemError } = await supabase.from("meal_items").insert(
@@ -1080,7 +1116,7 @@ export default function DietTab() {
             <div className="mt-5 grid gap-3 md:grid-cols-2">
               <div>
                 <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Meal type</label>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <div className="grid grid-cols-2 gap-2 2xl:grid-cols-4">
                   {MEAL_OPTIONS.map((type) => (
                     <button
                       key={type}
@@ -1247,19 +1283,20 @@ export default function DietTab() {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Meal in progress</h3>
-                <p className="mt-1 text-sm text-slate-500">Items added for {mealLabel[mealType]}.</p>
+                <p className="mt-1 text-sm text-slate-500">
+                  {pendingItems.length > 0 ? "Added but not saved yet." : "Nothing waiting to be saved."}
+                </p>
               </div>
               <div className="rounded-2xl bg-slate-100 dark:bg-slate-700 px-3 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
-                {mealItems.filter((i) => i.mealType === mealType).length} item
-                {mealItems.filter((i) => i.mealType === mealType).length === 1 ? "" : "s"}
+                {plural(pendingItems.length, "item")}
               </div>
             </div>
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <MacroCard label="Calories" value={totals.calories} unit=" kcal" />
-              <MacroCard label="Protein" value={totals.protein} />
-              <MacroCard label="Carbs" value={totals.carbs} />
-              <MacroCard label="Fat" value={totals.fat} />
+              <MacroCard label="Calories" value={pendingTotals.calories} unit=" kcal" />
+              <MacroCard label="Protein" value={pendingTotals.protein} />
+              <MacroCard label="Carbs" value={pendingTotals.carbs} />
+              <MacroCard label="Fat" value={pendingTotals.fat} />
             </div>
 
             <div className="mt-4 space-y-4">
@@ -1270,7 +1307,7 @@ export default function DietTab() {
             <div className="mt-5 flex flex-wrap gap-3">
               <button
                 onClick={saveDiet}
-                disabled={saving || mealItems.length === 0}
+                disabled={saving || pendingItems.length === 0}
                 className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
@@ -1318,7 +1355,7 @@ export default function DietTab() {
                             {mealLabel[item.mealType]}
                           </span>
                           <span className="rounded-full bg-white dark:bg-slate-700 px-2.5 py-0.5 text-xs font-medium text-slate-600 dark:text-slate-300">
-                            {item.source}
+                            {SOURCE_LABEL[item.source] ?? item.source}
                           </span>
                         </div>
                         <p className="mt-1 text-sm text-slate-500">
@@ -1348,7 +1385,7 @@ export default function DietTab() {
                 <p className="mt-1 text-sm text-slate-500">Pulled from your active workout plan.</p>
               </div>
               <div className="rounded-2xl bg-slate-100 dark:bg-slate-700 px-3 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
-                {assignedDiet.length} meals
+                {plural(assignedDiet.length, "meal")}
               </div>
             </div>
 
@@ -1356,7 +1393,7 @@ export default function DietTab() {
               <div className="mt-4">
                 <EmptyState
                   title="No assigned diet found"
-                  description="Add diet_plan.meals inside your workout plan JSON to show assigned meals here."
+                  description="Generate a plan from the Plan & AI page and its meals will appear here."
                 />
               </div>
             ) : (
@@ -1403,8 +1440,13 @@ export default function DietTab() {
                       <div className="mt-3 grid grid-cols-2 gap-2 text-sm text-slate-700 dark:text-slate-300 sm:grid-cols-4">
                         <div className="rounded-2xl bg-white dark:bg-slate-700 px-3 py-2">{Math.round(mealTotals.calories)} kcal</div>
                         <div className="rounded-2xl bg-white dark:bg-slate-700 px-3 py-2">P {Math.round(mealTotals.protein)} g</div>
-                        <div className="rounded-2xl bg-white dark:bg-slate-700 px-3 py-2">C {Math.round(mealTotals.carbs)} g</div>
-                        <div className="rounded-2xl bg-white dark:bg-slate-700 px-3 py-2">F {Math.round(mealTotals.fat)} g</div>
+                        {/* Plan recipes carry kcal and protein only; show "—" rather than a false 0 g. */}
+                        <div className="rounded-2xl bg-white dark:bg-slate-700 px-3 py-2">
+                          C {meal.items.some((item) => item.carbs != null) ? `${Math.round(mealTotals.carbs)} g` : "—"}
+                        </div>
+                        <div className="rounded-2xl bg-white dark:bg-slate-700 px-3 py-2">
+                          F {meal.items.some((item) => item.fat != null) ? `${Math.round(mealTotals.fat)} g` : "—"}
+                        </div>
                       </div>
 
                       <div className="mt-4 space-y-2">

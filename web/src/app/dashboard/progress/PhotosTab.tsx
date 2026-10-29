@@ -39,7 +39,7 @@ export default function PhotosTab() {
 
     if (listError) {
       setError(
-        "Could not load photos. Make sure the 'progress-photos' storage bucket exists in Supabase."
+        "Could not load your photos right now. Please try again."
       )
       setLoading(false)
       return

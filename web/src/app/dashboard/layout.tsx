@@ -1,7 +1,8 @@
 "use client"
 
 import React from "react"
-import { usePathname, useRouter } from "next/navigation"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { useTheme } from "next-themes"
 import {
   LayoutDashboard,
@@ -42,6 +43,7 @@ function ThemeToggle({
   return (
     <button
       onClick={onToggle}
+      aria-label={mounted && isDark ? "Switch to light theme" : "Switch to dark theme"}
       className="flex h-9 w-9 items-center justify-center rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all"
       title="Toggle theme"
     >
@@ -58,7 +60,6 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const pathname = usePathname()
-  const router = useRouter()
   const { theme, setTheme } = useTheme()
   const [mobileOpen, setMobileOpen] = React.useState(false)
   const [mounted, setMounted] = React.useState(false)
@@ -99,11 +100,10 @@ export default function DashboardLayout({
   }) => {
     const active = isActive(href)
     return (
-      <button
-        onClick={() => {
-          router.push(href)
-          setMobileOpen(false)
-        }}
+      <Link
+        href={href}
+        onClick={() => setMobileOpen(false)}
+        aria-current={active ? "page" : undefined}
         className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-all duration-200 ${
           active
             ? "bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 text-white shadow-lg shadow-cyan-500/20"
@@ -112,7 +112,7 @@ export default function DashboardLayout({
       >
         <Icon className="h-5 w-5 shrink-0" />
         <span className="flex-1">{name}</span>
-      </button>
+      </Link>
     )
   }
 
@@ -122,8 +122,9 @@ export default function DashboardLayout({
       {/* MOBILE HEADER */}
       <div className="sticky top-0 z-40 border-b border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl md:hidden">
         <div className="flex items-center justify-between px-4 py-3">
-          <button
-            onClick={() => router.push("/dashboard/home")}
+          <Link
+            href="/dashboard/home"
+            aria-label="FitFusion home"
             className="flex items-center gap-3"
           >
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 text-lg font-bold text-white">
@@ -133,7 +134,7 @@ export default function DashboardLayout({
               <h1 className="text-base font-bold">FitFusion</h1>
               <p className="text-[11px] text-slate-500 dark:text-slate-400">AI fitness companion</p>
             </div>
-          </button>
+          </Link>
 
           <div className="flex items-center gap-2">
             <ThemeToggle
@@ -143,6 +144,8 @@ export default function DashboardLayout({
             />
             <button
               onClick={() => setMobileOpen((v) => !v)}
+              aria-label={mobileOpen ? "Close menu" : "Open menu"}
+              aria-expanded={mobileOpen}
               className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800"
             >
               {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -169,8 +172,9 @@ export default function DashboardLayout({
           {/* TOP */}
           <div>
             <div className="mb-10 flex items-center justify-between">
-              <button
-                onClick={() => router.push("/dashboard/home")}
+              <Link
+                href="/dashboard/home"
+                aria-label="FitFusion home"
                 className="flex items-center gap-4 text-left"
               >
                 <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 text-2xl font-bold text-white">
@@ -180,7 +184,7 @@ export default function DashboardLayout({
                   <h1 className="text-2xl font-extrabold">FitFusion</h1>
                   <p className="text-sm text-slate-500 dark:text-slate-400">AI fitness companion</p>
                 </div>
-              </button>
+              </Link>
               <ThemeToggle
                 mounted={mounted}
                 isDark={theme === "dark"}
@@ -228,23 +232,25 @@ export default function DashboardLayout({
             const active = pathname === href || pathname.startsWith(`${href}/`)
             if (featured) {
               return (
-                <button
+                <Link
                   key={href}
-                  onClick={() => router.push(href)}
+                  href={href}
+                  aria-current={active ? "page" : undefined}
                   className="flex flex-col items-center justify-center gap-1 -mt-4"
                 >
                   <div className={`flex h-12 w-12 items-center justify-center rounded-2xl shadow-lg transition-all ${active ? "bg-gradient-to-br from-purple-600 via-indigo-600 to-cyan-500 shadow-purple-500/30" : "bg-gradient-to-br from-purple-600 to-cyan-500 shadow-purple-500/20 hover:shadow-purple-500/30"}`}>
                     <Icon className="h-5 w-5 text-white" />
                   </div>
                   <span className={`text-[10px] font-medium ${active ? "text-purple-600 dark:text-purple-400" : "text-slate-400 dark:text-slate-500"}`}>{label}</span>
-                </button>
+                </Link>
               )
             }
             return (
-              <button
+              <Link
                 key={href}
-                onClick={() => router.push(href)}
-                className={`flex flex-col items-center justify-center gap-1 transition-colors ${
+                href={href}
+                aria-current={active ? "page" : undefined}
+                className={`relative flex flex-col items-center justify-center gap-1 transition-colors ${
                   active
                     ? "text-purple-600 dark:text-purple-400"
                     : "text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
@@ -255,7 +261,7 @@ export default function DashboardLayout({
                 {active && (
                   <span className="absolute bottom-0 mb-1 h-0.5 w-6 rounded-full bg-gradient-to-r from-purple-600 to-cyan-500" />
                 )}
-              </button>
+              </Link>
             )
           })}
         </div>

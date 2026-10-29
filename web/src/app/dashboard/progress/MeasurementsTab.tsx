@@ -12,6 +12,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts"
+import { localDateStr } from "../../../lib/dates"
 
 type Measurement = {
   id: string
@@ -41,7 +42,7 @@ const FIELDS: { key: keyof Measurement; label: string; color: string }[] = [
 ]
 
 function todayStr() {
-  return new Date().toISOString().split("T")[0]
+  return localDateStr()
 }
 
 function formatDate(val: string | null | undefined) {
