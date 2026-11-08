@@ -1,5 +1,9 @@
 # Model 3 — round 2 protocol (pre-registered)
 
+> **Amendment 1 (2026-11-08) is at the end of this file and replaces the data, features
+> and candidates below.** It was made after a leakage check and before any round-2 model
+> was scored. The first training run was stopped before it printed or saved any result.
+
 Written and committed on 2026-11-08, **before** any round-2 feature was modelled
 or scored. Round 1 (`PROTOCOL.md`, `RESULTS.md`) stays as it is; this is a second,
 separately reported attempt. The owner asked for it ("suggest alternatives to make
@@ -136,3 +140,78 @@ test athletes, next to round 1's numbers.
 - Region rules, their levels, pain holds and exercise stripping are unchanged.
 - The fallback contract is unchanged: no service, no artifact, or a failed rule means
   region rules alone.
+
+---
+
+## Amendment 1 — 2026-11-08, before any round-2 result
+
+### What was found
+
+A leakage check on the rebuilt daily series (label counts only, no model) showed that
+the day-approach file has **no rows in the 21 days before any injury**:
+
+| | injury rows (583) | other rows (42,183) |
+|---|---|---|
+| previous row is the day before | 0% | 98.9% |
+| known days in −14…−8 (mean of 7) | **0.0** | 6.7 |
+| full 28-day history known | **0%** | 79.3% |
+
+So any feature computed from more than the row's own 7 days tells the model "this row has
+a hole in its history", which is the label. The same exclusion makes
+`days_since_prev_injury` leak: inside each interval between two injuries the injury row is
+always the one with the largest value. The first round-2 run used these features; it was
+stopped before it printed or saved any metric, and its code path is removed.
+
+### What replaces the data, features and candidates above
+
+**Data.** `week_approach_maskedID_timeseries.csv` from the same dataset (doi:10.34894/UWU9PV,
+v2, CC0; SHA-256 `261ba3a4…5a31`, recorded in `data/runners/SOURCE.txt`): 42,798 rows,
+74 athletes, 575 injury events. Each row already holds weekly summaries of the three
+weeks before the event day (week 0 = days −7…−1, week 1 = −14…−8, week 2 = −21…−15),
+computed by the dataset authors from their complete logs. No series is rebuilt, so the
+missing-row pattern cannot enter a feature.
+
+**Features (`WEEK`, 22, all computable by FitFusion):**
+
+| Feature | Definition |
+|---|---|
+| `sessions_w{0,1,2}` | nr. sessions |
+| `rest_days_w{0,1,2}` | nr. rest days |
+| `km_w{0,1,2}` | total kms |
+| `max_km_day_w{0,1,2}` | max km one day |
+| `alt_hours_w{0,1,2}` | total hours alternative training |
+| `strength_w{0,1,2}` | nr. strength trainings |
+| `acwr_km` | km_w0 / mean(km_w0, km_w1, km_w2), clipped to [0, 3]; chronic 0 → 1 if acute 0, else 3 |
+| `acwr_sessions` | same for sessions |
+| `km_change_w01` | km_w0 − km_w1 |
+| `long_run_share_w0` | max_km_day_w0 / km_w0 (0 if km_w0 = 0) |
+
+Zones, perceived exertion, training success and recovery are excluded (FitFusion has no
+equivalent). The dataset's own `rel total kms` columns are not used; the derived features
+above are computed by `app/injury_load.py` for training and serving alike.
+
+**Candidates (9 configurations, nested selection exactly as above):** logistic regression
+(standardised, L2, unweighted) with C ∈ {0.01, 0.1, 1}, then XGBoost (settings as above)
+with depth {1, 2, 3} × trees {100, 300}. Tie-break order as listed.
+
+**Baselines (same outer folds, paired):** prevalence; ACWR rule (score = `acwr_km`);
+weekly sessions rule (score = `sessions_w0`); **Week-0 only**: logistic regression (C = 1,
+balanced) on the six week-0 variables, the 7-day analogue of round 1, to show whether the
+two earlier weeks add anything. Round 1's day-file numbers (0.589 / 0.669) are quoted for
+reference only; they are on different rows and cannot be paired.
+
+**Leakage screen (new, before results are accepted).** Univariate ROC-AUC of every feature
+is reported. Any single feature above 0.75 stops the analysis for investigation.
+
+**Unchanged:** outer repeated grouped CV (seeds 42–46), primary metric and bootstrap,
+calibration, the serving rule (**CI lower bound > 0.55**), the p90 `overall_elevated`
+threshold, region rules.
+
+**Secondary (not fresh):** train on all athletes except round 1's 14 test athletes (by
+athlete ID, from `models/reports/injury_load.json`), score those 14.
+
+**Serving changes if it passes:** `recent_days` holds 21 days (oldest first, ending
+yesterday); FitFusion's days are summed into the three weeks with the round-1 day mapping
+(sessions, running km, strength day, alternative hours), rest days = days with no session,
+strength trainings = strength days. With fewer than 21 days the overall score is not
+computed (`overall_risk: null`, listed in `imputed`). No injury-history input is added.
