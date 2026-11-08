@@ -113,6 +113,55 @@ def injury_curve() -> dict:
             "baseline_weekly_probability": float(1 - (1 - daily) ** 7), "bins": bins}
 
 
+def smooth_injury_curve(resamples: int = 500) -> dict:
+    """Round 3: logistic fit of daily injury on ACWR (clipped to [0, 3]), same data as injury_curve.
+
+    The binned relative risks above rest on 17-217 injuries per bin and are not
+    monotone (0.60, 1.13, 0.93, 1.05, 1.25, 0.92, 0.80); a planner exploited that
+    noise in the round-3 diagnostic. Two parameters cannot be gamed that way.
+    RR(x) = p(x) / p(1.0). The slope's 95% CI is an athlete-cluster bootstrap.
+    """
+    import hashlib
+
+    from sklearn.linear_model import LogisticRegression
+
+    from training.data_runners import RUNNERS_DIR
+
+    path = RUNNERS_DIR / "week_approach_maskedID_timeseries.csv"
+    if hashlib.sha256(path.read_bytes()).hexdigest() != WEEK_CSV_SHA256:
+        raise ValueError(f"{path.name} does not match the recorded SHA-256")
+    data = pd.read_csv(path)
+    weeks = data[["total kms", "total kms.1", "total kms.2"]].to_numpy(dtype=float)
+    chronic = weeks.mean(axis=1)
+    keep = chronic > 0
+    x = np.clip(weeks[keep, 0] / chronic[keep], 0.0, 3.0)
+    y = data["injury"].to_numpy()[keep]
+    athletes = data["Athlete ID"].to_numpy()[keep]
+
+    def fit(xx, yy):
+        m = LogisticRegression(C=1e6, max_iter=1000).fit(xx.reshape(-1, 1), yy)
+        return float(m.intercept_[0]), float(m.coef_[0, 0])
+
+    a, b = fit(x, y)
+    rng = np.random.default_rng(42)
+    ids = np.unique(athletes)
+    rows = {i: np.flatnonzero(athletes == i) for i in ids}
+    slopes = []
+    for _ in range(resamples):
+        idx = np.concatenate([rows[i] for i in rng.choice(ids, size=len(ids), replace=True)])
+        if y[idx].min() != y[idx].max():
+            slopes.append(fit(x[idx], y[idx])[1])
+
+    def rr(v):
+        p = lambda z: 1 / (1 + np.exp(-(a + b * z)))  # noqa: E731
+        return float(p(v) / p(1.0))
+
+    return {"kind": "logistic", "intercept": a, "slope": b, "x_clip": [0.0, 3.0], "reference_acwr": 1.0,
+            "slope_ci95": [float(np.percentile(slopes, 2.5)), float(np.percentile(slopes, 97.5))],
+            "days": int(len(x)), "injuries": int(y.sum()), "athletes": int(len(ids)),
+            "relative_risk_at": {str(v): round(rr(v), 4) for v in (0.5, 0.8, 1.0, 1.3, 1.5, 2.0, 3.0)}}
+
+
 def sleep_stats() -> dict:
     verify_zip()
     daily = load_daily()[["player", "date", "sleep_duration"]].dropna()
@@ -151,12 +200,27 @@ def draw(adapt: dict, injury: dict) -> str:
 
 
 def main() -> None:
+    import sys
+
+    if "--smooth-only" in sys.argv:
+        # Round 3: add the smooth injury curve to the existing calibration, leaving
+        # every round-1/2 number exactly as it was.
+        banner("Model 5 round 3 — smooth injury curve (logistic on ACWR)")
+        path = MODEL_DIR / "rl_calibration.json"
+        calibration = json.loads(path.read_text(encoding="utf-8"))
+        calibration["injury"]["smooth"] = smooth_injury_curve()
+        print(json.dumps(calibration["injury"]["smooth"], indent=1), flush=True)
+        path.write_text(json.dumps(calibration, indent=2), encoding="utf-8")
+        write_report("rl_calibration", {**calibration, "figure": "rl_calibration.png"})
+        return
+
     banner("Model 5 — RL environment calibration from real data")
     ensure_dirs()
     adapt = adaptation_curve()
     print(json.dumps(adapt, indent=1)[:2500], flush=True)
     injury = injury_curve()
     print(json.dumps(injury, indent=1)[:2500], flush=True)
+    injury["smooth"] = smooth_injury_curve()
     sleep = sleep_stats()
     print(sleep, flush=True)
     figure = draw(adapt, injury)

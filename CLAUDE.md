@@ -45,7 +45,7 @@ fitfusion-ai-wb/
 | 2 | Hybrid meal recommender (0.5 popularity + 0.25 ALS + 0.25 ingredient TF-IDF) within dietary filters + calorie bands; content-based exercise recommender | `POST /recommend`, `POST /recommend/exercises` | LLM-invented meals, calories and exercises | `/api/generate-plan` |
 | 3 | Training-load injury risk: XGBoost on 3 weekly load summaries of 74 runners' real injuries (round 2, served; round 1 failed its rule) + rule-based body regions (knee/back/shoulder/hamstring) | `POST /predict/injury-risk` | reactive injury logging | `/api/adaptive-replan`, `/api/ml-insights` |
 | 4 | PyTorch Transformer running trajectory (improve/plateau/regress of 10 km-equivalent pace), trained on 34,753 Strava runners; completion-slope rule for non-runners | `POST /predict/trajectory` | single-week completion rate | `/api/adaptive-replan`, `/api/ml-insights` |
-| 5 | PPO agent over a real-data-calibrated `FitFusionEnv` (not served: failed its rule twice); the masked threshold rule serves | `POST /rl/action` | the if/else block in `/api/adaptive-replan` | `/api/adaptive-replan` |
+| 5 | PPO agent over a real-data-calibrated `FitFusionEnv` (not served: rounds 1-2 hit a time-limit bootstrap bug; round 3 fixed it and beats both baselines but failed the per-user injury criterion); the masked threshold rule serves | `POST /rl/action` | the if/else block in `/api/adaptive-replan` | `/api/adaptive-replan` |
 
 `/predict/calorie` and `/predict/injury` remain as aliases for the Step 1 paths.
 
@@ -145,6 +145,20 @@ PPO always converged to INCREASE-until-churn (return ≈ −23 vs ≈ −9 for t
 always-MAINTAIN, 100% churn), so it is **not served**; the masked threshold rule answers
 with `stub: true` and a `reason`. All Model 5 numbers are simulated. Teacher demo:
 `ml-service/demos/model5_rl/`.
+
+Stage 5 round 3 (2026-11-08/09, `demos/model5_rl/PROTOCOL_ROUND3.md`, pre-registered `b1accfc`).
+**Rounds 1-2 failed because of a training bug, not PPO**: the weekly reward is slightly
+negative (~-0.37) under every sensible policy, and week 26 was returned as *truncated*, so SB3
+bootstrapped as if users trained forever (-0.37/0.01 = -37 vs churn -20): making users quit
+looked optimal. Round 3 trains with `HorizonIsTerminal` + `ExpectedInjury` wrappers
+(`training/train_rl_ppo_round3.py`), a smooth logistic injury curve
+(`Calibration.from_json(..., injury="smooth")`; the 7 bins were exploitable) and optional
+`observe_load` (planned intensity + previous action; app computes them from past
+`ml_meta.rl`; `web/src/lib/ml-service/rl-history.ts` is wired only if a 7-input agent is served). Chosen PPO-7-MC @800k beats
+always-MAINTAIN +0.122 [+0.045, +0.211] and the rule +0.377 on 2,000 test users, but has
++0.0135 [+0.005, +0.024] injuries/user vs the rule -> **not served** by the pre-registered rule.
+Post-hoc: injuries per user-week are equal; the excess is users PPO keeps (churn 0.1% vs 2.6%).
+A one-line rule (REDUCE if completion < 0.3) matches PPO. Round-3 agent: `models/rl_round3/`.
 
 Dietary flags are a safety feature, not a nicety. They are built from ingredient
 lists (the dataset's own "vegetarian" tag is wrong on 631 recipes), guarded a

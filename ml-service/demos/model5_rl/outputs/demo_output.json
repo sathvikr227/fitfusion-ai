@@ -1,79 +1,345 @@
 {
-  "sample": {
-    "ppo_raw": "INCREASE",
-    "served": "INCREASE",
-    "rule": "INCREASE"
+  "bug": {
+    "reward_per_week_maintain": -0.37638911368566125,
+    "infinite_horizon_value": -37.63891136856613
   },
-  "episode_PPO": [
+  "sample": {
+    "served_rule": "INCREASE",
+    "ppo_round3_raw": "MAINTAIN",
+    "ppo_round3_masked": "MAINTAIN"
+  },
+  "episode_PPO round 1": [
     {
       "week": 1,
       "action": "INCREASE",
       "completion": 0.8732743859291077,
-      "sleep": 7.577990531921387,
       "injured": false,
       "load": 1.15,
       "fitness_pct": 0.00254590012940886,
-      "reward": 0.00254590012940886
+      "reward": 0.00254590012940886,
+      "churn": 0.0
     },
     {
       "week": 2,
       "action": "INCREASE",
       "completion": 0.7508607506752014,
-      "sleep": 8.346561431884766,
       "injured": false,
       "load": 1.3224999999999998,
       "fitness_pct": -0.06272960353245556,
-      "reward": -0.06527550366186442
+      "reward": -0.06527550366186442,
+      "churn": 0.0
     },
     {
       "week": 3,
       "action": "INCREASE",
       "completion": 0.5738168954849243,
-      "sleep": 8.534366607666016,
       "injured": false,
       "load": 1.5208749999999995,
       "fitness_pct": -0.2076036248707891,
-      "reward": -0.14487402133833352
+      "reward": -0.14487402133833352,
+      "churn": 0.0
     },
     {
       "week": 4,
       "action": "INCREASE",
       "completion": 0.3381708860397339,
-      "sleep": 8.38492488861084,
       "injured": false,
       "load": 1.7490062499999994,
       "fitness_pct": -0.4799876029882969,
-      "reward": -0.2723839781175078
+      "reward": -0.2723839781175078,
+      "churn": 0.0
     },
     {
       "week": 5,
       "action": "INCREASE",
       "completion": 0.31879884004592896,
-      "sleep": 7.8817315101623535,
       "injured": false,
       "load": 2.0113571874999994,
       "fitness_pct": -0.6873960591774484,
-      "reward": -0.20740845618915146
+      "reward": -0.20740845618915146,
+      "churn": 0.0
     },
     {
       "week": 6,
       "action": "INCREASE",
       "completion": 0.04028128832578659,
-      "sleep": 8.842826843261719,
       "injured": false,
       "load": 2.313060765624999,
       "fitness_pct": -1.1775156376659157,
-      "reward": -0.49011957848846743
+      "reward": -0.49011957848846743,
+      "churn": 0.0
     },
     {
       "week": 7,
       "action": "INCREASE",
       "completion": 0.0,
-      "sleep": 8.677846908569336,
       "injured": false,
       "load": 2.5,
       "fitness_pct": -1.6676352161543833,
-      "reward": -20.490119578488468
+      "reward": -20.490119578488468,
+      "churn": 1.0
+    }
+  ],
+  "episode_PPO round 3": [
+    {
+      "week": 1,
+      "action": "INCREASE",
+      "completion": 0.8732743859291077,
+      "injured": false,
+      "load": 1.15,
+      "fitness_pct": 0.00254590012940886,
+      "reward": 0.00254590012940886,
+      "churn": 0.0
+    },
+    {
+      "week": 2,
+      "action": "MAINTAIN",
+      "completion": 0.8543475270271301,
+      "injured": false,
+      "load": 1.15,
+      "fitness_pct": -0.06272960353245556,
+      "reward": -0.06527550366186442,
+      "churn": 0.0
+    },
+    {
+      "week": 3,
+      "action": "MAINTAIN",
+      "completion": 0.7970420122146606,
+      "injured": false,
+      "load": 1.15,
+      "fitness_pct": -0.2076036248707891,
+      "reward": -0.14487402133833352,
+      "churn": 0.0
+    },
+    {
+      "week": 4,
+      "action": "REDUCE",
+      "completion": 0.7985818982124329,
+      "injured": false,
+      "load": 0.9774999999999999,
+      "fitness_pct": -0.41501208105994053,
+      "reward": -0.20740845618915146,
+      "churn": 0.0
+    },
+    {
+      "week": 5,
+      "action": "INCREASE",
+      "completion": 0.8665207624435425,
+      "injured": false,
+      "load": 1.1241249999999998,
+      "fitness_pct": -0.480287584721805,
+      "reward": -0.06527550366186442,
+      "churn": 0.0
+    },
+    {
+      "week": 6,
+      "action": "MAINTAIN",
+      "completion": 0.7864445447921753,
+      "injured": false,
+      "load": 1.1241249999999998,
+      "fitness_pct": -0.6251616060601385,
+      "reward": -0.14487402133833352,
+      "churn": 0.0
+    },
+    {
+      "week": 7,
+      "action": "REDUCE",
+      "completion": 0.7625908851623535,
+      "injured": false,
+      "load": 0.9555062499999998,
+      "fitness_pct": -0.83257006224929,
+      "reward": -0.20740845618915146,
+      "churn": 0.0
+    },
+    {
+      "week": 8,
+      "action": "MAINTAIN",
+      "completion": 1.0,
+      "injured": false,
+      "load": 0.9555062499999998,
+      "fitness_pct": -0.8978455659111543,
+      "reward": -0.06527550366186442,
+      "churn": 0.0
+    },
+    {
+      "week": 9,
+      "action": "INCREASE",
+      "completion": 0.9144607782363892,
+      "injured": false,
+      "load": 1.0988321874999996,
+      "fitness_pct": -0.9631210695730187,
+      "reward": -0.06527550366186442,
+      "churn": 0.0
+    },
+    {
+      "week": 10,
+      "action": "MAINTAIN",
+      "completion": 0.8215349316596985,
+      "injured": false,
+      "load": 1.0988321874999996,
+      "fitness_pct": -1.028396573234883,
+      "reward": -0.06527550366186442,
+      "churn": 0.0
+    },
+    {
+      "week": 11,
+      "action": "REDUCE",
+      "completion": 0.9630689024925232,
+      "injured": false,
+      "load": 0.9340073593749996,
+      "fitness_pct": -1.0936720768967474,
+      "reward": -0.06527550366186442,
+      "churn": 0.0
+    },
+    {
+      "week": 12,
+      "action": "INCREASE",
+      "completion": 0.8071370720863342,
+      "injured": false,
+      "load": 1.0741084632812494,
+      "fitness_pct": -1.2385460982350809,
+      "reward": -0.14487402133833352,
+      "churn": 0.0
+    },
+    {
+      "week": 13,
+      "action": "REDUCE",
+      "completion": 0.9942551255226135,
+      "injured": false,
+      "load": 0.9129921937890619,
+      "fitness_pct": -1.3834201195734146,
+      "reward": -0.14487402133833352,
+      "churn": 0.0
+    },
+    {
+      "week": 14,
+      "action": "INCREASE",
+      "completion": 0.7612020969390869,
+      "injured": false,
+      "load": 1.049941022857421,
+      "fitness_pct": -1.528294140911748,
+      "reward": -0.14487402133833352,
+      "churn": 0.0
+    },
+    {
+      "week": 15,
+      "action": "REDUCE",
+      "completion": 0.8603248000144958,
+      "injured": false,
+      "load": 0.8924498694288079,
+      "fitness_pct": -1.6731681622500816,
+      "reward": -0.14487402133833352,
+      "churn": 0.0
+    },
+    {
+      "week": 16,
+      "action": "MAINTAIN",
+      "completion": 0.8723764419555664,
+      "injured": false,
+      "load": 0.8924498694288079,
+      "fitness_pct": -1.8180421835884153,
+      "reward": -0.14487402133833352,
+      "churn": 0.0
+    },
+    {
+      "week": 17,
+      "action": "MAINTAIN",
+      "completion": 0.8836496472358704,
+      "injured": false,
+      "load": 0.8924498694288079,
+      "fitness_pct": -1.9629162049267488,
+      "reward": -0.14487402133833352,
+      "churn": 0.0
+    },
+    {
+      "week": 18,
+      "action": "MAINTAIN",
+      "completion": 0.8922232389450073,
+      "injured": false,
+      "load": 0.8924498694288079,
+      "fitness_pct": -2.028191708588613,
+      "reward": -0.06527550366186442,
+      "churn": 0.0
+    },
+    {
+      "week": 19,
+      "action": "MAINTAIN",
+      "completion": 0.8180449604988098,
+      "injured": false,
+      "load": 0.8924498694288079,
+      "fitness_pct": -2.1730657299269467,
+      "reward": -0.14487402133833352,
+      "churn": 0.0
+    },
+    {
+      "week": 20,
+      "action": "MAINTAIN",
+      "completion": 0.9591459035873413,
+      "injured": false,
+      "load": 0.8924498694288079,
+      "fitness_pct": -2.238341233588811,
+      "reward": -0.06527550366186442,
+      "churn": 0.0
+    },
+    {
+      "week": 21,
+      "action": "INCREASE",
+      "completion": 0.7599976062774658,
+      "injured": false,
+      "load": 1.026317349843129,
+      "fitness_pct": -2.3832152549271446,
+      "reward": -0.14487402133833352,
+      "churn": 0.0
+    },
+    {
+      "week": 22,
+      "action": "REDUCE",
+      "completion": 0.853651762008667,
+      "injured": false,
+      "load": 0.8723697473666596,
+      "fitness_pct": -2.528089276265478,
+      "reward": -0.14487402133833352,
+      "churn": 0.0
+    },
+    {
+      "week": 23,
+      "action": "MAINTAIN",
+      "completion": 0.9510659575462341,
+      "injured": false,
+      "load": 0.8723697473666596,
+      "fitness_pct": -2.5933647799273425,
+      "reward": -0.06527550366186442,
+      "churn": 0.0
+    },
+    {
+      "week": 24,
+      "action": "INCREASE",
+      "completion": 0.7921591997146606,
+      "injured": false,
+      "load": 1.0032252094716585,
+      "fitness_pct": -2.738238801265676,
+      "reward": -0.14487402133833352,
+      "churn": 0.0
+    },
+    {
+      "week": 25,
+      "action": "REDUCE",
+      "completion": 0.979620099067688,
+      "injured": false,
+      "load": 0.8527414280509097,
+      "fitness_pct": -2.8035143049275404,
+      "reward": -0.06527550366186442,
+      "churn": 0.0
+    },
+    {
+      "week": 26,
+      "action": "INCREASE",
+      "completion": 0.8400856256484985,
+      "injured": false,
+      "load": 0.9806526422585461,
+      "fitness_pct": -2.868789808589405,
+      "reward": -0.06527550366186442,
+      "churn": 0.0
     }
   ],
   "episode_Threshold rule": [
@@ -81,261 +347,261 @@
       "week": 1,
       "action": "INCREASE",
       "completion": 0.8732743859291077,
-      "sleep": 7.577990531921387,
       "injured": false,
       "load": 1.15,
       "fitness_pct": 0.00254590012940886,
-      "reward": 0.00254590012940886
+      "reward": 0.00254590012940886,
+      "churn": 0.0
     },
     {
       "week": 2,
       "action": "INCREASE",
       "completion": 0.7508607506752014,
-      "sleep": 8.346561431884766,
       "injured": false,
       "load": 1.3224999999999998,
       "fitness_pct": -0.06272960353245556,
-      "reward": -0.06527550366186442
+      "reward": -0.06527550366186442,
+      "churn": 0.0
     },
     {
       "week": 3,
       "action": "MAINTAIN",
       "completion": 0.6932163834571838,
-      "sleep": 8.534366607666016,
       "injured": false,
       "load": 1.3224999999999998,
       "fitness_pct": -0.2076036248707891,
-      "reward": -0.14487402133833352
+      "reward": -0.14487402133833352,
+      "churn": 0.0
     },
     {
       "week": 4,
       "action": "MAINTAIN",
       "completion": 0.5967588424682617,
-      "sleep": 8.38492488861084,
       "injured": false,
       "load": 1.3224999999999998,
       "fitness_pct": -0.41501208105994053,
-      "reward": -0.20740845618915146
+      "reward": -0.20740845618915146,
+      "churn": 0.0
     },
     {
       "week": 5,
       "action": "REDUCE",
       "completion": 0.8665207624435425,
-      "sleep": 7.8817315101623535,
       "injured": false,
       "load": 1.1241249999999998,
       "fitness_pct": -0.480287584721805,
-      "reward": -0.06527550366186442
+      "reward": -0.06527550366186442,
+      "churn": 0.0
     },
     {
       "week": 6,
       "action": "INCREASE",
       "completion": 0.6827839612960815,
-      "sleep": 8.842826843261719,
       "injured": false,
       "load": 1.2927437499999996,
       "fitness_pct": -0.6251616060601385,
-      "reward": -0.14487402133833352
+      "reward": -0.14487402133833352,
+      "churn": 0.0
     },
     {
       "week": 7,
       "action": "MAINTAIN",
       "completion": 0.5619171261787415,
-      "sleep": 8.677846908569336,
       "injured": false,
       "load": 1.2927437499999996,
       "fitness_pct": -0.83257006224929,
-      "reward": -0.20740845618915146
+      "reward": -0.20740845618915146,
+      "churn": 0.0
     },
     {
       "week": 8,
       "action": "REDUCE",
       "completion": 0.9313356280326843,
-      "sleep": 9.259905815124512,
       "injured": false,
       "load": 1.0988321874999996,
       "fitness_pct": -0.8300241621198811,
-      "reward": 0.00254590012940886
+      "reward": 0.00254590012940886,
+      "churn": 0.0
     },
     {
       "week": 9,
       "action": "INCREASE",
       "completion": 0.8137260675430298,
-      "sleep": 8.625388145446777,
       "injured": false,
       "load": 1.2636570156249993,
       "fitness_pct": -0.8952996657817455,
-      "reward": -0.06527550366186442
+      "reward": -0.06527550366186442,
+      "churn": 0.0
     },
     {
       "week": 10,
       "action": "MAINTAIN",
       "completion": 0.7204644680023193,
-      "sleep": 8.595793724060059,
       "injured": false,
       "load": 1.2636570156249993,
       "fitness_pct": -1.040173687120079,
-      "reward": -0.14487402133833352
+      "reward": -0.14487402133833352,
+      "churn": 0.0
     },
     {
       "week": 11,
       "action": "MAINTAIN",
       "completion": 0.7632786631584167,
-      "sleep": 7.680821418762207,
       "injured": false,
       "load": 1.2636570156249993,
       "fitness_pct": -1.1054491907819435,
-      "reward": -0.06527550366186442
+      "reward": -0.06527550366186442,
+      "churn": 0.0
     },
     {
       "week": 12,
       "action": "MAINTAIN",
       "completion": 0.6863291263580322,
-      "sleep": 7.684395790100098,
       "injured": false,
       "load": 1.2636570156249993,
       "fitness_pct": -1.250323212120277,
-      "reward": -0.14487402133833352
+      "reward": -0.14487402133833352,
+      "churn": 0.0
     },
     {
       "week": 13,
       "action": "MAINTAIN",
       "completion": 0.785500705242157,
-      "sleep": 8.868062019348145,
       "injured": false,
       "load": 1.2636570156249993,
       "fitness_pct": -1.3155987157821414,
-      "reward": -0.06527550366186442
+      "reward": -0.06527550366186442,
+      "churn": 0.0
     },
     {
       "week": 14,
       "action": "MAINTAIN",
       "completion": 0.6264002323150635,
-      "sleep": 8.907302856445312,
       "injured": false,
       "load": 1.2636570156249993,
       "fitness_pct": -1.5230071719712928,
-      "reward": -0.20740845618915146
+      "reward": -0.20740845618915146,
+      "churn": 0.0
     },
     {
       "week": 15,
       "action": "MAINTAIN",
       "completion": 0.6396347880363464,
-      "sleep": 8.437198638916016,
       "injured": false,
       "load": 1.2636570156249993,
       "fitness_pct": -1.6678811933096263,
-      "reward": -0.14487402133833352
+      "reward": -0.14487402133833352,
+      "churn": 0.0
     },
     {
       "week": 16,
       "action": "MAINTAIN",
       "completion": 0.6452006697654724,
-      "sleep": 8.246785163879395,
       "injured": false,
       "load": 1.2636570156249993,
       "fitness_pct": -1.8127552146479597,
-      "reward": -0.14487402133833352
+      "reward": -0.14487402133833352,
+      "churn": 0.0
     },
     {
       "week": 17,
       "action": "MAINTAIN",
       "completion": 0.6498848795890808,
-      "sleep": 7.784177780151367,
       "injured": false,
       "load": 1.2636570156249993,
       "fitness_pct": -1.9576292359862932,
-      "reward": -0.14487402133833352
+      "reward": -0.14487402133833352,
+      "churn": 0.0
     },
     {
       "week": 18,
       "action": "MAINTAIN",
       "completion": 0.6517636179924011,
-      "sleep": 7.958725929260254,
       "injured": false,
       "load": 1.2636570156249993,
       "fitness_pct": -2.022904739648158,
-      "reward": -0.06527550366186442
+      "reward": -0.06527550366186442,
+      "churn": 0.0
     },
     {
       "week": 19,
       "action": "MAINTAIN",
       "completion": 0.5745335817337036,
-      "sleep": 7.709905624389648,
       "injured": false,
       "load": 1.2636570156249993,
       "fitness_pct": -2.1677787609864914,
-      "reward": -0.14487402133833352
+      "reward": -0.14487402133833352,
+      "churn": 0.0
     },
     {
       "week": 20,
       "action": "REDUCE",
       "completion": 0.8370788097381592,
-      "sleep": 8.024553298950195,
       "injured": false,
       "load": 1.0741084632812494,
       "fitness_pct": -2.2330542646483558,
-      "reward": -0.06527550366186442
+      "reward": -0.06527550366186442,
+      "churn": 0.0
     },
     {
       "week": 21,
       "action": "MAINTAIN",
       "completion": 0.7279253005981445,
-      "sleep": 8.035160064697266,
       "injured": false,
       "load": 1.0741084632812494,
       "fitness_pct": -2.3779282859866893,
-      "reward": -0.14487402133833352
+      "reward": -0.14487402133833352,
+      "churn": 0.0
     },
     {
       "week": 22,
       "action": "MAINTAIN",
       "completion": 0.7222223877906799,
-      "sleep": 7.897414207458496,
       "injured": false,
       "load": 1.0741084632812494,
       "fitness_pct": -2.5228023073250228,
-      "reward": -0.14487402133833352
+      "reward": -0.14487402133833352,
+      "churn": 0.0
     },
     {
       "week": 23,
       "action": "MAINTAIN",
       "completion": 0.8135734796524048,
-      "sleep": 8.75839900970459,
       "injured": false,
       "load": 1.0741084632812494,
       "fitness_pct": -2.588077810986887,
-      "reward": -0.06527550366186442
+      "reward": -0.06527550366186442,
+      "churn": 0.0
     },
     {
       "week": 24,
       "action": "MAINTAIN",
       "completion": 0.7435176968574524,
-      "sleep": 8.611673355102539,
       "injured": false,
       "load": 1.0741084632812494,
       "fitness_pct": -2.7329518323252207,
-      "reward": -0.14487402133833352
+      "reward": -0.14487402133833352,
+      "churn": 0.0
     },
     {
       "week": 25,
       "action": "MAINTAIN",
       "completion": 0.8331519365310669,
-      "sleep": 8.572813987731934,
       "injured": false,
       "load": 1.0741084632812494,
       "fitness_pct": -2.798227335987085,
-      "reward": -0.06527550366186442
+      "reward": -0.06527550366186442,
+      "churn": 0.0
     },
     {
       "week": 26,
       "action": "MAINTAIN",
       "completion": 0.7751009464263916,
-      "sleep": 9.29554557800293,
       "injured": false,
       "load": 1.0741084632812494,
       "fitness_pct": -2.9431013573254186,
-      "reward": -0.14487402133833352
+      "reward": -0.14487402133833352,
+      "churn": 0.0
     }
   ],
   "api_response": {
@@ -353,5 +619,23 @@
     "masked": false,
     "reason": "agent failed its pre-registered serving rule",
     "stub": true
+  },
+  "round3_meta": {
+    "model_version": "rl-ppo-v3-round3",
+    "serve": false,
+    "round": 3,
+    "candidate": "PPO-7-MC",
+    "observation_dims": 7,
+    "timesteps": 800000,
+    "seed": 42,
+    "ent_coef": 0.01,
+    "gamma": 1.0,
+    "gae_lambda": 1.0,
+    "learning_rate": 0.0001,
+    "n_steps": 2048,
+    "batch_size": 512,
+    "injury_curve": "smooth",
+    "standard_mean_return": -9.0903,
+    "churn_penalty": 20.0
   }
 }

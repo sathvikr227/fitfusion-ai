@@ -2,28 +2,91 @@
 platform win32 -- Python 3.12.10, pytest-8.3.3, pluggy-1.6.0 -- C:\Users\Sathv\OneDrive\Desktop\fitfusion-ai-wb\ml-service\.venv\Scripts\python.exe
 rootdir: C:\Users\Sathv\OneDrive\Desktop\fitfusion-ai-wb\ml-service
 plugins: anyio-4.15.1
-collecting ... collected 15 items
-
-tests/test_model5_rl.py::test_safety_mask_blocks_increase_only_when_unsafe[state0-2] PASSED [  6%]
-tests/test_model5_rl.py::test_safety_mask_blocks_increase_only_when_unsafe[state1-1] PASSED [ 13%]
-tests/test_model5_rl.py::test_safety_mask_blocks_increase_only_when_unsafe[state2-1] PASSED [ 20%]
-tests/test_model5_rl.py::test_threshold_rule_is_masked PASSED            [ 26%]
-tests/test_model5_rl.py::test_env_contract_and_determinism PASSED        [ 33%]
-tests/test_model5_rl.py::test_env_applies_the_mask_inside_step PASSED    [ 40%]
-tests/test_model5_rl.py::test_episode_ends_at_26_weeks_or_churn PASSED   [ 46%]
-tests/test_model5_rl.py::test_stressed_assumptions_stay_within_25_percent PASSED [ 53%]
-tests/test_model5_rl.py::test_calibration_curves_are_real_and_ordered PASSED [ 60%]
-tests/test_model5_rl.py::test_rl_endpoint_falls_back_to_masked_rule_without_agent PASSED [ 66%]
-tests/test_model5_rl.py::test_endpoint_never_increases_while_injured_or_short_of_sleep PASSED [ 73%]
-tests/test_model5_rl.py::test_artifact_matches_report PASSED             [ 80%]
-tests/test_smoke.py::test_rl_action_returns_valid_action PASSED          [ 86%]
-tests/test_smoke.py::test_rl_state_construction_matches_documented_formula PASSED [ 93%]
-tests/test_smoke.py::test_rl_rejects_out_of_range_completion PASSED      [100%]
-
+collecting ... collected 55 items
+tests/test_model5_rl.py::test_safety_mask_blocks_increase_only_when_unsafe[state0-2] PASSED [  1%]
+tests/test_model5_rl.py::test_safety_mask_blocks_increase_only_when_unsafe[state1-1] PASSED [  3%]
+tests/test_model5_rl.py::test_safety_mask_blocks_increase_only_when_unsafe[state2-1] PASSED [  5%]
+tests/test_model5_rl.py::test_threshold_rule_is_masked PASSED            [  7%]
+tests/test_model5_rl.py::test_env_contract_and_determinism PASSED        [  9%]
+tests/test_model5_rl.py::test_env_applies_the_mask_inside_step PASSED    [ 10%]
+tests/test_model5_rl.py::test_episode_ends_at_26_weeks_or_churn PASSED   [ 12%]
+tests/test_model5_rl.py::test_stressed_assumptions_stay_within_25_percent PASSED [ 14%]
+tests/test_model5_rl.py::test_calibration_curves_are_real_and_ordered PASSED [ 16%]
+tests/test_model5_rl.py::test_rl_endpoint_falls_back_to_masked_rule_without_agent PASSED [ 18%]
+tests/test_model5_rl.py::test_endpoint_never_increases_while_injured_or_short_of_sleep PASSED [ 20%]
+tests/test_model5_rl.py::test_artifact_matches_report PASSED             [ 21%]
+tests/test_model5_rl.py::test_round2_environment_is_unchanged_by_default PASSED [ 23%]
+tests/test_model5_rl.py::test_observe_load_adds_planned_intensity_and_previous_action PASSED [ 25%]
+tests/test_model5_rl.py::test_smooth_injury_curve_is_monotone_and_anchored_at_one PASSED [ 27%]
+tests/test_model5_rl.py::test_training_wrappers_keep_the_expected_return_and_end_at_week_26 PASSED [ 29%]
+tests/test_model5_rl.py::test_seven_input_agent_needs_both_extra_inputs PASSED [ 30%]
+tests/test_smoke.py::test_healthz_is_open PASSED                         [ 32%]
+tests/test_smoke.py::test_auth_required_on_every_model_endpoint PASSED   [ 34%]
+tests/test_smoke.py::test_bad_token_rejected PASSED                      [ 36%]
+tests/test_smoke.py::test_calorie_heart_rate_method_is_used_for_cardio_with_hr PASSED [ 38%]
+tests/test_smoke.py::test_calorie_matches_calibrated_keytel_formula PASSED [ 40%]
+tests/test_smoke.py::test_calorie_higher_heart_rate_burns_more PASSED    [ 41%]
+tests/test_smoke.py::test_calorie_falls_back_to_met_outside_validated_conditions[change0-no average heart rate] PASSED [ 43%]
+tests/test_smoke.py::test_calorie_falls_back_to_met_outside_validated_conditions[change1-cardio only] PASSED [ 45%]
+tests/test_smoke.py::test_calorie_falls_back_to_met_outside_validated_conditions[change2-age and sex] PASSED [ 47%]
+tests/test_smoke.py::test_calorie_falls_back_to_met_outside_validated_conditions[change3-outside the validated range] PASSED [ 49%]
+tests/test_smoke.py::test_calorie_legacy_alias_still_works PASSED        [ 50%]
+tests/test_smoke.py::test_calorie_longer_session_burns_more PASSED       [ 52%]
+tests/test_smoke.py::test_calorie_rejects_missing_duration PASSED        [ 54%]
+tests/test_smoke.py::test_calorie_rejects_bad_weight PASSED              [ 56%]
+tests/test_smoke.py::test_recommend_returns_real_recipes_for_every_slot_in_calorie_band PASSED [ 58%]
+tests/test_smoke.py::test_recommend_ranks_by_popularity PASSED           [ 60%]
+tests/test_smoke.py::test_recommend_never_repeats_a_recipe_across_slots PASSED [ 61%]
+tests/test_smoke.py::test_recommend_respects_supported_restrictions[Vegetarian-is_vegetarian] PASSED [ 63%]
+tests/test_smoke.py::test_recommend_respects_supported_restrictions[vegan-is_vegan] PASSED [ 65%]
+tests/test_smoke.py::test_recommend_respects_supported_restrictions[Gluten Free-is_gluten_free] PASSED [ 67%]
+tests/test_smoke.py::test_recommend_respects_supported_restrictions[nut-free-is_nut_free] PASSED [ 69%]
+tests/test_smoke.py::test_recommend_respects_supported_restrictions[Lactose Free-is_dairy_free] PASSED [ 70%]
+tests/test_smoke.py::test_recommend_refuses_restrictions_it_cannot_verify PASSED [ 72%]
+tests/test_smoke.py::test_recommend_ignores_no_restriction_values PASSED [ 74%]
+tests/test_smoke.py::test_recommend_applies_protein_floor_and_exclusions PASSED [ 76%]
+tests/test_smoke.py::test_injury_risk_returns_overall_and_all_four_regions PASSED [ 78%]
+tests/test_smoke.py::test_injury_region_flag_needs_recorded_injury_and_elevated_load PASSED [ 80%]
+tests/test_smoke.py::test_injury_risk_with_seven_days_says_three_weeks_are_needed PASSED [ 81%]
+tests/test_smoke.py::test_injury_risk_rejects_wrong_number_of_days PASSED [ 83%]
+tests/test_smoke.py::test_injury_risk_without_days_reports_imputed PASSED [ 85%]
+tests/test_smoke.py::test_trajectory_strength_sessions_get_the_rule_with_reason PASSED [ 87%]
+tests/test_smoke.py::test_trajectory_short_history_gets_the_rule_not_padding PASSED [ 89%]
+tests/test_smoke.py::test_trajectory_rejects_empty_sessions PASSED       [ 90%]
+tests/test_smoke.py::test_trajectory_rejects_out_of_range_completion PASSED [ 92%]
+tests/test_smoke.py::test_rl_action_returns_valid_action PASSED          [ 94%]
+tests/test_smoke.py::test_rl_state_construction_matches_documented_formula PASSED [ 96%]
+tests/test_smoke.py::test_rl_rejects_out_of_range_completion PASSED      [ 98%]
+tests/test_smoke.py::test_endpoints_fall_back_when_models_absent PASSED  [100%]
 ============================== warnings summary ===============================
 .venv\Lib\site-packages\starlette\testclient.py:40
   C:\Users\Sathv\OneDrive\Desktop\fitfusion-ai-wb\ml-service\.venv\Lib\site-packages\starlette\testclient.py:40: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
     _PortalFactoryType = typing.Callable[[], typing.ContextManager[anyio.abc.BlockingPortal]]
-
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-======================== 15 passed, 1 warning in 7.76s ========================
+======================= 55 passed, 1 warning in 17.42s ========================
+
+=== TypeScript (web, npm test) ===
+✔ localDateStr uses the local calendar day (3.1929ms)
+✔ streak survives until the end of the day (1.6238ms)
+✔ timestamps without a zone are read as UTC (0.777ms)
+✔ longest streak and plurals (0.3648ms)
+✔ matcher tolerates missing and hyphenated gaps (3.682ms)
+✔ matcher only matches at word starts (1.1513ms)
+✔ a shoulder flag now strips pull-ups from the plan (2.769ms)
+✔ buildRecentDays maps FitFusion rows onto runners units (0.7932ms)
+✔ region levels follow the PROTOCOL.md table (3.0029ms)
+✔ a user with no replans starts like a simulated user (2.2356ms)
+✔ intensity multiplies the applied steps in time order, whatever order rows arrive in (14.6243ms)
+✔ intensity is clipped to the simulator's range at every step (0.9577ms)
+✔ plans stored as JSON text are read too, malformed ones are skipped (0.6798ms)
+✔ needs a 5th, earlier run day for the first gap (2.0351ms)
+✔ maps runs onto the model's session features (0.601ms)
+✔ drops paces outside 3-15 min/km (0.2088ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 446.2013

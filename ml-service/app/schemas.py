@@ -311,6 +311,12 @@ class RLStateRequest(MLModel):
     injury_flag: float = Field(..., ge=0, le=1)
     trajectory_score: int = Field(default=1, ge=0, le=2)
     streak: float = Field(default=0, ge=0, description="Consecutive workout days")
+    # Round 3 (demos/model5_rl/PROTOCOL_ROUND3.md): read only by an agent trained on 7 inputs.
+    planned_intensity: float | None = Field(
+        default=None, ge=0, le=10,
+        description="Product of (1 + applied intensity_delta) over past replans; 1.0 = the starting plan",
+    )
+    previous_action: ActionName | None = Field(default=None, description="The last replan's applied action")
 
 
 class RLActionResponse(MLModel):

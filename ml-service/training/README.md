@@ -73,6 +73,8 @@ Run in this order — later models assume the earlier artifacts exist.
 .venv/Scripts/python.exe -u -m training.calibrate_rl_env      # ~5 min  (Model 5 real-data curves)
 .venv/Scripts/python.exe -u -m training.train_rl_ppo          # ~25 min (Model 5 round 1)
 .venv/Scripts/python.exe -u -m training.train_rl_ppo_round2   # ~50 min (Model 5 round 2)
+.venv/Scripts/python.exe -u -m training.calibrate_rl_env --smooth-only  # seconds (round 3 injury curve)
+.venv/Scripts/python.exe -u -m training.train_rl_ppo_round3   # ~1 h+ (Model 5 round 3, 3 parallel trainings)
 ```
 
 | Script | Artifacts |
@@ -96,6 +98,7 @@ Run in this order — later models assume the earlier artifacts exist.
 | `calibrate_rl_env.py` | `rl_calibration.json` (read by the trainers), `reports/rl_calibration.json` + `.png` |
 | `train_rl_ppo.py` | `rl_ppo_agent.zip` + `rl_ppo_meta.json` (serve=false), `reports/rl_ppo.json` + `.png`, `reports/rl_ppo_logs/` |
 | `train_rl_ppo_round2.py` | `rl_ppo_agent_round2.zip` (not served), `reports/rl_ppo_round2.json` + `.png` |
+| `train_rl_ppo_round3.py` | `rl_round3/` checkpoints + `rl_ppo_agent_round3.zip` (not served; replaces `rl_ppo_agent.zip` only if served), `reports/rl_ppo_round3.json` + `.png` |
 | `train_rl_agent.py` | RETIRED (completion reward, seeded pilot calibration); `fitfusion_rl_agent.zip` is no longer loaded |
 
 Everything in `models/` is gitignored — artifacts are produced by training and

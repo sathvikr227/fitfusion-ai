@@ -1,0 +1,29 @@
+{
+  "post_hoc_exposure": {
+    "PPO": {
+      "injuries_per_user": 2.027,
+      "weeks_per_user": 25.999,
+      "injuries_per_100_weeks": 7.7965
+    },
+    "Rule": {
+      "injuries_per_user": 2.0135,
+      "weeks_per_user": 25.762,
+      "injuries_per_100_weeks": 7.8159
+    },
+    "MAINTAIN": {
+      "injuries_per_user": 2.0255,
+      "weeks_per_user": 25.957,
+      "injuries_per_100_weeks": 7.8031
+    }
+  },
+  "ppo_minus_rule_per_100_weeks": [
+    -0.019473157854454914,
+    -0.046273754016552364,
+    0.007629993757579861
+  ],
+  "both_stay_users": 1948,
+  "both_stay_injuries": [
+    2.021560574948665,
+    2.024640657084189
+  ]
+}
