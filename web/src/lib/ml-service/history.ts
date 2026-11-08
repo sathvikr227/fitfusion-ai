@@ -43,6 +43,8 @@ export type UserHistory = {
   bmi: number | null
 }
 
+const LOAD_WINDOW_DAYS = 21
+
 function daysAgo(days: number) {
   const d = new Date()
   d.setDate(d.getDate() - days)
@@ -125,8 +127,10 @@ export async function buildUserHistory(
 ): Promise<UserHistory> {
   const since = daysAgo(7)
   const sinceMonth = daysAgo(30)
+  // Model 3 round 2 reads three weeks of training load (PROTOCOL_ROUND2.md).
+  const sinceLoad = daysAgo(LOAD_WINDOW_DAYS)
 
-  const [weekLogsRes, profileRes, sleepRes, execRes, injuriesRes, recentLogsRes, cardioRes, planRes] =
+  const [weekLogsRes, profileRes, sleepRes, execRes, injuriesRes, recentLogsRes, cardioRes, planRes, loadLogsRes] =
     await Promise.all([
       supabase
         .from("workout_logs")
@@ -182,6 +186,12 @@ export async function buildUserHistory(
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle(),
+
+      supabase
+        .from("workout_logs")
+        .select("id, date")
+        .eq("user_id", userId)
+        .gte("date", sinceLoad),
     ])
 
   const executionRows = execRes.data ?? []
@@ -243,7 +253,8 @@ export async function buildUserHistory(
 
   // One read covers the Transformer's sessions and the injury model's week.
   const weekLogs = weekLogsRes.data ?? []
-  const logIds = Array.from(new Set([...recentLogs, ...weekLogs].map((r) => String(r.id))))
+  const loadLogs = loadLogsRes.data ?? []
+  const logIds = Array.from(new Set([...recentLogs, ...weekLogs, ...loadLogs].map((r) => String(r.id))))
   const exerciseByLog = new Map<string, { duration: number; names: string[] }>()
   if (logIds.length > 0) {
     const { data: exerciseRows } = await supabase
@@ -279,12 +290,13 @@ export async function buildUserHistory(
   const bmi = bmiFrom(profile?.height, profile?.weight)
 
   // ── Training load for the injury model ─────────────────────────────────────
-  // The 7 days before today, oldest first, in the runners data's units.
-  const loadDays = Array.from({ length: 7 }, (_, i) => daysAgo(7 - i))
+  // The 21 days before today, oldest first, in the runners data's units. The
+  // service sums them into the three weekly summaries the model learned from.
+  const loadDays = Array.from({ length: LOAD_WINDOW_DAYS }, (_, i) => daysAgo(LOAD_WINDOW_DAYS - i))
   const namesByLog = new Map(Array.from(exerciseByLog, ([id, entry]) => [id, entry.names]))
   const recentDays = buildRecentDays(
     loadDays,
-    weekLogs,
+    loadLogs,
     namesByLog,
     cardioRes.data ?? [],
     (name) => normalizeWorkoutType(name) === "Strength"

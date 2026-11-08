@@ -1,15 +1,29 @@
 {
-  "_label": "ILLUSTRATIVE INPUT, not a real user. A FitFusion member's last 7 days (oldest first, ending yesterday), the exercises they logged, and the injury they recorded at onboarding.",
+  "_label": "ILLUSTRATIVE INPUT, not a real user. A FitFusion member's last 21 days (oldest first, ending yesterday) in the runners data's units, the exercises they logged in the last 7 days, and the injury they recorded at onboarding. Weeks 2 and 1 are steady; week 0 (the last 7 days) adds a lot more running and strength work.",
   "user_id": "demo-user",
   "recent_days": [
-    {"date": "2026-10-21", "sessions": 1, "total_km": 0,   "strength": 1, "alt_hours": 0},
-    {"date": "2026-10-22", "sessions": 1, "total_km": 6,   "strength": 0, "alt_hours": 0},
-    {"date": "2026-10-23", "sessions": 2, "total_km": 0,   "strength": 1, "alt_hours": 0.75},
-    {"date": "2026-10-24", "sessions": 0, "total_km": 0,   "strength": 0, "alt_hours": 0},
-    {"date": "2026-10-25", "sessions": 1, "total_km": 10,  "strength": 0, "alt_hours": 0},
-    {"date": "2026-10-26", "sessions": 2, "total_km": 5,   "strength": 1, "alt_hours": 0},
-    {"date": "2026-10-27", "sessions": 1, "total_km": 0,   "strength": 1, "alt_hours": 0}
+    {"date": "2026-10-07", "sessions": 1, "total_km": 5,  "strength": 0, "alt_hours": 0},
+    {"date": "2026-10-08", "sessions": 0, "total_km": 0,  "strength": 0, "alt_hours": 0},
+    {"date": "2026-10-09", "sessions": 1, "total_km": 0,  "strength": 1, "alt_hours": 0},
+    {"date": "2026-10-10", "sessions": 0, "total_km": 0,  "strength": 0, "alt_hours": 0},
+    {"date": "2026-10-11", "sessions": 1, "total_km": 6,  "strength": 0, "alt_hours": 0},
+    {"date": "2026-10-12", "sessions": 1, "total_km": 0,  "strength": 0, "alt_hours": 0.75},
+    {"date": "2026-10-13", "sessions": 0, "total_km": 0,  "strength": 0, "alt_hours": 0},
+    {"date": "2026-10-14", "sessions": 1, "total_km": 5,  "strength": 0, "alt_hours": 0},
+    {"date": "2026-10-15", "sessions": 0, "total_km": 0,  "strength": 0, "alt_hours": 0},
+    {"date": "2026-10-16", "sessions": 1, "total_km": 0,  "strength": 1, "alt_hours": 0},
+    {"date": "2026-10-17", "sessions": 0, "total_km": 0,  "strength": 0, "alt_hours": 0},
+    {"date": "2026-10-18", "sessions": 1, "total_km": 7,  "strength": 0, "alt_hours": 0},
+    {"date": "2026-10-19", "sessions": 1, "total_km": 0,  "strength": 0, "alt_hours": 0.75},
+    {"date": "2026-10-20", "sessions": 0, "total_km": 0,  "strength": 0, "alt_hours": 0},
+    {"date": "2026-10-21", "sessions": 2, "total_km": 8,  "strength": 1, "alt_hours": 0},
+    {"date": "2026-10-22", "sessions": 1, "total_km": 10, "strength": 0, "alt_hours": 0},
+    {"date": "2026-10-23", "sessions": 2, "total_km": 6,  "strength": 1, "alt_hours": 0.5},
+    {"date": "2026-10-24", "sessions": 1, "total_km": 12, "strength": 0, "alt_hours": 0},
+    {"date": "2026-10-25", "sessions": 2, "total_km": 8,  "strength": 1, "alt_hours": 0},
+    {"date": "2026-10-26", "sessions": 1, "total_km": 16, "strength": 0, "alt_hours": 0},
+    {"date": "2026-10-27", "sessions": 2, "total_km": 5,  "strength": 1, "alt_hours": 0}
   ],
-  "recent_exercises": ["Back Squat", "Pullups", "Romanian Deadlift", "Bench Press", "Walking Lunge"],
+  "recent_exercises": ["Back Squat", "Pullups", "Romanian Deadlift", "Bench Press", "Walking Lunge", "Running"],
   "prior_injuries": ["Left knee pain (patellar tendinopathy)"]
 }

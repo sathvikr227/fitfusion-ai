@@ -227,8 +227,8 @@ export function MLInsightsCard() {
           {data.injury.overallRisk == null
             ? "Overall risk unavailable — body areas below use rules only."
             : data.injury.overallElevated
-              ? `Last 7 days: elevated (${(data.injury.relativeRisk ?? 0).toFixed(1)}× the average injury rate in the training data).`
-              : `Last 7 days: not elevated (${(data.injury.relativeRisk ?? 0).toFixed(1)}× the average injury rate in the training data).`}
+              ? `Last 3 weeks: elevated (${(data.injury.relativeRisk ?? 0).toFixed(1)}× the average injury rate in the training data).`
+              : `Last 3 weeks: not elevated (${(data.injury.relativeRisk ?? 0).toFixed(1)}× the average injury rate in the training data).`}
         </p>
 
         <div className="space-y-2">

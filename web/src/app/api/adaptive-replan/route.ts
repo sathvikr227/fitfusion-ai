@@ -234,7 +234,7 @@ export async function POST(req: NextRequest) {
           `Avoid exercises that load ${flaggedGroups.join(" or ")}. Include an extra rest day. ` +
           `This is a risk indicator, not a diagnosed injury.`
         : injury.overall_elevated
-          ? `\nTRAINING LOAD: the last 7 days are in the high-risk range for injury. Prefer ` +
+          ? `\nTRAINING LOAD: the last 3 weeks are in the top 10% of injury-risk training load. Prefer ` +
             `recovery-friendly sessions. This is a risk indicator, not a diagnosed injury.`
           : ""
 

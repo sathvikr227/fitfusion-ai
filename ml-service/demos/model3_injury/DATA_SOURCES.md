@@ -19,11 +19,45 @@ Both were downloaded on **2026-10-28**, without a login.
 | Paper | Lövdal, Azzopardi & den Hartigh (2021), *Int J Sports Physiol Perform* 16(10):1522–1531 |
 | Licence | **CC0-1.0** (public domain dedication) |
 | Type | Real training logs and injury records of a Dutch high-level running team, 2012–2019 |
-| File used | `day_approach_maskedID_timeseries.csv` (13.5 MB, SHA-256 `9c06ecefae9caa4ca831c08c7ebe4d25b0b01e8aa285df526a4e6791c673b6e8`) |
-| Rows | 42,766 athlete-days · 74 athletes (27 women, 47 men) · 583 injury days (1.36%) · 63 athletes injured at least once |
-| Columns | 10 variables × 7 days (70), plus `Athlete ID`, `injury`, `Date` |
+| File used, **served model (round 2)** | `week_approach_maskedID_timeseries.csv` (Dataverse file id 47971, SHA-256 `261ba3a481f3428611cc175eac2b67749ee3d97980d81168af13bd9f932d5a31`) |
+| Rows (week file) | 42,798 event days · 74 athletes · 575 injury events (1.34%) · 61 athletes injured at least once · no missing values |
+| Columns (week file) | 22 weekly variables × 3 weeks (66), 3 `rel total kms` ratios, `Athlete ID`, `injury`, `Date` |
+| File used, round 1 | `day_approach_maskedID_timeseries.csv` (file id 47972, 13.5 MB, SHA-256 `9c06ecefae9caa4ca831c08c7ebe4d25b0b01e8aa285df526a4e6791c673b6e8`) |
+| Rows (day file) | 42,766 athlete-days · 74 athletes (27 women, 47 men) · 583 injury days (1.36%) · 63 athletes injured at least once |
+| Columns (day file) | 10 variables × 7 days (70), plus `Athlete ID`, `injury`, `Date` |
 | Label | `injury` = 1 if the athlete got injured on the event day. **No body part.** |
-| Loader | `training/data_runners.py` |
+| Loader | `training/data_runners.py` (`load_runner_weeks`, `load_runners`) |
+
+### Week file (round 2, served)
+
+Each row holds summaries of the three weeks before the event day. Week 0 = days −7…−1 and has
+no suffix; `.1` = days −14…−8; `.2` = days −21…−15 (README v2). The served model uses the six
+weekly variables FitFusion can compute, for each of the three weeks:
+
+| Week-file column | Our name | FitFusion source (summed over the 7 days of that week) |
+|---|---|---|
+| nr. sessions | `sessions_w*` | daily sessions as below (capped at 2 a day) |
+| nr. rest days | `rest_days_w*` | days with no session |
+| total kms | `km_w*` | running / jogging / treadmill `cardio_logs.distance_km` |
+| max km one day | `max_km_day_w*` | the longest running day |
+| total hours alternative training | `alt_hours_w*` | non-running `cardio_logs.duration_minutes / 60` |
+| nr. strength trainings | `strength_w*` | days whose logged exercises include a strength exercise |
+
+Derived in `app/injury_load.py` (same code for training and serving): `acwr_km` and
+`acwr_sessions` (last week ÷ mean of the 3 weeks, clipped to [0, 3]), `km_change_w01`, and
+`long_run_share_w0`. The zone, exertion, success and recovery columns and the dataset's own
+`rel total kms` ratios are not used.
+
+**Known data issue (why the day file is not used for longer history).** In the day file, every
+injury row follows a gap of at least 22 days: there are no rows in the three weeks before an
+injury. Meanwhile 98.9% of other rows directly follow the previous day. A history rebuilt from
+the day file would therefore "know" which rows are injuries. The week file holds the three
+weeks inside each row, computed by the authors, so it does not have this problem. A test
+(`test_day_file_has_no_rows_in_the_three_weeks_before_an_injury`) keeps this documented.
+
+**Small unit difference.** "nr. strength trainings" counts sessions (up to 9 a week in the
+data), while FitFusion counts strength *days* (up to 7). `nr. sessions` reaches 14 a week in the
+data, which matches FitFusion's cap of 2 a day.
 
 **The 10 daily variables** (from the dataset README):
 nr. sessions · total km · km in zones 3–4 · km in zone 5 / track intervals · km sprinting ·
@@ -49,11 +83,13 @@ and only those four (the `APP` set) are used by the served model:
 | hours alternative | `cardio_logs.duration_minutes / 60` for non-running cardio |
 
 **Limitations**
-- Competitive middle- and long-distance runners, not gym members. The deployed model
-  applies their load-injury pattern to FitFusion users, which is a population shift.
+- Competitive middle- and long-distance runners (about 50 km a week on average), not gym
+  members. The served model applies their load-injury pattern to FitFusion users, who mostly
+  run far less, which is a population shift. Low weekly km pushes the score down.
 - The label has no body part, so knee/back/shoulder/hamstring cannot be learned from it.
-- FitFusion records no zones, sprinting or perceived ratings, so the served model uses 4 of
-  the 10 variables. `RESULTS.md` reports what that costs (`FULL` vs `APP`).
+- FitFusion records no zones, sprinting or perceived ratings, so the served model uses 6 of
+  the 22 weekly variables (round 1: 4 of the 10 daily ones). `RESULTS.md` reports round 1's
+  cost of that (`FULL` vs `APP`).
 - The authors' injury definition is in the paper, not the files.
 
 ---

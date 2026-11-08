@@ -43,7 +43,7 @@ fitfusion-ai-wb/
 |---|---|---|---|---|
 | 1 | Session energy expenditure: calibrated XGBoost HR model + SHAP (Keytel, then MET fallback) | `POST /predict/calories` | MET-only estimate | `/api/workout-log` (Cardio + Workout tabs) |
 | 2 | Hybrid meal recommender (0.5 popularity + 0.25 ALS + 0.25 ingredient TF-IDF) within dietary filters + calorie bands; content-based exercise recommender | `POST /recommend`, `POST /recommend/exercises` | LLM-invented meals, calories and exercises | `/api/generate-plan` |
-| 3 | Training-load injury risk (XGBoost on 74 runners' real injuries; not served, failed its pre-registered rule) + rule-based body regions (knee/back/shoulder/hamstring) | `POST /predict/injury-risk` | reactive injury logging | `/api/adaptive-replan`, `/api/ml-insights` |
+| 3 | Training-load injury risk: XGBoost on 3 weekly load summaries of 74 runners' real injuries (round 2, served; round 1 failed its rule) + rule-based body regions (knee/back/shoulder/hamstring) | `POST /predict/injury-risk` | reactive injury logging | `/api/adaptive-replan`, `/api/ml-insights` |
 | 4 | PyTorch Transformer running trajectory (improve/plateau/regress of 10 km-equivalent pace), trained on 34,753 Strava runners; completion-slope rule for non-runners | `POST /predict/trajectory` | single-week completion rate | `/api/adaptive-replan`, `/api/ml-insights` |
 | 5 | PPO agent over a real-data-calibrated `FitFusionEnv` (not served: failed its rule twice); the masked threshold rule serves | `POST /rl/action` | the if/else block in `/api/adaptive-replan` | `/api/adaptive-replan` |
 
@@ -103,6 +103,20 @@ logistic regression scored 0.669 on test but lower on development, and on
 2026-10-28 the user chose not to serve it either (rules only). The exercise matcher is word-boundary based on both sides
 (`keyword_pattern` / `keywordPattern`): "Pullups" loads shoulder, "Crunch" no
 longer loads knee. Teacher demo: `ml-service/demos/model3_injury/`.
+
+Stage 3 round 2 (2026-11-08, user asked to make it work; `demos/model3_injury/PROTOCOL_ROUND2.md`,
+pre-registered `d2ef8ec`, amended `fb9dbb0` before any result). **The day file cannot give
+history beyond a row's own 7 days**: it has no rows in the 21 days before any injury (every
+injury row follows a gap >= 22 days, vs 98.9% consecutive for other rows), so rebuilt 28-day
+features and "days since previous injury" leak the label. Round 2 uses the dataset's **week
+file** (`week_approach_maskedID_timeseries.csv`, 42,798 rows, 575 injuries) with 22
+app-computable features (`WEEK_FEATURES`, derived by `weeks_from_days` / `derive_week_features`
+for training and serving alike). Nested, athlete-grouped CV on all 74 athletes:
+XGBoost (depth 2 x 100) ROC-AUC 0.595 [0.563, 0.626] > 0.55 bar, so it is **served**
+(`models/injury_load_round2.pkl`, preferred by the registry over round 1). It ties a
+last-week-only logistic regression and does not significantly beat "sessions last week"; the
+top-10% `overall_elevated` flag has lift 1.33 [0.94, 1.80]. The endpoint needs 21 days (7 days
+-> `overall_risk: null` + `imputed`); Next.js sends 21 (`history.ts`).
 
 Stage 4 was rebuilt on 2026-10-28. The old Transformer read pseudo-sequences
 regrouped from cross-sectional Gym Members rows (accuracy 0.459) and is retired;

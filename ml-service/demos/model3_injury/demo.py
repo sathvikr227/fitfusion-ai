@@ -1,8 +1,10 @@
-"""Model 3 teacher demo — training-load injury risk with rule-based body regions.
+"""Model 3 teacher demo — training-load injury risk (served) + rule-based body regions.
 
-Shows the data and label, the class balance, a prediction for the labelled input
-in sample_input.json (or a file you pass) with its SHAP breakdown, real held-out
-athletes, the same request answered by the FastAPI endpoint, and the evaluation.
+Shows the data and label, the class balance, why round 1's 7-day model was not
+served and why the day file cannot give longer history (it leaks the label), a
+prediction for the labelled input in sample_input.json (or a file you pass) with
+its SHAP breakdown, the same request answered by the FastAPI endpoint, and the
+out-of-fold evaluation that decided serving.
 
 Run from ml-service/:
 
@@ -40,7 +42,7 @@ import numpy as np  # noqa: E402
 import xgboost  # noqa: E402
 
 from app.features import INJURY_LABELS, canonical_injuries  # noqa: E402
-from app.injury_load import APP_FEATURES, features_from_days, platt, predict_overall, region_levels  # noqa: E402
+from app.injury_load import WEEK_FEATURES, predict_overall, region_levels, weeks_from_days  # noqa: E402
 from app.routers.injury import loaded_regions  # noqa: E402
 
 MODEL_DIR = ML_SERVICE / "models"
@@ -61,67 +63,92 @@ def main() -> None:
     OUT.mkdir(exist_ok=True)
     input_path = Path(sys.argv[1]) if len(sys.argv) > 1 and not sys.argv[1].startswith("--") else HERE / "sample_input.json"
     sample = json.loads(input_path.read_text(encoding="utf-8"))
-    bundle = joblib.load(MODEL_DIR / "injury_load_model.pkl")
-    report = load_json(REPORTS / "injury_load.json")
+    bundle = joblib.load(MODEL_DIR / "injury_load_round2.pkl")
+    report = load_json(REPORTS / "injury_load_round2.json")
+    round1 = load_json(REPORTS / "injury_load.json")
 
-    section("1. Why Model 3 was rebuilt")
+    section("1. History of Model 3 (all decided by pre-registered rules)")
     old = load_json(REPORTS / "injury_risk.json")
     if old:
         knee = old["metrics"]["per_label"]["knee"]
-        print(f"  Old model: {old['algorithm']} on {old['dataset']} ({old['rows']} rows).")
-        print(f"  Its knee label was made by a rule over its own inputs: {knee['label_rule'][:90]}...")
-        print(f"  Old knee F1 = {knee['f1']}: the model re-learned the rule. It never saw an injury.")
-    print("  New model: real injuries of 74 runners (Part A, evaluated; NOT served, failed its rule) + real body-part")
-    print("  reports from SoccerMon (Part B, exploratory only). See PROTOCOL.md.")
+        print(f"  Original: {old['algorithm']} on {old['dataset']}. Its knee label was a rule over its own")
+        print(f"  inputs ({knee['label_rule'][:60]}...), so F1 = {knee['f1']} was circular. Retired.")
+    if round1:
+        r1 = round1["test"]["XGB-APP"]
+        print(f"  Round 1: XGBoost on the last 7 days of 74 runners' real injuries. Test ROC-AUC {r1['roc_auc']:.3f} "
+              f"[{r1['ci95']['roc_auc'][0]:.3f}, {r1['ci95']['roc_auc'][1]:.3f}] -> CI includes 0.5 -> NOT served.")
+    print("  Round 2: three weekly summaries, every athlete scored out-of-fold (PROTOCOL_ROUND2.md).")
 
-    section("2. The training data and its label (runners, CC0)")
-    from training.data_runners import funnel, load_runners
+    section("2. Training data and label (Lövdal et al. 2021, DataverseNL, CC0)")
+    from training.data_runners import funnel, load_runner_weeks, load_runners
 
-    data = load_runners()
+    data = load_runner_weeks()
     f = funnel(data)
     for key, value in f.items():
         print(f"  {key:42s} {value}")
-    print("  Label: injury on the event day (1) or not (0). Features: the 7 days before it.")
-    print(f"  Class balance: {f['injury_days']:,} injury days vs {f['rows'] - f['injury_days']:,} "
-          f"non-injury days → 1 in {round(1 / f['prevalence'])}.")
+    print("  File: week_approach_maskedID_timeseries.csv. Label: injury on the event day (1) or not (0).")
+    print("  Features: weekly summaries of the 3 weeks before that day (computed by the dataset authors).")
+    print(f"  Class balance: {f['injury_days']:,} injury days vs {f['rows'] - f['injury_days']:,} other days "
+          f"-> 1 in {round(1 / f['prevalence'])}.")
+    print("  First 5 cleaned rows (week 0 = the 7 days before the event):")
+    cols = ["athlete", "day", "sessions_w0", "km_w0", "km_w1", "km_w2", "strength_w0", "acwr_km", "injury"]
+    print("  " + data[cols].head(5).to_string(index=False).replace("\n", "\n  "))
     RESULT["data"] = f
 
-    section("3. Labelled sample input → model features")
+    section("3. Why not 4 weeks from the day file? It leaks the label")
+    day = load_runners().sort_values(["athlete", "day"])
+    gap = day.groupby("athlete")["day"].diff()
+    inj_gap = gap[day["injury"] == 1].dropna()
+    other_consecutive = float((gap[day["injury"] == 0] == 1).mean())
+    print(f"  Day file: every injury row follows a gap of >= {int(inj_gap.min())} days (no rows in the 3 weeks before);")
+    print(f"  {other_consecutive:.1%} of other rows follow the previous day. Any history beyond a row's own 7 days")
+    print("  would tell the model 'this row has a hole before it' = the label. The week file has the 3 weeks")
+    print("  inside each row, so no history is rebuilt. Leakage screen (no single feature may reach 0.75):")
+    if report:
+        screen = report["leakage_screen"]
+        print(f"  most separating feature: {screen['most_separating']} at {screen['max_separation']:.3f} -> passed")
+    RESULT["leakage"] = {"min_gap_before_injury_rows": int(inj_gap.min()), "other_rows_consecutive": other_consecutive}
+
+    section("4. Labelled sample input -> the model's 22 features")
     print(f"  Input file: {input_path.name}")
     print(f"  {sample.get('_label', '')}")
-    print(f"  {'date':12s} {'sessions':>8s} {'run km':>7s} {'strength':>8s} {'other cardio h':>14s}")
-    for day in sample["recent_days"]:
-        print(f"  {day.get('date', ''):12s} {day['sessions']:>8} {day['total_km']:>7} {day['strength']:>8} {day['alt_hours']:>14}")
-    row = features_from_days(sample["recent_days"])
-    print("  Derived: " + ", ".join(f"{k} = {row[k]:g}" for k in APP_FEATURES if not k.split("_")[-1].startswith("d")))
+    row = weeks_from_days(sample["recent_days"])
+    print(f"  {'':10s} {'sessions':>8s} {'rest d':>6s} {'run km':>7s} {'max km/day':>10s} {'other h':>7s} {'strength d':>10s}")
+    for w, name in ((2, "week 2"), (1, "week 1"), (0, "week 0")):
+        print(f"  {name:10s} {row[f'sessions_w{w}']:>8g} {row[f'rest_days_w{w}']:>6g} {row[f'km_w{w}']:>7g} "
+              f"{row[f'max_km_day_w{w}']:>10g} {row[f'alt_hours_w{w}']:>7g} {row[f'strength_w{w}']:>10g}")
+    print(f"  Derived: acwr_km = {row['acwr_km']:.2f}, acwr_sessions = {row['acwr_sessions']:.2f}, "
+          f"km_change_w01 = {row['km_change_w01']:+g}, long_run_share_w0 = {row['long_run_share_w0']:.2f}")
 
-    section("4. Prediction: overall risk (ML) + body regions (rules)")
+    section("5. Prediction: overall risk (ML model) + body regions (rules)")
     overall = predict_overall(bundle, row)
     elevated = overall >= bundle["threshold"]
     recorded = set(canonical_injuries(sample.get("prior_injuries", [])))
     loaded = loaded_regions(sample.get("recent_exercises", []))
     risk, basis = region_levels(recorded, loaded, elevated)
-    print(f"  Model served: {bundle['serve']}  ({bundle['model_version']}, config {bundle['config']})")
-    print(f"  Overall risk of an injury tomorrow: {overall:.4f}  "
-          f"= {overall / bundle['prevalence']:.2f}x the training injury rate ({bundle['prevalence']:.4f})")
-    print(f"  Elevated? {elevated}  (threshold {bundle['threshold']:.4f}, chosen on development athletes)")
+    print(f"  Model: {bundle['model_version']} ({bundle['config']['family']}, {bundle['config']}); served = {bundle['serve']}")
+    print(f"  Overall risk of an injury tomorrow: {overall:.4f} = {overall / bundle['prevalence']:.2f}x the training "
+          f"injury rate ({bundle['prevalence']:.4f})")
+    print(f"  Elevated? {elevated}  (threshold {bundle['threshold']:.4f} = top 10% of out-of-fold training days)")
     print(f"  Recorded injury regions: {sorted(recorded) or '-'};  loaded by recent exercises: {sorted(loaded) or '-'}")
     for region in INJURY_LABELS:
         flag = "FLAGGED" if risk[region] >= 0.7 else ""
         print(f"    {region:10s} level {risk[region]:.1f}  {basis[region]:58s} {flag}")
-    print("  Levels are rule levels, not probabilities. Informational only, not a diagnosis.")
-    RESULT["sample"] = {"overall_risk": overall, "elevated": bool(elevated), "risk": risk, "basis": basis}
+    print("  The four region levels are rule levels, not probabilities: the data has no body-part labels.")
+    print("  Informational risk indicator only, not a medical diagnosis.")
+    RESULT["sample"] = {"overall_risk": overall, "elevated": bool(elevated), "risk": risk, "basis": basis,
+                        "features": row}
 
-    section("5. Why: SHAP contributions for this input (log-odds, before calibration)")
-    x = np.array([[row[n] for n in APP_FEATURES]])
-    contribs = bundle["model"].get_booster().predict(xgboost.DMatrix(x, feature_names=APP_FEATURES),
+    section("6. Why: SHAP contributions for this input (log-odds, before calibration)")
+    x = np.array([[row[n] for n in WEEK_FEATURES]])
+    contribs = bundle["model"].get_booster().predict(xgboost.DMatrix(x, feature_names=WEEK_FEATURES),
                                                      pred_contribs=True)[0]
     order = np.argsort(np.abs(contribs[:-1]))[::-1][:8]
     print(f"  base value {contribs[-1]:+.3f}")
     for i in order:
-        print(f"    {APP_FEATURES[i]:16s} = {row[APP_FEATURES[i]]:<6g} → {contribs[i]:+.3f}")
+        print(f"    {WEEK_FEATURES[i]:18s} = {row[WEEK_FEATURES[i]]:<7.3g} -> {contribs[i]:+.3f}")
     fig, ax = plt.subplots(figsize=(7, 4))
-    names = [APP_FEATURES[i] for i in order][::-1]
+    names = [WEEK_FEATURES[i] for i in order][::-1]
     values = [contribs[i] for i in order][::-1]
     ax.barh(names, values, color=["#dc2626" if v > 0 else "#16a34a" for v in values])
     ax.axvline(0, color="k", lw=0.8)
@@ -129,27 +156,8 @@ def main() -> None:
     fig.tight_layout()
     fig.savefig(OUT / "shap_sample.png", dpi=130)
     plt.close(fig)
-    print(f"  [saved] outputs/shap_sample.png")
-
-    section("6. Real held-out athletes (never used in training or tuning)")
-    if report:
-        test_ids = report["split"]["test"]["athlete_ids"]
-        test = data[data["athlete"].isin(test_ids)]
-        raw = bundle["model"].predict_proba(test[APP_FEATURES].to_numpy())[:, 1]
-        p = platt(raw, bundle["platt_a"], bundle["platt_b"])
-        y = test["injury"].to_numpy()
-        print(f"  {len(test_ids)} test athletes, {len(test):,} days, {int(y.sum())} injuries")
-        print(f"  Mean predicted risk on injury days    : {p[y == 1].mean():.4f}")
-        print(f"  Mean predicted risk on non-injury days: {p[y == 0].mean():.4f}")
-        flagged = p >= bundle["threshold"]
-        print(f"  At the threshold: {int((flagged & (y == 1)).sum())} of {int(y.sum())} injury days flagged, "
-              f"{int((flagged & (y == 0)).sum()):,} of {int((y == 0).sum()):,} non-injury days flagged")
-        first_injury = test[test["injury"] == 1].iloc[0]
-        print(f"  Example — athlete {int(first_injury['athlete'])}, day {int(first_injury['day'])} (injured): "
-              f"7-day km {first_injury['total_km_7d']:g}, sessions {first_injury['sessions_7d']:g} → risk "
-              f"{float(platt(bundle['model'].predict_proba(first_injury[APP_FEATURES].to_numpy(dtype=float).reshape(1, -1))[0, 1], bundle['platt_a'], bundle['platt_b'])):.4f}")
-        RESULT["held_out"] = {"mean_risk_injury_days": float(p[y == 1].mean()),
-                              "mean_risk_other_days": float(p[y == 0].mean())}
+    print("  [saved] outputs/shap_sample.png")
+    RESULT["shap"] = {WEEK_FEATURES[i]: float(contribs[i]) for i in order}
 
     section("7. Same request through the FastAPI endpoint")
     from fastapi.testclient import TestClient
@@ -164,24 +172,34 @@ def main() -> None:
     shown = {k: v for k, v in resp.json().items() if k != "features_used"}
     print(f"  HTTP {resp.status_code}")
     print("  " + json.dumps(shown, indent=2).replace("\n", "\n  "))
+    same = abs(resp.json()["overall_risk"] - round(overall, 5)) < 1e-9 if resp.json()["overall_risk"] is not None else False
+    print(f"  Endpoint overall_risk equals the direct prediction above: {same}")
     RESULT["api_response"] = resp.json()
 
-    section("8. Evaluation evidence (models/reports, written by the training scripts)")
+    section("8. Evaluation evidence (models/reports/injury_load_round2.json)")
     if report:
-        print(f"  Test athletes: {report['split']['test']['athletes']}, injuries {report['split']['test']['injuries']}")
-        print(f"  {'model':12s} {'ROC-AUC [95% CI]':24s} {'PR-AUC':>7s} {'F1':>6s} {'recall':>7s}")
-        for name, m in report["test"].items():
-            c = m.get("ci95", {}).get("roc_auc")
-            auc = f"{m['roc_auc']:.3f}" + (f" [{c[0]:.3f}, {c[1]:.3f}]" if c else "")
-            t = m.get("at_threshold", {})
-            print(f"  {name:12s} {auc:24s} {m['pr_auc']:>7.3f} {t.get('f1', float('nan')):>6.3f} "
-                  f"{t.get('recall', float('nan')):>7.3f}")
+        print("  Every athlete scored out-of-fold: 5-fold athlete-grouped CV, model chosen inside each fold")
+        print("  (nested), repeated with seeds 42-46. 95% CI = athlete-cluster bootstrap (2,000 resamples).")
+        print(f"  {'model':18s} {'ROC-AUC [95% CI]':26s} {'PR-AUC':>7s}")
+        for name, m in report["primary"].items():
+            c = m["roc_auc_ci95"]
+            print(f"  {name:18s} {m['roc_auc']:.3f} [{c[0]:.3f}, {c[1]:.3f}]{'':6s} {m['pr_auc']:>7.4f}")
+        print(f"  {'prevalence only':18s} 0.500{'':21s} {f['prevalence']:>7.4f}")
         for name, d in report["auc_differences"].items():
-            print(f"  {name:28s} ΔAUC {d['difference']:+.3f} [{d['ci95'][0]:+.3f}, {d['ci95'][1]:+.3f}]")
+            print(f"  {name:34s} ΔAUC {d['difference']:+.3f} [{d['ci95'][0]:+.3f}, {d['ci95'][1]:+.3f}]")
+        c = report["primary"]["Candidate"]
+        e = c["elevated"]
+        print(f"  Calibration slope {c['calibration']['slope']} (1 = perfect); Brier {c['brier']} vs "
+              f"{c['brier_prevalence_only']} for prevalence only")
+        print(f"  Top-10% days: injury rate {e['injury_rate_flagged']:.4f} vs {e['injury_rate_not_flagged']:.4f} "
+              f"-> lift {e['lift']} [{e['lift_ci95'][0]}, {e['lift_ci95'][1]}]; recall {e['recall']}")
         print(f"  Decision: {report['decision']}")
+        s = report["secondary_round1_split"]
+        print(f"  Secondary (round 1's 14 test athletes, not fresh): ROC-AUC {s['roc_auc']} {s['roc_auc_ci95']}")
+        print("  Slide target F1 > 0.75 per region: not met and not measurable (no body-part labels exist).")
     knee = load_json(REPORTS / "injury_soccermon_knee.json")
     if knee:
-        print(f"  Part B (SoccerMon knee, exploratory): {knee['funnel']['knee_episodes']} episodes from "
+        print(f"  Part B (SoccerMon knee, exploratory, never served): {knee['funnel']['knee_episodes']} episodes from "
               f"{knee['funnel']['knee_players']} players")
         for name, m in knee["out_of_fold"].items():
             c = m.get("roc_auc_ci95")

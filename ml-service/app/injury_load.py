@@ -101,15 +101,16 @@ def build_recent_days(
     exercises_by_log: Mapping[str, list[str]],
     cardio_logs: list[Mapping],
     today: date,
+    window: int = WINDOW_DAYS,
 ) -> list[dict]:
-    """FitFusion rows -> the 7 days before `today` in runners units (PROTOCOL.md mapping).
+    """FitFusion rows -> the `window` days before `today` in runners units (PROTOCOL.md mapping).
 
     sessions  = 1 if any workout log that day (duplicate rows collapsed) + cardio sessions
     total_km  = running/jogging/treadmill distance
     strength  = 1 if that day's logged exercises include one classed as Strength
     alt_hours = duration of non-running cardio
     """
-    days = [(today - timedelta(days=offset)).isoformat() for offset in range(WINDOW_DAYS, 0, -1)]
+    days = [(today - timedelta(days=offset)).isoformat() for offset in range(window, 0, -1)]
     out = {d: {"date": d, "sessions": 0.0, "total_km": 0.0, "strength": 0.0, "alt_hours": 0.0} for d in days}
     for log in workout_logs:
         day = out.get(str(log.get("date"))[:10])
@@ -129,6 +130,76 @@ def build_recent_days(
         else:
             day["alt_hours"] += float(row.get("duration_minutes") or 0) / 60.0
     return [out[d] for d in days]
+
+
+# ── Round 2: three weeks of load (week-approach file) ─────────────────────────
+# demos/model3_injury/PROTOCOL_ROUND2.md, Amendment 1. Training (the dataset's
+# weekly summaries) and serving (FitFusion's last 21 days) both go through
+# `derive_week_features`, so the derived features cannot drift apart.
+WEEKS = 3
+WEEK_WINDOW_DAYS = WEEKS * WINDOW_DAYS  # 21
+ACWR_MAX = 3.0
+
+# Week-approach column (week 0 has no suffix, then ".1", ".2") -> our name.
+WEEK_SOURCE: dict[str, str] = {
+    "nr. sessions": "sessions",
+    "nr. rest days": "rest_days",
+    "total kms": "km",
+    "max km one day": "max_km_day",
+    "total hours alternative training": "alt_hours",
+    "nr. strength trainings": "strength",
+}
+WEEK_VARIABLES = list(WEEK_SOURCE.values())
+WEEK_BASE_FEATURES = [f"{v}_w{w}" for w in range(WEEKS) for v in WEEK_VARIABLES]
+WEEK_DERIVED_FEATURES = ["acwr_km", "acwr_sessions", "km_change_w01", "long_run_share_w0"]
+WEEK_FEATURES = WEEK_BASE_FEATURES + WEEK_DERIVED_FEATURES
+WEEK0_FEATURES = [f"{v}_w0" for v in WEEK_VARIABLES]
+
+
+def _acwr(acute, chronic):
+    """acute / chronic, clipped to [0, 3]; chronic 0 -> 1 if acute is 0, else 3. Works on arrays."""
+    acute = np.asarray(acute, dtype=float)
+    chronic = np.asarray(chronic, dtype=float)
+    safe = np.where(chronic > 0, chronic, 1.0)
+    ratio = np.clip(acute / safe, 0.0, ACWR_MAX)
+    return np.where(chronic > 0, ratio, np.where(acute > 0, ACWR_MAX, 1.0))
+
+
+def derive_week_features(base: Mapping) -> dict:
+    """The four derived features from the 18 weekly values (scalars or arrays)."""
+    km = [np.asarray(base[f"km_w{w}"], dtype=float) for w in range(WEEKS)]
+    sessions = [np.asarray(base[f"sessions_w{w}"], dtype=float) for w in range(WEEKS)]
+    max_day = np.asarray(base["max_km_day_w0"], dtype=float)
+    return {
+        "acwr_km": _acwr(km[0], sum(km) / WEEKS),
+        "acwr_sessions": _acwr(sessions[0], sum(sessions) / WEEKS),
+        "km_change_w01": km[0] - km[1],
+        "long_run_share_w0": np.where(km[0] > 0, np.clip(max_day / np.where(km[0] > 0, km[0], 1.0), 0, 1), 0.0),
+    }
+
+
+def weeks_from_days(days: list[Mapping[str, float]]) -> dict[str, float]:
+    """FitFusion's last 21 days (oldest first, ending yesterday) -> the 22 round-2 features.
+
+    Week 0 = days -7...-1, week 1 = -14...-8, week 2 = -21...-15, as in the dataset.
+    Each day uses the round-1 mapping (sessions clipped to 2, running km, strength
+    day 0/1, alternative hours); rest days = days with no session.
+    """
+    if len(days) != WEEK_WINDOW_DAYS:
+        raise ValueError(f"need exactly {WEEK_WINDOW_DAYS} days, got {len(days)}")
+    base: dict[str, float] = {}
+    for w in range(WEEKS):
+        block = days[WEEK_WINDOW_DAYS - WINDOW_DAYS * (w + 1): WEEK_WINDOW_DAYS - WINDOW_DAYS * w]
+        sessions = [min(max(float(d.get("sessions", 0) or 0), 0.0), SESSIONS_MAX) for d in block]
+        km = [max(float(d.get("total_km", 0) or 0), 0.0) for d in block]
+        base[f"sessions_w{w}"] = float(sum(sessions))
+        base[f"rest_days_w{w}"] = float(sum(s == 0 for s in sessions))
+        base[f"km_w{w}"] = float(sum(km))
+        base[f"max_km_day_w{w}"] = float(max(km))
+        base[f"alt_hours_w{w}"] = float(sum(max(float(d.get("alt_hours", 0) or 0), 0.0) for d in block))
+        base[f"strength_w{w}"] = float(sum(float(d.get("strength", 0) or 0) > 0 for d in block))
+    row = {**base, **{k: float(v) for k, v in derive_week_features(base).items()}}
+    return {name: row[name] for name in WEEK_FEATURES}
 
 
 def platt(score: np.ndarray | float, a: float, b: float) -> np.ndarray | float:

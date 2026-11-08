@@ -29,7 +29,7 @@ SECRETS_DIR = ROOT / ".deploy"
 KEY_FILE = SECRETS_DIR / "ml_service_api_key"
 SERVED = [
     "calorie_energy.json", "calorie_hr_model.pkl", "meal_catalog.pkl", "meal_hybrid_serving.pkl",
-    "exercise_index.pkl", "injury_load_model.pkl", "trajectory_runs.pt", "trajectory_runs_meta.json",
+    "exercise_index.pkl", "injury_load_model.pkl", "injury_load_round2.pkl", "trajectory_runs.pt", "trajectory_runs_meta.json",
     "rl_ppo_agent.zip", "rl_ppo_meta.json",
 ]
 

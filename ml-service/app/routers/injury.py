@@ -1,9 +1,11 @@
 """Model 3 — POST /predict/injury-risk (training-load injury risk + region rules).
 
-The overall risk is an XGBoost model trained on real injuries of 74 competitive
-runners (Lövdal et al. 2021, CC0), from the last 7 days of training load. That
-label has no body part, so knee/back/shoulder/hamstring come from the fixed
-rules in `app.injury_load.region_levels`, never from the model.
+The overall risk is a model trained on real injuries of 74 competitive runners
+(Lövdal et al. 2021, CC0). Round 2 reads the last 21 days as three weekly
+summaries (demos/model3_injury/PROTOCOL_ROUND2.md); round 1 read 7 days. It is
+shown only if its artifact passed its pre-registered serving rule. That label
+has no body part, so knee/back/shoulder/hamstring come from the fixed rules in
+`app.injury_load.region_levels`, never from the model.
 
 Informational risk indicator only, not a diagnosis. `/predict/injury` is kept as
 an alias for the Step 1 skeleton.
@@ -17,7 +19,7 @@ from fastapi import APIRouter, Depends
 
 from ..auth import require_bearer
 from ..features import INJURY_LABELS, INJURY_RISK_THRESHOLD, canonical_injuries, exercise_targets_muscle_group
-from ..injury_load import features_from_days, predict_overall, region_levels
+from ..injury_load import WEEK_WINDOW_DAYS, WINDOW_DAYS, features_from_days, predict_overall, region_levels, weeks_from_days
 from ..model_registry import ModelRegistry, get_registry
 from ..schemas import DayLoad, InjuryRequest, InjuryResponse
 from ..supabase_reader import SupabaseUnavailable, fetch_injury_features
@@ -67,6 +69,7 @@ def predict_injury_risk(
     elevated = False
     features: dict[str, float] = {}
     imputed: list[str] = []
+    basis_text: str | None = None
 
     if not usable:
         why = reg.errors.get("injury", "not loaded") if bundle is None else "failed its serving rule"
@@ -74,11 +77,21 @@ def predict_injury_risk(
     elif req.recent_days is None:
         imputed.append("recent_days")
     else:
-        features = features_from_days([day.model_dump() for day in req.recent_days])
-        overall = predict_overall(bundle, features)
-        threshold = float(bundle["threshold"])
-        relative = overall / float(bundle["prevalence"])
-        elevated = overall >= threshold
+        days = [day.model_dump() for day in req.recent_days]
+        if bundle.get("feature_kind") == "week3":
+            if len(days) == WEEK_WINDOW_DAYS:
+                features = weeks_from_days(days)
+                basis_text = "last 21 days as 3 weekly summaries"
+            else:
+                imputed.append(f"recent_days ({WEEK_WINDOW_DAYS} days needed, got {len(days)})")
+        else:
+            features = features_from_days(days[-WINDOW_DAYS:])
+            basis_text = "last 7 days"
+        if features:
+            overall = predict_overall(bundle, features)
+            threshold = float(bundle["threshold"])
+            relative = overall / float(bundle["prevalence"])
+            elevated = overall >= threshold
 
     risk, basis = region_levels(recorded, loaded, elevated)
     flagged = [region for region, level in risk.items() if level >= INJURY_RISK_THRESHOLD]
@@ -89,6 +102,7 @@ def predict_injury_risk(
         flagged=flagged,
         basis=basis,
         overall_risk=round(overall, 5) if overall is not None else None,
+        overall_basis=basis_text if overall is not None else None,
         relative_risk=round(relative, 3) if relative is not None else None,
         overall_threshold=round(threshold, 5) if threshold is not None else None,
         overall_elevated=elevated,

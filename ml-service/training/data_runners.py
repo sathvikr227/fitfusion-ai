@@ -16,13 +16,26 @@ import hashlib
 
 import pandas as pd
 
-from app.injury_load import FULL_VARIABLES, RUNNER_VARIABLES, WINDOW_DAYS, add_derived, day_column
+from app.injury_load import (
+    FULL_VARIABLES,
+    RUNNER_VARIABLES,
+    WEEK_SOURCE,
+    WEEKS,
+    WINDOW_DAYS,
+    add_derived,
+    day_column,
+    derive_week_features,
+)
 from training.common import DATA_DIR, banner
 
 RUNNERS_DIR = DATA_DIR / "runners"
 DAY_CSV = RUNNERS_DIR / "day_approach_maskedID_timeseries.csv"
 DAY_CSV_SHA256 = "9c06ecefae9caa4ca831c08c7ebe4d25b0b01e8aa285df526a4e6791c673b6e8"
 EXPECTED = {"rows": 42766, "athletes": 74, "injuries": 583}
+# Week approach (Model 3 round 2): https://dataverse.nl/api/access/datafile/47971
+WEEK_CSV = RUNNERS_DIR / "week_approach_maskedID_timeseries.csv"
+WEEK_CSV_SHA256 = "261ba3a481f3428611cc175eac2b67749ee3d97980d81168af13bd9f932d5a31"
+WEEK_EXPECTED = {"rows": 42798, "athletes": 74, "injuries": 575}
 
 ATHLETE, LABEL, DATE = "Athlete ID", "injury", "Date"
 
@@ -60,6 +73,32 @@ def load_runners(verify: bool = True) -> pd.DataFrame:
     found = {"rows": len(frame), "athletes": frame["athlete"].nunique(), "injuries": int(frame["injury"].sum())}
     if verify and found != EXPECTED:
         raise ValueError(f"unexpected runners data: {found}, expected {EXPECTED}")
+    return frame
+
+
+def load_runner_weeks(verify: bool = True) -> pd.DataFrame:
+    """Week approach: one row per event day; 18 weekly values + 4 derived features,
+    `athlete`, `injury`, `day`. Week 0 = the 7 days before the event (README v2)."""
+    if not WEEK_CSV.exists():
+        raise FileNotFoundError(f"{WEEK_CSV} not found. See the download step in {__file__}.")
+    if verify and sha256(WEEK_CSV) != WEEK_CSV_SHA256:
+        raise ValueError(f"{WEEK_CSV.name} does not match the recorded SHA-256 (see data/runners/SOURCE.txt)")
+    raw = pd.read_csv(WEEK_CSV)
+    frame = pd.DataFrame(
+        {
+            f"{short}_w{w}": raw[name if w == 0 else f"{name}.{w}"].astype(float)
+            for w in range(WEEKS)
+            for name, short in WEEK_SOURCE.items()
+        }
+    )
+    for name, values in derive_week_features(frame).items():
+        frame[name] = values
+    frame["athlete"] = raw[ATHLETE].astype(int)
+    frame["injury"] = raw[LABEL].astype(int)
+    frame["day"] = raw[DATE].astype(int)
+    found = {"rows": len(frame), "athletes": frame["athlete"].nunique(), "injuries": int(frame["injury"].sum())}
+    if verify and found != WEEK_EXPECTED:
+        raise ValueError(f"unexpected week-approach data: {found}, expected {WEEK_EXPECTED}")
     return frame
 
 

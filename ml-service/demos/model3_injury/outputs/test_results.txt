@@ -2,59 +2,95 @@
 platform win32 -- Python 3.12.10, pytest-8.3.3, pluggy-1.6.0 -- C:\Users\Sathv\OneDrive\Desktop\fitfusion-ai-wb\ml-service\.venv\Scripts\python.exe
 rootdir: C:\Users\Sathv\OneDrive\Desktop\fitfusion-ai-wb\ml-service
 plugins: anyio-4.15.1
-collecting ... collected 34 items
-
-tests/test_model3_injury.py::test_shoulder_matcher_handles_joined_and_hyphenated_names[Pullups] PASSED [  2%]
-tests/test_model3_injury.py::test_shoulder_matcher_handles_joined_and_hyphenated_names[Pull-Up] PASSED [  5%]
-tests/test_model3_injury.py::test_shoulder_matcher_handles_joined_and_hyphenated_names[pull up] PASSED [  8%]
-tests/test_model3_injury.py::test_shoulder_matcher_handles_joined_and_hyphenated_names[Wide Grip Pull-ups] PASSED [ 11%]
-tests/test_model3_injury.py::test_shoulder_matcher_handles_joined_and_hyphenated_names[Pushups] PASSED [ 14%]
-tests/test_model3_injury.py::test_matcher_matches_word_starts_only[Crunch-knee-False] PASSED [ 17%]
-tests/test_model3_injury.py::test_matcher_matches_word_starts_only[Bicycle Crunches-knee-False] PASSED [ 20%]
-tests/test_model3_injury.py::test_matcher_matches_word_starts_only[Running-knee-True] PASSED [ 23%]
-tests/test_model3_injury.py::test_matcher_matches_word_starts_only[Situps-back-True] PASSED [ 26%]
-tests/test_model3_injury.py::test_matcher_matches_word_starts_only[Romanian Deadlift-hamstring-True] PASSED [ 29%]
-tests/test_model3_injury.py::test_matcher_matches_word_starts_only[Barbell Curl-shoulder-False] PASSED [ 32%]
-tests/test_model3_injury.py::test_app_features_are_a_subset_of_full_features PASSED [ 35%]
-tests/test_model3_injury.py::test_features_from_days_orders_yesterday_as_d1_and_clips PASSED [ 38%]
-tests/test_model3_injury.py::test_features_from_days_needs_seven_days PASSED [ 41%]
-tests/test_model3_injury.py::test_build_recent_days_matches_the_typescript_mapping PASSED [ 44%]
-tests/test_model3_injury.py::test_platt_is_monotone PASSED               [ 47%]
-tests/test_model3_injury.py::test_region_levels_follow_the_protocol_table PASSED [ 50%]
-tests/test_model3_injury.py::test_artifact_matches_its_report PASSED     [ 52%]
-tests/test_model3_injury.py::test_artifact_predicts_a_probability PASSED [ 55%]
-tests/test_model3_injury.py::test_runner_suffixes_map_day_before_to_dot_six PASSED [ 58%]
-tests/test_model3_injury.py::test_runners_data_matches_recorded_counts PASSED [ 61%]
-tests/test_model3_injury.py::test_test_split_shares_no_athlete_with_development PASSED [ 64%]
-tests/test_model3_injury.py::test_soccermon_knee_episodes PASSED         [ 67%]
-tests/test_smoke.py::test_injury_risk_returns_overall_and_all_four_regions PASSED [ 70%]
-tests/test_smoke.py::test_injury_region_flag_needs_recorded_injury_and_elevated_load PASSED [ 73%]
-tests/test_smoke.py::test_injury_risk_rejects_wrong_number_of_days PASSED [ 76%]
-tests/test_smoke.py::test_injury_risk_without_days_reports_imputed PASSED [ 79%]
-tests/test_smoke.py::test_endpoints_fall_back_when_models_absent PASSED  [ 82%]
-tests/test_model2_exercises.py::test_keyword_pattern[pullups-pull up-True] PASSED [ 85%]
-tests/test_model2_exercises.py::test_keyword_pattern[v-bar pullup-pull up-True] PASSED [ 88%]
-tests/test_model2_exercises.py::test_keyword_pattern[chin-up-chin up-True] PASSED [ 91%]
-tests/test_model2_exercises.py::test_keyword_pattern[crunches-run-False] PASSED [ 94%]
-tests/test_model2_exercises.py::test_keyword_pattern[cable crunch-run-False] PASSED [ 97%]
-tests/test_model2_exercises.py::test_keyword_pattern[barbell squat-squat-True] PASSED [100%]
-
+collecting ... collected 71 items
+tests/test_model3_injury.py::test_shoulder_matcher_handles_joined_and_hyphenated_names[Pullups] PASSED [  1%]
+tests/test_model3_injury.py::test_shoulder_matcher_handles_joined_and_hyphenated_names[Pull-Up] PASSED [  2%]
+tests/test_model3_injury.py::test_shoulder_matcher_handles_joined_and_hyphenated_names[pull up] PASSED [  4%]
+tests/test_model3_injury.py::test_shoulder_matcher_handles_joined_and_hyphenated_names[Wide Grip Pull-ups] PASSED [  5%]
+tests/test_model3_injury.py::test_shoulder_matcher_handles_joined_and_hyphenated_names[Pushups] PASSED [  7%]
+tests/test_model3_injury.py::test_matcher_matches_word_starts_only[Crunch-knee-False] PASSED [  8%]
+tests/test_model3_injury.py::test_matcher_matches_word_starts_only[Bicycle Crunches-knee-False] PASSED [  9%]
+tests/test_model3_injury.py::test_matcher_matches_word_starts_only[Running-knee-True] PASSED [ 11%]
+tests/test_model3_injury.py::test_matcher_matches_word_starts_only[Situps-back-True] PASSED [ 12%]
+tests/test_model3_injury.py::test_matcher_matches_word_starts_only[Romanian Deadlift-hamstring-True] PASSED [ 14%]
+tests/test_model3_injury.py::test_matcher_matches_word_starts_only[Barbell Curl-shoulder-False] PASSED [ 15%]
+tests/test_model3_injury.py::test_app_features_are_a_subset_of_full_features PASSED [ 16%]
+tests/test_model3_injury.py::test_features_from_days_orders_yesterday_as_d1_and_clips PASSED [ 18%]
+tests/test_model3_injury.py::test_features_from_days_needs_seven_days PASSED [ 19%]
+tests/test_model3_injury.py::test_build_recent_days_matches_the_typescript_mapping PASSED [ 21%]
+tests/test_model3_injury.py::test_platt_is_monotone PASSED               [ 22%]
+tests/test_model3_injury.py::test_region_levels_follow_the_protocol_table PASSED [ 23%]
+tests/test_model3_injury.py::test_artifact_matches_its_report PASSED     [ 25%]
+tests/test_model3_injury.py::test_artifact_predicts_a_probability PASSED [ 26%]
+tests/test_model3_injury.py::test_runner_suffixes_map_day_before_to_dot_six PASSED [ 28%]
+tests/test_model3_injury.py::test_runners_data_matches_recorded_counts PASSED [ 29%]
+tests/test_model3_injury.py::test_test_split_shares_no_athlete_with_development PASSED [ 30%]
+tests/test_model3_injury.py::test_soccermon_knee_episodes PASSED         [ 32%]
+tests/test_model3_injury.py::test_week_features_put_the_last_seven_days_in_week_zero PASSED [ 33%]
+tests/test_model3_injury.py::test_week_features_clip_sessions_and_count_strength_days PASSED [ 35%]
+tests/test_model3_injury.py::test_week_features_need_exactly_21_days PASSED [ 36%]
+tests/test_model3_injury.py::test_derived_week_features_work_on_arrays_like_the_loader PASSED [ 38%]
+tests/test_model3_injury.py::test_request_accepts_21_or_7_days_only PASSED [ 39%]
+tests/test_model3_injury.py::test_build_recent_days_can_return_three_weeks PASSED [ 40%]
+tests/test_model3_injury.py::test_day_file_has_no_rows_in_the_three_weeks_before_an_injury PASSED [ 42%]
+tests/test_model3_injury.py::test_week_file_matches_recorded_counts_and_columns PASSED [ 43%]
+tests/test_model3_injury.py::test_round2_artifact_matches_its_report PASSED [ 45%]
+tests/test_model3_injury.py::test_round2_artifact_predicts_and_responds_to_load PASSED [ 46%]
+tests/test_smoke.py::test_healthz_is_open PASSED                         [ 47%]
+tests/test_smoke.py::test_auth_required_on_every_model_endpoint PASSED   [ 49%]
+tests/test_smoke.py::test_bad_token_rejected PASSED                      [ 50%]
+tests/test_smoke.py::test_calorie_heart_rate_method_is_used_for_cardio_with_hr PASSED [ 52%]
+tests/test_smoke.py::test_calorie_matches_calibrated_keytel_formula PASSED [ 53%]
+tests/test_smoke.py::test_calorie_higher_heart_rate_burns_more PASSED    [ 54%]
+tests/test_smoke.py::test_calorie_falls_back_to_met_outside_validated_conditions[change0-no average heart rate] PASSED [ 56%]
+tests/test_smoke.py::test_calorie_falls_back_to_met_outside_validated_conditions[change1-cardio only] PASSED [ 57%]
+tests/test_smoke.py::test_calorie_falls_back_to_met_outside_validated_conditions[change2-age and sex] PASSED [ 59%]
+tests/test_smoke.py::test_calorie_falls_back_to_met_outside_validated_conditions[change3-outside the validated range] PASSED [ 60%]
+tests/test_smoke.py::test_calorie_legacy_alias_still_works PASSED        [ 61%]
+tests/test_smoke.py::test_calorie_longer_session_burns_more PASSED       [ 63%]
+tests/test_smoke.py::test_calorie_rejects_missing_duration PASSED        [ 64%]
+tests/test_smoke.py::test_calorie_rejects_bad_weight PASSED              [ 66%]
+tests/test_smoke.py::test_recommend_returns_real_recipes_for_every_slot_in_calorie_band PASSED [ 67%]
+tests/test_smoke.py::test_recommend_ranks_by_popularity PASSED           [ 69%]
+tests/test_smoke.py::test_recommend_never_repeats_a_recipe_across_slots PASSED [ 70%]
+tests/test_smoke.py::test_recommend_respects_supported_restrictions[Vegetarian-is_vegetarian] PASSED [ 71%]
+tests/test_smoke.py::test_recommend_respects_supported_restrictions[vegan-is_vegan] PASSED [ 73%]
+tests/test_smoke.py::test_recommend_respects_supported_restrictions[Gluten Free-is_gluten_free] PASSED [ 74%]
+tests/test_smoke.py::test_recommend_respects_supported_restrictions[nut-free-is_nut_free] PASSED [ 76%]
+tests/test_smoke.py::test_recommend_respects_supported_restrictions[Lactose Free-is_dairy_free] PASSED [ 77%]
+tests/test_smoke.py::test_recommend_refuses_restrictions_it_cannot_verify PASSED [ 78%]
+tests/test_smoke.py::test_recommend_ignores_no_restriction_values PASSED [ 80%]
+tests/test_smoke.py::test_recommend_applies_protein_floor_and_exclusions PASSED [ 81%]
+tests/test_smoke.py::test_injury_risk_returns_overall_and_all_four_regions PASSED [ 83%]
+tests/test_smoke.py::test_injury_region_flag_needs_recorded_injury_and_elevated_load PASSED [ 84%]
+tests/test_smoke.py::test_injury_risk_with_seven_days_says_three_weeks_are_needed PASSED [ 85%]
+tests/test_smoke.py::test_injury_risk_rejects_wrong_number_of_days PASSED [ 87%]
+tests/test_smoke.py::test_injury_risk_without_days_reports_imputed PASSED [ 88%]
+tests/test_smoke.py::test_trajectory_strength_sessions_get_the_rule_with_reason PASSED [ 90%]
+tests/test_smoke.py::test_trajectory_short_history_gets_the_rule_not_padding PASSED [ 91%]
+tests/test_smoke.py::test_trajectory_rejects_empty_sessions PASSED       [ 92%]
+tests/test_smoke.py::test_trajectory_rejects_out_of_range_completion PASSED [ 94%]
+tests/test_smoke.py::test_rl_action_returns_valid_action PASSED          [ 95%]
+tests/test_smoke.py::test_rl_state_construction_matches_documented_formula PASSED [ 97%]
+tests/test_smoke.py::test_rl_rejects_out_of_range_completion PASSED      [ 98%]
+tests/test_smoke.py::test_endpoints_fall_back_when_models_absent PASSED  [100%]
 ============================== warnings summary ===============================
 .venv\Lib\site-packages\starlette\testclient.py:40
   C:\Users\Sathv\OneDrive\Desktop\fitfusion-ai-wb\ml-service\.venv\Lib\site-packages\starlette\testclient.py:40: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
     _PortalFactoryType = typing.Callable[[], typing.ContextManager[anyio.abc.BlockingPortal]]
-
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-======================= 34 passed, 1 warning in 12.73s ========================
+======================== 71 passed, 1 warning in 8.50s ========================
 
-> web@0.1.0 test
-> node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test "src/**/*.test.mjs"
-
-✔ matcher tolerates missing and hyphenated gaps (1.0856ms)
-✔ matcher only matches at word starts (0.3487ms)
-✔ a shoulder flag now strips pull-ups from the plan (1.6723ms)
-✔ buildRecentDays maps FitFusion rows onto runners units (0.4802ms)
-✔ region levels follow the PROTOCOL.md table (1.1099ms)
+=== TypeScript (web/src/lib/ml-service/*.test.mjs) ===
+(node:6896) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/Sathv/OneDrive/Desktop/fitfusion-ai-wb/web/src/lib/ml-service/injury-rules.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\Sathv\OneDrive\Desktop\fitfusion-ai-wb\web\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ matcher tolerates missing and hyphenated gaps (1.2593ms)
+✔ matcher only matches at word starts (0.4743ms)
+✔ a shoulder flag now strips pull-ups from the plan (2.2475ms)
+✔ buildRecentDays maps FitFusion rows onto runners units (0.5021ms)
+✔ region levels follow the PROTOCOL.md table (1.2513ms)
 ℹ tests 5
 ℹ suites 0
 ℹ pass 5
@@ -62,4 +98,4 @@ tests/test_model2_exercises.py::test_keyword_pattern[barbell squat-squat-True] P
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 107.603
+ℹ duration_ms 144.29
