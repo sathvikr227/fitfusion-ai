@@ -3,236 +3,115 @@
 import { useEffect, useState } from "react"
 import { supabase } from "../../../lib/supabase/client"
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// Injury-risk card for Home and the Injuries page.
+//
+// It reads /api/ml-insights, the same route the analytics dashboard and the
+// replan use, so this card can never disagree with them. The overall score is
+// the Model 3 training-load XGBoost (3 weekly load summaries); the body regions
+// come from the fixed rule table. When the ML service is down the route already
+// returns the rule-based fallback, and the card says so instead of inventing a
+// score of its own.
 
 type RiskLevel = "Low" | "Moderate" | "High"
 
-type RiskData = {
-  score: number
-  level: RiskLevel
-  factors: string[]
-  recommendation: string
-  workoutsLast7: number
-  avgSleepHours: number
-  activeInjuries: number
-  totalMinutesLast7: number
+type Insights = {
+  injury: {
+    risk: Record<string, number>
+    threshold: number
+    flagged: string[]
+    basis: Record<string, string>
+    overallRisk: number | null
+    relativeRisk: number | null
+    overallElevated: boolean
+    disclaimer: string
+    modelVersion: string
+    fromFallback: boolean
+  }
+  week: {
+    avgSleep: number | null
+    activeInjuries: number
+  }
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function clamp(val: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, val))
+const REGION_LABEL: Record<string, string> = {
+  knee: "Knee",
+  back: "Back",
+  shoulder: "Shoulder",
+  hamstring: "Hamstring",
 }
 
-function computeRiskScore(
-  workoutsLast7: number,
-  avgSleepHours: number,
-  activeInjuries: number,
-  totalMinutesLast7: number
-): { score: number; level: RiskLevel; factors: string[]; recommendation: string } {
-  const sleepScore = avgSleepHours >= 7 ? 0 : (7 - avgSleepHours) * 15
-  const injuryPenalty = activeInjuries * 25
-  const volumeScore = totalMinutesLast7 > 300 ? (totalMinutesLast7 - 300) / 10 : 0
-  const overtrainingScore = workoutsLast7 > 6 ? (workoutsLast7 - 6) * 15 : 0
-
-  const score = clamp(sleepScore + injuryPenalty + volumeScore + overtrainingScore, 0, 100)
-
-  let level: RiskLevel
-  let recommendation: string
-
-  if (score <= 30) {
-    level = "Low"
-    recommendation = "Great balance! Keep up your current routine and prioritize recovery."
-  } else if (score <= 60) {
-    level = "Moderate"
-    recommendation = "Monitor fatigue closely — add an extra rest day and aim for 7–8h sleep."
-  } else {
-    level = "High"
-    recommendation = "High injury risk detected — reduce training volume and address active injuries."
-  }
-
-  const factors: string[] = []
-  if (avgSleepHours < 7 && avgSleepHours > 0) {
-    factors.push(`Low sleep avg (${avgSleepHours.toFixed(1)}h/night)`)
-  }
-  if (activeInjuries > 0) {
-    factors.push(`${activeInjuries} active injur${activeInjuries === 1 ? "y" : "ies"}`)
-  }
-  if (workoutsLast7 > 6) {
-    factors.push(`Overtraining (${workoutsLast7} sessions/week)`)
-  } else if (workoutsLast7 > 4) {
-    factors.push(`High frequency (${workoutsLast7} sessions/week)`)
-  }
-  if (totalMinutesLast7 > 300) {
-    factors.push(`High volume (${totalMinutesLast7} min this week)`)
-  }
-  if (factors.length === 0) {
-    factors.push("Training load within safe range")
-  }
-
-  return { score: Math.round(score), level, factors: factors.slice(0, 3), recommendation }
+function levelFor(injury: Insights["injury"]): RiskLevel {
+  if (injury.overallElevated || injury.flagged.length > 0) return "High"
+  const anyRegionUp = Object.values(injury.risk ?? {}).some((v) => v >= injury.threshold / 2)
+  if ((injury.relativeRisk ?? 0) >= 1 || anyRegionUp) return "Moderate"
+  return "Low"
 }
 
-// ─── SVG Gauge ────────────────────────────────────────────────────────────────
-
-function RiskGauge({
-  score,
-  level,
-}: {
-  score: number
-  level: RiskLevel
-}) {
-  const radius = 44
-  const circumference = 2 * Math.PI * radius
-  // Show only the top 75% of the circle (270 degrees arc)
-  const arcLength = circumference * 0.75
-  const dashOffset = arcLength - (score / 100) * arcLength
-
-  const strokeColor =
-    level === "Low"
-      ? "#22c55e"
-      : level === "Moderate"
-        ? "#f59e0b"
-        : "#ef4444"
-
-  const textColor =
-    level === "Low"
-      ? "text-green-600 dark:text-green-400"
-      : level === "Moderate"
-        ? "text-yellow-600 dark:text-yellow-400"
-        : "text-red-600 dark:text-red-400"
-
-  return (
-    <div className="relative flex items-center justify-center" style={{ width: 110, height: 110 }}>
-      <svg
-        width="110"
-        height="110"
-        viewBox="0 0 110 110"
-        style={{ transform: "rotate(135deg)" }}
-      >
-        {/* Track */}
-        <circle
-          cx="55"
-          cy="55"
-          r={radius}
-          fill="none"
-          stroke="currentColor"
-          className="text-slate-100 dark:text-slate-700"
-          strokeWidth="10"
-          strokeDasharray={`${arcLength} ${circumference}`}
-          strokeLinecap="round"
-        />
-        {/* Progress */}
-        <circle
-          cx="55"
-          cy="55"
-          r={radius}
-          fill="none"
-          stroke={strokeColor}
-          strokeWidth="10"
-          strokeDasharray={`${arcLength} ${circumference}`}
-          strokeDashoffset={dashOffset}
-          strokeLinecap="round"
-          style={{ transition: "stroke-dashoffset 0.6s ease" }}
-        />
-      </svg>
-      {/* Center label */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className={`text-2xl font-bold tabular-nums ${textColor}`}>{score}</span>
-        <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">/100</span>
-      </div>
-    </div>
-  )
+const RECOMMENDATION: Record<RiskLevel, string> = {
+  Low: "Training load looks normal. Keep your routine and prioritise recovery.",
+  Moderate: "Load is around or above average. Watch for fatigue and keep at least one rest day.",
+  High: "Load or a body region is flagged. Ease off the flagged areas and consider an extra rest day.",
 }
 
-// ─── Widget ───────────────────────────────────────────────────────────────────
+const LEVEL_COLORS: Record<RiskLevel, { border: string; bg: string; badge: string; label: string }> = {
+  Low: {
+    border: "border-green-200 dark:border-green-800",
+    bg: "bg-green-50 dark:bg-green-900/20",
+    badge: "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300",
+    label: "text-green-700 dark:text-green-300",
+  },
+  Moderate: {
+    border: "border-yellow-200 dark:border-yellow-800",
+    bg: "bg-yellow-50 dark:bg-yellow-900/20",
+    badge: "bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300",
+    label: "text-yellow-700 dark:text-yellow-300",
+  },
+  High: {
+    border: "border-red-200 dark:border-red-800",
+    bg: "bg-red-50 dark:bg-red-900/20",
+    badge: "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300",
+    label: "text-red-700 dark:text-red-300",
+  },
+}
 
 export function InjuryRiskWidget({ userId }: { userId: string }) {
-  const [data, setData] = useState<RiskData | null>(null)
+  const [data, setData] = useState<Insights | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
 
   useEffect(() => {
     if (!userId) return
+    let cancelled = false
 
     const load = async () => {
       setLoading(true)
+      setError(false)
       try {
-        const now = new Date()
-        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-          .toISOString()
-          .split("T")[0]
+        const {
+          data: { session },
+        } = await supabase.auth.getSession()
+        const token = session?.access_token
+        if (!token) throw new Error("no session")
 
-        const [workoutRes, sleepRes, injuryRes] = await Promise.all([
-          // Workout frequency last 7 days
-          supabase
-            .from("workout_logs")
-            .select("id, date", { count: "exact" })
-            .eq("user_id", userId)
-            .gte("date", sevenDaysAgo),
-          // Sleep last 7 days
-          supabase
-            .from("sleep_logs")
-            .select("sleep_hours")
-            .eq("user_id", userId)
-            .gte("date", sevenDaysAgo),
-          // Active injuries
-          supabase
-            .from("injuries")
-            .select("id", { count: "exact" })
-            .eq("user_id", userId)
-            .eq("status", "active"),
-        ])
-
-        // Training volume lives on exercise_logs.duration — workout_logs has no
-        // duration column, so volume is summed from the session's exercises.
-        const workoutIds = (workoutRes.data ?? []).map((r: { id: string }) => r.id)
-        const volumeRes = workoutIds.length
-          ? await supabase
-              .from("exercise_logs")
-              .select("duration")
-              .in("workout_log_id", workoutIds)
-          : { data: [] as { duration: number | null }[] }
-
-        const workoutsLast7 = workoutRes.count ?? (workoutRes.data?.length ?? 0)
-        const activeInjuries = injuryRes.count ?? (injuryRes.data?.length ?? 0)
-
-        const sleepEntries = sleepRes.data ?? []
-        const avgSleepHours =
-          sleepEntries.length > 0
-            ? sleepEntries.reduce((s: number, r: { sleep_hours: number | null }) => s + (r.sleep_hours ?? 0), 0) /
-              sleepEntries.length
-            : 7 // default to healthy if no data
-
-        const totalMinutesLast7 = (volumeRes.data ?? []).reduce(
-          (s: number, r: { duration: number | null }) => s + (r.duration ?? 0),
-          0
-        )
-
-        const { score, level, factors, recommendation } = computeRiskScore(
-          workoutsLast7,
-          avgSleepHours,
-          activeInjuries,
-          totalMinutesLast7
-        )
-
-        setData({
-          score,
-          level,
-          factors,
-          recommendation,
-          workoutsLast7,
-          avgSleepHours: Math.round(avgSleepHours * 10) / 10,
-          activeInjuries,
-          totalMinutesLast7,
+        const res = await fetch("/api/ml-insights", {
+          headers: { Authorization: `Bearer ${token}` },
         })
+        if (!res.ok) throw new Error(`ml-insights ${res.status}`)
+        const json = (await res.json()) as Insights
+        if (!json?.injury) throw new Error("no injury block")
+        if (!cancelled) setData(json)
       } catch (err) {
-        console.error("InjuryRiskWidget error:", err)
+        console.warn("InjuryRiskWidget: injury risk unavailable:", err)
+        if (!cancelled) setError(true)
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
 
     load()
+    return () => {
+      cancelled = true
+    }
   }, [userId])
 
   if (loading) {
@@ -249,69 +128,81 @@ export function InjuryRiskWidget({ userId }: { userId: string }) {
     )
   }
 
-  if (!data) return null
-
-  const levelColors = {
-    Low: {
-      border: "border-green-200 dark:border-green-800",
-      bg: "bg-green-50 dark:bg-green-900/20",
-      badge: "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300",
-      label: "text-green-700 dark:text-green-300",
-    },
-    Moderate: {
-      border: "border-yellow-200 dark:border-yellow-800",
-      bg: "bg-yellow-50 dark:bg-yellow-900/20",
-      badge: "bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300",
-      label: "text-yellow-700 dark:text-yellow-300",
-    },
-    High: {
-      border: "border-red-200 dark:border-red-800",
-      bg: "bg-red-50 dark:bg-red-900/20",
-      badge: "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300",
-      label: "text-red-700 dark:text-red-300",
-    },
+  if (error || !data) {
+    return (
+      <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 shadow-sm">
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+          Injury risk
+        </p>
+        <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">
+          Injury risk isn&apos;t available right now. Log a few workouts and check back later.
+        </p>
+      </div>
+    )
   }
 
-  const colors = levelColors[data.level]
+  const { injury, week } = data
+  const level = levelFor(injury)
+  const colors = LEVEL_COLORS[level]
+  const regions = Object.entries(injury.risk ?? {}).sort((a, b) => b[1] - a[1])
+  const flagged = new Set(injury.flagged)
+
+  const overallText =
+    injury.overallRisk == null || injury.relativeRisk == null
+      ? "Not enough logged history (21 days) for the training-load model yet."
+      : `Last 3 weeks: ${injury.relativeRisk.toFixed(1)}× the average injury rate in the training data${
+          injury.overallElevated ? " (elevated)" : ""
+        }.`
 
   return (
     <div className={`rounded-3xl border p-5 shadow-sm ${colors.border} ${colors.bg}`}>
-      {/* Title row */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-start justify-between gap-3 mb-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-            Injury Risk Predictor
+            Injury risk from training load
           </p>
-          <p className={`text-lg font-bold mt-0.5 ${colors.label}`}>
-            {data.level} Risk
-          </p>
+          <p className={`text-lg font-bold mt-0.5 ${colors.label}`}>{level} Risk</p>
         </div>
-        <RiskGauge score={data.score} level={data.level} />
+        {injury.relativeRisk != null && (
+          <div className="text-right">
+            <p className={`text-2xl font-bold tabular-nums ${colors.label}`}>
+              {injury.relativeRisk.toFixed(1)}×
+            </p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">vs average</p>
+          </div>
+        )}
       </div>
 
-      {/* Contributing factors */}
-      <div className="flex flex-wrap gap-2 mb-3">
-        {data.factors.map((factor, i) => (
-          <span
-            key={i}
-            className={`inline-flex items-center px-2.5 py-1 rounded-xl text-xs font-medium ${colors.badge}`}
-          >
-            {factor}
-          </span>
-        ))}
-      </div>
+      <p className="text-sm text-slate-600 dark:text-slate-300 mb-3">{overallText}</p>
 
-      {/* Recommendation */}
-      <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-        {data.recommendation}
-      </p>
+      {regions.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-3">
+          {regions.map(([region, value]) => (
+            <span
+              key={region}
+              title={injury.basis?.[region]}
+              className={`inline-flex items-center px-2.5 py-1 rounded-xl text-xs font-medium ${
+                flagged.has(region)
+                  ? LEVEL_COLORS.High.badge
+                  : value >= injury.threshold / 2
+                    ? LEVEL_COLORS.Moderate.badge
+                    : "bg-white/60 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300"
+              }`}
+            >
+              {REGION_LABEL[region] ?? region}
+              {flagged.has(region) ? " · flagged" : ""}
+            </span>
+          ))}
+        </div>
+      )}
 
-      {/* Mini stats row */}
+      <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">{RECOMMENDATION[level]}</p>
+
       <div className="mt-4 grid grid-cols-3 gap-2 pt-3 border-t border-current/10">
         {[
-          { label: "Sessions/7d", value: String(data.workoutsLast7) },
-          { label: "Avg Sleep", value: data.avgSleepHours > 0 ? `${data.avgSleepHours}h` : "--" },
-          { label: "Active Injuries", value: String(data.activeInjuries) },
+          { label: "Flagged Regions", value: String(injury.flagged.length) },
+          { label: "Avg Sleep", value: week?.avgSleep != null ? `${week.avgSleep.toFixed(1)}h` : "--" },
+          { label: "Active Injuries", value: String(week?.activeInjuries ?? 0) },
         ].map(({ label, value }) => (
           <div key={label} className="text-center">
             <p className="text-base font-bold text-slate-800 dark:text-white">{value}</p>
@@ -319,6 +210,11 @@ export function InjuryRiskWidget({ userId }: { userId: string }) {
           </div>
         ))}
       </div>
+
+      <p className="mt-3 text-[11px] text-slate-500 dark:text-slate-400">
+        {injury.fromFallback ? "Rule-based estimate (ML service unavailable). " : ""}
+        {injury.disclaimer}
+      </p>
     </div>
   )
 }

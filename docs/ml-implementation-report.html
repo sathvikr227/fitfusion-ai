@@ -458,16 +458,17 @@
       were not, and this report says which and why.
     </p>
     <div class="verdict">
-      <span class="chip ok"><b>28</b> service tests passing</span>
-      <span class="chip ok"><b>22</b> orchestration checks passing</span>
+      <span class="chip ok"><b>263</b> service tests passing (Nov 2026)</span>
+      <span class="chip ok"><b>16</b> web tests passing</span>
       <span class="chip ok"><b>0</b> TypeScript errors</span>
       <span class="chip info"><b>5/5</b> artifacts loading</span>
-      <span class="chip mid"><b>2</b> targets missed, reported honestly</span>
+      <span class="chip mid">Models rebuilt — see section 00</span>
     </div>
   </header>
 
   <nav class="rail" aria-label="Report contents">
     <ol>
+      <li><a href="#current"><span class="n">00</span> Current models</a></li>
       <li><a href="#architecture"><span class="n">01</span> Architecture</a></li>
       <li><a href="#models"><span class="n">02</span> The five models</a></li>
       <li><a href="#metrics"><span class="n">03</span> Evaluation metrics</a></li>
@@ -485,6 +486,27 @@
   </nav>
 
   <main>
+
+    <!-- ══ CURRENT STATUS (added 2026-11-09) ══ -->
+    <section id="current">
+      <h2><span class="num">00</span>Read this first: the models have been rebuilt</h2>
+      <div class="callout">
+        <p><strong>Everything below section 00 is the September 2026 record of the first build.</strong> All five of those models were trained on the Gym Members dataset, whose labels turned out not to be physiological (calories), circular (injury F1 = 1.0 came from rules over the model's own inputs) or not sequential (trajectory). They have been retired. It is kept for history; do not quote its metrics.</p>
+        <p>The current models, as of 2026-11-09, are below. Full numbers live in <code>ml-service/demos/model*/RESULTS.md</code> and <code>ml-service/models/reports/*.json</code>. Tests: 263 ML-service tests and 16 web tests passing, 0 TypeScript errors.</p>
+      </div>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>#</th><th>Model (data)</th><th>Headline result</th><th>Served?</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>Calibrated XGBoost + SHAP on heart rate (Malaga treadmill, calibrated on WEEE lab calorimetry)</td><td>Held-out MAE 1.27 kcal/min vs Keytel 1.29 (tie, p = 0.16); Keytel then MET as fallbacks</td><td>Yes</td></tr>
+            <tr><td>2</td><td>Hybrid meal recommender: 0.5 popularity + 0.25 ALS + 0.25 TF-IDF (Food.com, 231,637 recipes); content-based exercise recommender (free-exercise-db)</td><td>Recall@10 0.0235 vs popularity 0.0198, CI [+0.0016, +0.0057] on 2014–2017</td><td>Yes</td></tr>
+            <tr><td>3</td><td>Training-load injury XGBoost on 3 weekly load summaries (Lövdal et al. runners, 74 athletes) + rule table for knee/back/shoulder/hamstring</td><td>ROC-AUC 0.595 [0.563, 0.626], bar 0.55; ties a last-week logistic regression</td><td>Yes (round 2)</td></tr>
+            <tr><td>4</td><td>PyTorch Transformer on running pace trajectory (Strava, 34,753 athletes)</td><td>Accuracy 0.481 [0.478, 0.484] vs 0.334 majority, beats GBM; 65% target not met</td><td>Yes</td></tr>
+            <tr><td>5</td><td>PPO agent in a real-data-calibrated simulator (all numbers simulated)</td><td>+0.122 return vs always-MAINTAIN; +0.0135 injuries/user vs the rule, so it failed the pre-registered injury criterion</td><td>Yes, by the owner's documented override</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
 
     <!-- ══ ARCHITECTURE ══ -->
     <section id="architecture">
