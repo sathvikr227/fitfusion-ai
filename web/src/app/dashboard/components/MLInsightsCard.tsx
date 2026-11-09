@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { ArrowDownRight, ArrowRight, ArrowUpRight, Loader2 } from "lucide-react"
 
 import { supabase } from "../../../lib/supabase/client"
+import { plural } from "../../../lib/dates"
 
 // Surfaces the ML intelligence layer on the analytics page: the Transformer's
 // trajectory call with the 4-session sparkline behind it, the injury-risk
@@ -203,7 +204,7 @@ export function MLInsightsCard() {
           <div className="text-right">
             <Sparkline points={data.sparkline} stroke={style.stroke} />
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Completion, last {data.sparkline.length} sessions
+              Completion, last {plural(data.sparkline.length, "session")}
             </p>
           </div>
         </div>
@@ -226,8 +227,8 @@ export function MLInsightsCard() {
           {data.injury.overallRisk == null
             ? "Overall risk unavailable — body areas below use rules only."
             : data.injury.overallElevated
-              ? `Last 7 days: elevated (${(data.injury.relativeRisk ?? 0).toFixed(1)}× the average injury rate in the training data).`
-              : `Last 7 days: not elevated (${(data.injury.relativeRisk ?? 0).toFixed(1)}× the average injury rate in the training data).`}
+              ? `Last 3 weeks: elevated (${(data.injury.relativeRisk ?? 0).toFixed(1)}× the average injury rate in the training data).`
+              : `Last 3 weeks: not elevated (${(data.injury.relativeRisk ?? 0).toFixed(1)}× the average injury rate in the training data).`}
         </p>
 
         <div className="space-y-2">

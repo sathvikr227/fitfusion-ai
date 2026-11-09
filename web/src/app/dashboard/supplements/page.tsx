@@ -15,6 +15,7 @@ import {
   Clock,
 } from "lucide-react"
 import { toast as appToast } from "../../../components/Toast"
+import { localDateStr, plural } from "../../../lib/dates"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -65,7 +66,7 @@ const TIMING_COLORS: Record<string, string> = {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function todayStr() {
-  return new Date().toISOString().split("T")[0]
+  return localDateStr()
 }
 
 function calcStreak(logs: SupplementLog[], supplementId: string): number {
@@ -597,7 +598,7 @@ export default function SupplementsPage() {
                   {longestStreak > 0 && (
                     <p className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
                       <Flame className="h-3 w-3" />
-                      Best streak: {longestStreak} days
+                      Best streak: {plural(longestStreak, "day")}
                     </p>
                   )}
                 </div>

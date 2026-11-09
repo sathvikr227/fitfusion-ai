@@ -1,11 +1,195 @@
 # Model 5 — results (all SIMULATED)
 
+## Round 3 — the training bug found and fixed; PPO learns; served by the owner's documented override
+
+> **Served since 2026-11-09 by the owner's decision, against the pre-registered rule.** The rule
+> said "not served" (injury criterion). The owner chose to serve after the post-hoc exposure
+> check below. See "Owner's decision". Both the pre-registered outcome and the override are
+> recorded, here and in `models/rl_ppo_meta.json` (`pre_registered_serve: false`,
+> `owner_override`).
+
+Sources:
+- `models/reports/rl_ppo_round3.json`, written by `training/train_rl_ppo_round3.py`;
+- `outputs/training_log_round3.txt`;
+- figure `models/reports/rl_ppo_round3.png`;
+- the post-hoc check `models/reports/rl_ppo_round3_posthoc_exposure.json`.
+
+Plan: `PROTOCOL_ROUND3.md`, committed (`b1accfc`) before any round-3 candidate was trained for
+selection and before any validation or test seed was used.
+
+### Headline
+
+- **Why rounds 1–2 failed: a training-setup bug, not PPO itself.**
+  - The simulator's weekly reward is slightly negative under every sensible policy: about −0.37
+    a week. Fitness drifts down, as in the Strava data, and injuries happen anyway.
+  - Week 26 was returned as *truncated*, so Stable-Baselines3 valued every surviving user as if
+    they trained forever. At γ = 0.99 that is about −37, while quitting costs −20 once.
+  - So in PPO's view, making the user quit was optimal, and every round-1/2 seed found exactly
+    that policy.
+  - Round 3 treats week 26 as the true end, which is what the evaluation scores. The collapse is
+    gone in every run. The figure's left panel shows training returns holding near −9.3 instead
+    of falling to −23.
+- **PPO now beats the best baseline:** +0.122 return per user, 95% CI [+0.045, +0.211], on 2,000
+  new test users. Against the threshold rule the app serves today it is +0.377 [+0.257, +0.506].
+  On the stressed scenarios it is +0.412 [+0.304, +0.531].
+- **The pre-registered rule said not served. The owner then chose to serve it (see below).**
+  - It has 0.0135 more injuries per user than the threshold rule, CI [+0.005, +0.024], and the
+    rule requires "not significantly more".
+  - A post-hoc check, which does not change the decision, shows why: per week trained, the
+    injury rate is the same. PPO keeps users who would have quit under the rule (churn 0.1% vs
+    2.6%), and staying users can still get injured.
+- **The gain is small, and a one-line rule matches it.** "REDUCE if completion < 0.3, else
+  MAINTAIN", found on development seeds, scores −0.022 [−0.041, −0.004] better than PPO. All of the
+  improvement comes from avoiding churn. No policy improves fitness: every one ends at −2.9% to
+  −3.0% pace.
+
+### Exploration before the protocol (development seeds 400000–400999 only)
+
+| Finding | Evidence (300 dev users) |
+|---|---|
+| A full-state planner exploited the noisy injury bins | −8.42 vs −9.60 for MAINTAIN in the old simulator. With the smooth curve, only +0.36 ± 0.60 |
+| Headroom in the smoothed simulator is about +0.27 | best simple rule +0.265 ± 0.257; rule that sees the hidden load +0.261 |
+| PPO collapses whatever its settings… | 8 of 8 variants (reward normalisation, Monte Carlo returns, expected-injury reward, 5 or 7 inputs): INCREASE-until-churn (−23.2) or always-REDUCE (−10.2) |
+| …because of the time-limit bootstrap | with fixed action probabilities, raising P(INCREASE) lowers the real return (−12.1 → −14.5), so the true gradient points away from where PPO went |
+| Treating week 26 as terminal fixes it | 8 of 8 variants stop collapsing; the best reach +0.22 to +0.24 |
+
+### Changes in round 3
+
+- **Environment, for every policy:** injury relative risk from a 2-parameter logistic fit on ACWR
+  (slope +0.156 [−0.016, +0.344]) instead of 7 noisy bins. See `DATA_SOURCES.md`.
+- **Training only**, evaluation unchanged:
+  - `HorizonIsTerminal`: week 26 ends the episode.
+  - `ExpectedInjury`: −3·P(onset) instead of −3·onset, so the expected return is identical.
+- **Candidates:**
+  - PPO-5-MC: the slides' 5 inputs, γ 1, Monte Carlo returns.
+  - **PPO-7-MC:** 5 inputs + planned intensity + previous action.
+  - PPO-5-GAE: 5 inputs, γ 0.99, GAE 0.95.
+  - Each trained 1M timesteps with checkpoints every 200k.
+
+### Validation (1,000 episodes, seeds 500000–500999)
+
+| | 200k | 400k | 600k | 800k | 1M |
+|---|---|---|---|---|---|
+| PPO-5-MC | −9.609 | −9.719 | −9.628 | −9.763 | −9.605 |
+| **PPO-7-MC** | −9.274 | −9.167 | −9.151 | **−9.126** | −9.151 |
+| PPO-5-GAE | −9.531 | −9.207 | −9.185 | −9.256 | −9.187 |
+
+Baselines on the same seeds: always-MAINTAIN −9.321, threshold rule −9.419. **Chosen: PPO-7-MC at
+800k.** No checkpoint of any candidate churned more than 0.3% of users. The 5-input candidates
+also stopped collapsing, and PPO-5-GAE came within 0.06 of the winner.
+
+### Test, once (2,000 standard episodes, seeds 600000–601999; 2,000 stressed, 602000–603999)
+
+| Policy | Standard return [95% CI] | Injuries / user | Churn | Fitness | Actions R / M / I | Stressed return |
+|---|---|---|---|---|---|---|
+| **PPO seed 42** (candidate) | **−9.090** [−9.255, −8.935] | 2.03 | 0.1% | −3.00% | 33 / 32 / 35% | **−9.962** |
+| PPO seed 0 (stability) | −9.086 | 2.03 | 0.1% | −3.00% | 12 / 78 / 10% | −9.941 |
+| PPO seed 1 (stability) | −9.118 | 2.03 | 0.1% | −3.02% | 47 / 3 / 50% | −10.011 |
+| Always MAINTAIN | −9.213 [−9.397, −9.041] | 2.03 | 0.9% | −2.95% | 0 / 100 / 0% | −11.151 |
+| Threshold rule (serves today) | −9.468 [−9.667, −9.264] | 2.01 | 2.6% | −2.91% | 18 / 61 / 20% | −10.374 |
+| Random | −12.028 | 1.91 | 15.5% | −3.19% | 33 / 38 / 29% | −12.929 |
+| Dev-tuned rule (REDUCE if c < 0.3), reference | −9.068 [−9.231, −8.914] | 2.03 | 0.1% | −2.98% | 3 / 97 / 0% | −10.002 |
+
+| Paired, PPO seed 42 minus… | Return (standard) | Injuries (standard) | Return (stressed) |
+|---|---|---|---|
+| always MAINTAIN (best baseline) | **+0.122 [+0.045, +0.211]** | +0.002 [−0.003, +0.006] | +1.190 [+0.980, +1.419] |
+| threshold rule | +0.377 [+0.257, +0.506] | **+0.0135 [+0.005, +0.024]** | +0.412 [+0.304, +0.531] |
+| dev-tuned rule | −0.022 [−0.041, −0.004] | +0.000 [−0.005, +0.005] | +0.040 [−0.010, +0.098] |
+
+**The slides' size** (first 500 episodes): PPO −9.077 vs MAINTAIN −9.220 (+0.143 [−0.011,
++0.339]) and vs the rule −9.259 (+0.182 [+0.019, +0.378]). At 500 episodes the gain over MAINTAIN
+is not significant. That is why the protocol fixed 2,000 in advance.
+
+### Decision (as pre-registered)
+
+| Rule | Result |
+|---|---|
+| Paired return vs the best baseline (always-MAINTAIN): CI lower bound > 0 | +0.045 → **met** |
+| Injuries not significantly higher than the threshold rule | CI [+0.005, +0.024] → **not met** |
+| **Serve PPO** | **no** → the masked threshold rule keeps serving (`stub: true`, with a `reason`) |
+| Wins on stressed scenarios too | yes (+0.41 vs the rule) |
+
+### Post-hoc: where the extra injuries come from (does not change the decision)
+
+| Same 2,000 test users | PPO | Threshold rule |
+|---|---|---|
+| Weeks in the programme per user | 26.00 | 25.76 |
+| Injuries per 100 user-weeks | 7.797 | 7.816 → difference −0.020 [−0.046, +0.008] |
+| Users who stay all 26 weeks under both (1,948): injuries each | 2.022 | 2.025 |
+
+Per week of training, PPO is as safe as the rule. The per-user criterion counted the rule's
+quitters as "fewer injuries". Choosing the criterion now, after seeing this, would be a post-hoc
+change. That is why it is recorded here and left to the owner, as Model 3's round-1 choice was.
+
+### Owner's decision (2026-11-09): serve, as a documented override
+
+The pre-registered rule failed on one criterion: +0.0135 injuries per user against the threshold
+rule. The owner was shown the post-hoc exposure check: the same injury rate per week trained,
+with the excess coming from users PPO keeps. The owner chose to serve the round-3 agent. The
+options were:
+
+1. **Serve it, documented (post-hoc override).** ← **chosen**
+2. Keep the pre-registered outcome (masked rule serves).
+
+**Why this is recorded as an override, not a pass.** The injury criterion was fixed before the
+results. Judging it per user-week instead of per user is a choice made after seeing them. So the
+served agent carries `pre_registered_serve: false` and an `owner_override` block in
+`models/rl_ppo_meta.json`, and every number above stays as measured.
+
+**What is served.**
+- PPO-7-MC, seed 42, at 800k timesteps (`models/rl_ppo_agent.zip`; the same file as
+  `models/rl_round3/rl_ppo_agent_round3.zip`).
+- It reads the 5 slide inputs plus `planned_intensity` and `previous_action`.
+- `/api/adaptive-replan` computes those two from past replans' `ml_meta.rl`
+  (`web/src/lib/ml-service/rl-history.ts`).
+- If either is missing, `POST /rl/action` answers with the masked rule (`stub: true`, with a
+  `reason`) instead of guessing.
+- The hard safety mask, the pain hold, the progression cap and injury stripping all still apply on
+  top.
+
+### Limitations
+
+- **Served against the pre-registered rule** (see above). The simulated benefit is small, and a
+  one-line rule matches it.
+- **Everything is simulated.** The adherence, churn and capacity numbers are assumptions;
+  fitness, injury and sleep come from real data (`DATA_SOURCES.md`).
+- **The effect is tiny.** +0.12 return per user is about 1 user in 125 kept from quitting. Every
+  policy loses about 3% pace, because the Strava data shows week-to-week load changes barely move
+  4-week pace.
+- **PPO is not better than a one-line rule.** The three PPO seeds behave very differently (seed 1
+  alternates REDUCE and INCREASE; seed 0 mostly MAINTAINs) yet score the same. The simulator's
+  return is flat across many policies, so the agent's specific pattern is not a learned coaching
+  insight.
+- **The 7-input state deviates from the slides' 5.** The 5-input candidates no longer collapse
+  either, but they scored lower on validation.
+- **Training-time changes.** `HorizonIsTerminal` and `ExpectedInjury` change how PPO learns, not
+  what it is scored on.
+
+### What changed in code
+
+- `app/rl_env.py`:
+  - `Calibration.from_json(..., injury="smooth")`;
+  - `FitFusionEnv(observe_load=True)`;
+  - `info["injury_probability"]`.
+  - All of these are off by default, so rounds 1–2 reproduce.
+- `training/calibrate_rl_env.py --smooth-only` and `training/train_rl_ppo_round3.py`.
+- `POST /rl/action` accepts optional `planned_intensity` and `previous_action`. A 7-input agent
+  without them answers with the masked rule and a `reason`.
+- The served agent is `models/rl_ppo_agent.zip` with `rl_ppo_meta.json` (round 3, override
+  recorded). The round-1 agent stays as `rl_ppo_agent_round1.zip` + `rl_ppo_meta_round1.json`.
+- Next.js: `rl-history.ts` (+ tests). `history.ts` reads past replans. The replan route sends both
+  inputs and stores them in `ml_meta.rl`.
+
+---
+
+## Rounds 1 and 2
+
 Every number below comes from the simulator `FitFusionEnv`, not from real users. Sources:
 `models/reports/rl_calibration.json`, `rl_ppo.json` (round 1) and `rl_ppo_round2.json`
 (round 2). Both protocols were committed before their results existed: `PROTOCOL.md`
 (`1b3c057`) and `PROTOCOL_ROUND2.md` (`1b6e228`, committed before round 1 was scored).
 
-## Headline
+### Headline (rounds 1–2)
 
 - **PPO is not served.** In both pre-registered rounds, every PPO run converges to the same
   degenerate policy: INCREASE about 90% of the time until the simulated user quits. Mean return
@@ -63,6 +247,12 @@ Figures: `models/reports/rl_calibration.png`, `rl_ppo.png`, `rl_ppo_round2.png` 
 plus return with CIs). Logs: `outputs/training_log_round1.txt`, `outputs/training_log_round2.txt`.
 
 ## Why PPO fails here
+
+> **Superseded by round 3 (top of this file).** The explanation below was the best guess on
+> 2026-10-28. Round 3 found the actual cause: week 26 was returned as *truncated*, so PPO
+> valued a surviving user as an endless stream of slightly negative weeks, and making them quit
+> looked better. Adding the load to the state alone did not fix it; treating week 26 as the
+> real end did.
 
 The training curves show every seed starting near −10 and collapsing to about −23 within about
 25k timesteps. INCREASE earns a small reward at once, because the Strava curve pays for load

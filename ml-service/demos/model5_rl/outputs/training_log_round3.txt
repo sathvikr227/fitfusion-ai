@@ -1,0 +1,97 @@
+
+========================================================================
+  Model 5 — round 3 (horizon fix, smooth injury curve; SIMULATED)
+========================================================================
+[calibration] C:\Users\Sathv\OneDrive\Desktop\fitfusion-ai-wb\ml-service\models\rl_calibration.json (injury: smooth); smooth injury slope 0.1564
+
+========================================================================
+  1. Train 3 candidates x seed 42 (1M timesteps, checkpoints every 200k)
+========================================================================
+[train] PPO-5-MC seed 42: saved 200,000
+[train] PPO-7-MC seed 42: saved 200,000
+[train] PPO-5-GAE seed 42: saved 200,000
+[train] PPO-5-MC seed 42: saved 400,000
+[train] PPO-7-MC seed 42: saved 400,000
+[train] PPO-5-GAE seed 42: saved 400,000
+[train] PPO-5-MC seed 42: saved 600,000
+[train] PPO-7-MC seed 42: saved 600,000
+[train] PPO-5-GAE seed 42: saved 600,000
+[train] PPO-5-MC seed 42: saved 800,000
+[train] PPO-7-MC seed 42: saved 800,000
+[train] PPO-5-GAE seed 42: saved 800,000
+[train] PPO-5-MC seed 42: saved 1,000,000
+[train] PPO-7-MC seed 42: saved 1,000,000
+[train] PPO-5-GAE seed 42: saved 1,000,000
+  (532s)
+
+========================================================================
+  2. Validation: 1,000 standard episodes, seeds 500000-500999
+========================================================================
+  PPO-5-MC   @  200k  return -9.6093  churn 0.003  {'REDUCE': 0.8466, 'MAINTAIN': 0.0099, 'INCREASE': 0.1434}
+  PPO-5-MC   @  400k  return -9.7190  churn 0.000  {'REDUCE': 0.9254, 'MAINTAIN': 0.0, 'INCREASE': 0.0746}
+  PPO-5-MC   @  600k  return -9.6277  churn 0.000  {'REDUCE': 0.8935, 'MAINTAIN': 0.0, 'INCREASE': 0.1065}
+  PPO-5-MC   @  800k  return -9.7634  churn 0.000  {'REDUCE': 0.7016, 'MAINTAIN': 0.2674, 'INCREASE': 0.031}
+  PPO-5-MC   @ 1000k  return -9.6047  churn 0.000  {'REDUCE': 0.7444, 'MAINTAIN': 0.1643, 'INCREASE': 0.0912}
+  PPO-7-MC   @  200k  return -9.2744  churn 0.000  {'REDUCE': 0.3196, 'MAINTAIN': 0.4267, 'INCREASE': 0.2537}
+  PPO-7-MC   @  400k  return -9.1669  churn 0.000  {'REDUCE': 0.4688, 'MAINTAIN': 0.0296, 'INCREASE': 0.5016}
+  PPO-7-MC   @  600k  return -9.1505  churn 0.000  {'REDUCE': 0.4715, 'MAINTAIN': 0.019, 'INCREASE': 0.5095}
+  PPO-7-MC   @  800k  return -9.1256  churn 0.000  {'REDUCE': 0.3316, 'MAINTAIN': 0.3213, 'INCREASE': 0.3471}
+  PPO-7-MC   @ 1000k  return -9.1508  churn 0.000  {'REDUCE': 0.4697, 'MAINTAIN': 0.0182, 'INCREASE': 0.512}
+  PPO-5-GAE  @  200k  return -9.5314  churn 0.000  {'REDUCE': 0.254, 'MAINTAIN': 0.6265, 'INCREASE': 0.1195}
+  PPO-5-GAE  @  400k  return -9.2069  churn 0.003  {'REDUCE': 0.3358, 'MAINTAIN': 0.3269, 'INCREASE': 0.3373}
+  PPO-5-GAE  @  600k  return -9.1850  churn 0.001  {'REDUCE': 0.3621, 'MAINTAIN': 0.265, 'INCREASE': 0.3728}
+  PPO-5-GAE  @  800k  return -9.2564  churn 0.000  {'REDUCE': 0.3933, 'MAINTAIN': 0.2381, 'INCREASE': 0.3686}
+  PPO-5-GAE  @ 1000k  return -9.1865  churn 0.001  {'REDUCE': 0.319, 'MAINTAIN': 0.3605, 'INCREASE': 0.3205}
+  Threshold rule     return -9.4187
+  Always MAINTAIN    return -9.3205
+[select] PPO-7-MC @ 800,000 timesteps
+
+========================================================================
+  3. Stability: PPO-7-MC with seeds [0, 1] up to 800,000
+========================================================================
+[train] PPO-7-MC seed 1: saved 200,000
+[train] PPO-7-MC seed 0: saved 200,000
+[train] PPO-7-MC seed 1: saved 400,000
+[train] PPO-7-MC seed 0: saved 400,000
+[train] PPO-7-MC seed 1: saved 600,000
+[train] PPO-7-MC seed 0: saved 600,000
+[train] PPO-7-MC seed 0: saved 800,000
+[train] PPO-7-MC seed 1: saved 800,000
+
+========================================================================
+  4. Test (once): 2,000 standard + 2,000 stressed episodes, new seeds
+========================================================================
+
+[test standard]
+  PPO seed 42                        return -9.090 [-9.2548, -8.9348]  injuries 2.03  churn 0.001  fitness -3.00%  {'REDUCE': 0.3321, 'MAINTAIN': 0.3195, 'INCREASE': 0.3484}
+  PPO seed 0                         return -9.086 [-9.2504, -8.9285]  injuries 2.03  churn 0.001  fitness -3.00%  {'REDUCE': 0.1185, 'MAINTAIN': 0.7813, 'INCREASE': 0.1002}
+  PPO seed 1                         return -9.118 [-9.2823, -8.9598]  injuries 2.03  churn 0.001  fitness -3.02%  {'REDUCE': 0.4679, 'MAINTAIN': 0.0282, 'INCREASE': 0.5039}
+  Threshold rule                     return -9.468 [-9.6669, -9.2644]  injuries 2.01  churn 0.026  fitness -2.91%  {'REDUCE': 0.1836, 'MAINTAIN': 0.6146, 'INCREASE': 0.2019}
+  Always MAINTAIN                    return -9.213 [-9.3966, -9.0408]  injuries 2.03  churn 0.009  fitness -2.95%  {'REDUCE': 0.0, 'MAINTAIN': 1.0, 'INCREASE': 0.0}
+  Random                             return -12.028 [-12.3393, -11.7268]  injuries 1.91  churn 0.155  fitness -3.19%  {'REDUCE': 0.3331, 'MAINTAIN': 0.3796, 'INCREASE': 0.2872}
+  Dev-tuned rule (REDUCE if c<0.3)   return -9.068 [-9.2313, -8.914]  injuries 2.03  churn 0.001  fitness -2.98%  {'REDUCE': 0.028, 'MAINTAIN': 0.972, 'INCREASE': 0.0}
+
+[test stressed]
+  PPO seed 42                        return -9.962 [-10.2063, -9.7261]  injuries 2.02  churn 0.048  fitness -2.95%  {'REDUCE': 0.3068, 'MAINTAIN': 0.3869, 'INCREASE': 0.3064}
+  PPO seed 0                         return -9.941 [-10.1853, -9.705]  injuries 2.01  churn 0.048  fitness -2.94%  {'REDUCE': 0.128, 'MAINTAIN': 0.7719, 'INCREASE': 0.1001}
+  PPO seed 1                         return -10.011 [-10.2531, -9.7739]  injuries 2.02  churn 0.048  fitness -2.99%  {'REDUCE': 0.475, 'MAINTAIN': 0.0292, 'INCREASE': 0.4958}
+  Threshold rule                     return -10.374 [-10.6382, -10.1152]  injuries 2.00  churn 0.070  fitness -2.98%  {'REDUCE': 0.1824, 'MAINTAIN': 0.6469, 'INCREASE': 0.1707}
+  Always MAINTAIN                    return -11.151 [-11.4893, -10.816]  injuries 1.96  churn 0.122  fitness -2.82%  {'REDUCE': 0.0, 'MAINTAIN': 1.0, 'INCREASE': 0.0}
+  Random                             return -12.929 [-13.2805, -12.5961]  injuries 1.89  churn 0.206  fitness -3.13%  {'REDUCE': 0.3286, 'MAINTAIN': 0.3837, 'INCREASE': 0.2877}
+  Dev-tuned rule (REDUCE if c<0.3)   return -10.002 [-10.2608, -9.7526]  injuries 2.01  churn 0.052  fitness -2.93%  {'REDUCE': 0.0424, 'MAINTAIN': 0.9576, 'INCREASE': 0.0}
+  [standard] PPO seed 42 minus PPO seed 0                   return -0.005 [-0.0216, 0.0126]  injuries +0.000 [-0.0045, 0.0045]
+  [standard] PPO seed 42 minus PPO seed 1                   return +0.028 [0.011, 0.0432]  injuries -0.003 [-0.007, 0.0015]
+  [standard] PPO seed 42 minus Threshold rule               return +0.377 [0.2568, 0.5064]  injuries +0.013 [0.005, 0.0235]
+  [standard] PPO seed 42 minus Always MAINTAIN              return +0.122 [0.0452, 0.2112]  injuries +0.002 [-0.003, 0.006]
+  [standard] PPO seed 42 minus Random                       return +2.938 [2.673, 3.2112]  injuries +0.116 [0.098, 0.135]
+  [standard] PPO seed 42 minus Dev-tuned rule (REDUCE if c<0.3) return -0.022 [-0.0413, -0.0038]  injuries +0.000 [-0.005, 0.0045]
+  [stressed] PPO seed 42 minus PPO seed 0                   return -0.021 [-0.0389, -0.004]  injuries +0.003 [-0.0025, 0.0075]
+  [stressed] PPO seed 42 minus PPO seed 1                   return +0.049 [0.0306, 0.0675]  injuries -0.003 [-0.0075, 0.0025]
+  [stressed] PPO seed 42 minus Threshold rule               return +0.412 [0.3039, 0.531]  injuries +0.017 [0.008, 0.0265]
+  [stressed] PPO seed 42 minus Always MAINTAIN              return +1.190 [0.9797, 1.4194]  injuries +0.056 [0.0425, 0.069]
+  [stressed] PPO seed 42 minus Random                       return +2.967 [2.6912, 3.2701]  injuries +0.122 [0.103, 0.142]
+  [stressed] PPO seed 42 minus Dev-tuned rule (REDUCE if c<0.3) return +0.040 [-0.0097, 0.0975]  injuries +0.007 [0.001, 0.0135]
+
+[decision] {'rule': "round 1's: paired return vs best of {rule, MAINTAIN} CI low > 0 AND injuries not significantly higher than the rule (standard test, 2,000 episodes)", 'chosen': {'candidate': 'PPO-7-MC', 'checkpoint': 800000}, 'best_baseline': 'Always MAINTAIN', 'return_vs_best': {'difference': 0.1225, 'ci95': [0.0452, 0.2112]}, 'injuries_vs_rule': {'difference': 0.0135, 'ci95': [0.005, 0.0235]}, 'serve': False, 'wins_on_stressed_too': True, 'stressed_best_baseline': 'Threshold rule'}
+[artifact] round 3 not served; agent kept in models/rl_round3/ for the record
+[report] wrote C:\Users\Sathv\OneDrive\Desktop\fitfusion-ai-wb\ml-service\models\reports\rl_ppo_round3.json

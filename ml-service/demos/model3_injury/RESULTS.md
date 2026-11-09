@@ -1,10 +1,134 @@
 # Model 3 — results
 
+## Round 2 (served) — three weeks of training load
+
+Numbers from `models/reports/injury_load_round2.json` and `outputs/training_log_round2.txt`.
+Plan: `PROTOCOL_ROUND2.md`, committed before training (`d2ef8ec`), amended before any round-2
+result existed (`fb9dbb0`, see "The leak" below).
+
+### Headline
+
+- **Served.** Out-of-fold ROC-AUC on all 74 athletes is **0.595 [95% CI 0.563, 0.626]**. The lower
+  bound, 0.563, is above the pre-registered bar of 0.55.
+- **The signal is real but weak.**
+  - It beats the ACWR rule (+0.067 [+0.030, +0.102]).
+  - It does **not** significantly beat "sessions last week" (+0.028 [−0.009, +0.065]).
+  - It ties a logistic regression on the last week alone (+0.001 [−0.031, +0.028]). The two
+    earlier weeks add nothing measurable.
+- **Well calibrated.** Slope 0.95, where 1 is perfect. The risk it reports is a believable
+  probability. Being right on average is not the same as ranking people well, so the Brier
+  score matches prevalence-only.
+- **The top-10% "elevated" flag** marks days with 1.33× the injury rate of the rest, CI
+  [0.94, 1.80]. The interval includes 1, so the flag is not shown to be informative. It catches
+  12% of injury days.
+- **Not met: the slide target F1 > 0.75 per region.** It is not measurable either: no open dataset
+  has knee/back/shoulder/hamstring labels. Regions stay rule-based.
+
+### The leak caught before training (Amendment 1)
+
+The first round-2 plan rebuilt 28 days of history from the day file. A label-count check, run
+before any model was scored, found that file has **no rows in the 3 weeks before any injury**:
+
+| | injury rows (583) | other rows (42,183) |
+|---|---|---|
+| previous row is the day before | 0% | 98.9% |
+| known days in the week before the row's own 7 days (of 7) | 0.0 | 6.7 |
+
+Any feature using that history would have identified injury rows by their gap. The first run was
+stopped before it printed or saved a metric. The protocol was amended to use the dataset's week
+file, which carries the 3 weeks inside each row. It also dropped "days since previous injury",
+which leaks for the same reason. The run then had to pass a leakage screen: no single feature may
+reach ROC-AUC 0.75. The most separating feature was `strength_w0` at 0.584.
+
+### Evaluation design
+
+- **Data.** Week file: 42,798 event days, 74 athletes, 575 injuries (1.34%). 22 features
+  FitFusion can compute (`DATA_SOURCES.md`).
+- **Outer loop.** 5-fold athlete-grouped CV, repeated with seeds 42–46. Every athlete is scored
+  out-of-fold.
+- **Inner loop.** Inside every outer training fold, the model was chosen among 9 configurations
+  (logistic regression C ∈ {0.01, 0.1, 1}; XGBoost depth {1, 2, 3} × trees {100, 300}) by inner
+  athlete-grouped CV. It was then Platt-calibrated on its inner out-of-fold scores.
+- **Primary metric.** ROC-AUC of each row's mean out-of-fold probability, with a 95% CI from an
+  athlete-cluster bootstrap (2,000 resamples).
+
+### Results (all 74 athletes, out-of-fold)
+
+| Model | ROC-AUC [95% CI] | PR-AUC |
+|---|---|---|
+| **Candidate** (nested selection; XGBoost won in all 25 outer folds) | **0.595** [0.563, 0.626] | 0.0176 |
+| Week 0 only, logistic regression (the 7-day analogue of round 1) | 0.595 [0.563, 0.627] | 0.0170 |
+| Rule: sessions last week | 0.567 [0.538, 0.597] | 0.0156 |
+| Rule: ACWR (km) | 0.529 [0.508, 0.551] | 0.0143 |
+| Prevalence only | 0.500 | 0.0134 |
+
+Per-repeat pooled AUC: 0.599, 0.593, 0.598, 0.592, 0.592.
+
+| Paired difference (ROC-AUC) | Δ | 95% CI |
+|---|---|---|
+| Candidate − week 0 only | +0.001 | [−0.031, +0.028] |
+| Candidate − sessions rule | +0.028 | [−0.009, +0.065] |
+| Candidate − ACWR rule | +0.067 | [+0.030, +0.102] |
+
+**At the serving threshold** (p90 of out-of-fold probabilities, 0.0197):
+- 9.3% of days flagged.
+- Injury rate 1.73% on flagged days vs 1.30% on the rest: lift 1.33 [0.94, 1.80].
+- Recall 12%.
+
+**Secondary (not fresh).** Trained without round 1's 14 test athletes and scored on them:
+ROC-AUC 0.597 [0.507, 0.677]. Round 1's numbers on those athletes were 0.589 (XGBoost) and 0.669
+(logistic regression), from the day file, so they cannot be paired.
+
+**Final served model.**
+- XGBoost, depth 2 × 100 trees. Chosen by nested CV on all 74 athletes (inner AUC 0.609).
+- Platt-calibrated. Training prevalence 0.0134.
+- Top features by mean |SHAP|: strength sessions last week, strength sessions 2 weeks ago, km 3
+  weeks ago, longest run last week, km 2 weeks ago, rest days last week.
+- Figures: `models/reports/injury_load_round2_roc_calibration.png`, `injury_load_round2_features.png`.
+
+### Decision (as pre-registered)
+
+| Rule | Result |
+|---|---|
+| Serve iff the lower bound of the primary ROC-AUC 95% CI > 0.55 | 0.563 → **served** |
+| Slide target F1 > 0.75 per region | **not met / not measurable** (no body-part labels) |
+
+### Limitations (round 2)
+
+- **Weak and not better than a simple model.** A user with the same last-week load gets almost
+  the same ranking from a 6-number logistic regression. XGBoost is served because the nested
+  selection chose it, not because it was shown to be better.
+- **Population shift.** The model learned from competitive runners averaging about 50 km a week.
+  FitFusion users mostly run far less, and low km pushes the score down (sample input: km 2
+  weeks ago = 12 lowers the log-odds by 0.22). Scores for gym-only users are extrapolations.
+- **Associations, not causes.** Strength sessions are the strongest feature. In competitive
+  runners that may reflect rehab or niggles rather than strength work causing injury.
+- **The "elevated" flag is not validated** (lift CI includes 1). It still feeds the region rule
+  table and the RL injury flag, as the protocol specifies. Recorded injuries and pain strip
+  exercises regardless.
+- **Repeats overlapped.** `StratifiedGroupKFold` only uses its seed to break ties, so the 5
+  repeats produced 13 distinct folds out of 25, not 25. The CI comes from the athlete bootstrap,
+  not from the repeats, so it is unaffected.
+- **Not a fresh test.** The analysis was pre-registered, but round 1's results were already
+  known (`PROTOCOL_ROUND2.md`, "What is already known").
+
+### What changed in the app
+
+- `POST /predict/injury-risk` takes 21 days and returns `overall_risk`, `relative_risk`,
+  `overall_elevated` and `overall_basis`. With only 7 days it returns `overall_risk: null` and
+  says why in `imputed`.
+- Next.js reads 21 days of `workout_logs` and `cardio_logs` (`web/src/lib/ml-service/history.ts`).
+  The dashboard card and the replan directive say "last 3 weeks".
+
+---
+
+## Round 1 (not served) — seven days, single test split
+
 All numbers come from `models/reports/injury_load.json` and
 `models/reports/injury_soccermon_knee.json`, written by the training scripts. The protocol
 and serving rule were committed (`1340716`, `PROTOCOL.md`) **before** any model was trained.
 
-## Headline
+### Headline (round 1)
 
 - **Real injury data now replaces the circular proxy labels.** The old F1 = 1.0 came from labels
   generated by rules over the model's own inputs.

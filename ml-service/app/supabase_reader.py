@@ -21,7 +21,7 @@ from .config import settings
 
 log = logging.getLogger("ml-service.supabase")
 
-LOOKBACK_DAYS = 7
+LOOKBACK_DAYS = 21  # Model 3 round 2 reads three weeks; exercises use the last 7
 
 
 class SupabaseUnavailable(RuntimeError):
@@ -47,9 +47,9 @@ def _get(client: httpx.Client, table: str, params: dict[str, str]) -> list[dict]
 def fetch_injury_features(user_id: str) -> dict:
     """Assemble the injury endpoint's inputs from the live FitFusion tables.
 
-    Returns the 7 days before today in runners units (see
-    app.injury_load.build_recent_days), the exercise names logged in those
-    days, and the user's recorded injuries as free text.
+    Returns the 21 days before today in runners units (see
+    app.injury_load.build_recent_days), the exercise names logged in the last
+    7 of them, and the user's recorded injuries as free text.
     """
     if not settings.supabase_enabled:
         raise SupabaseUnavailable("SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not configured")
@@ -58,6 +58,7 @@ def fetch_injury_features(user_id: str) -> dict:
 
     today = datetime.now(timezone.utc).date()
     since = (today - timedelta(days=LOOKBACK_DAYS)).isoformat()
+    week_start = (today - timedelta(days=7)).isoformat()
     user = f"eq.{user_id}"
 
     with httpx.Client(timeout=settings.SUPABASE_TIMEOUT_SECONDS) as client:
@@ -81,7 +82,13 @@ def fetch_injury_features(user_id: str) -> dict:
         prior.extend(str(row[k]) for k in ("body_part", "name") if row.get(k))
 
     return {
-        "recent_days": build_recent_days(workouts, exercises_by_log, cardio, today),
-        "recent_exercises": [name for names in exercises_by_log.values() for name in names if name],
+        "recent_days": build_recent_days(workouts, exercises_by_log, cardio, today, window=LOOKBACK_DAYS),
+        "recent_exercises": [
+            name
+            for row in workouts
+            if week_start <= str(row.get("date"))[:10] < today.isoformat()
+            for name in exercises_by_log.get(str(row.get("id")), [])
+            if name
+        ],
         "prior_injuries": prior,
     }

@@ -228,7 +228,8 @@ class InjuryRequest(MLModel):
 
     user_id: str
     recent_days: list[DayLoad] | None = Field(
-        default=None, description="Exactly 7 days, oldest first, ending yesterday"
+        default=None,
+        description="21 days (round-2 model) or 7 days (older clients), oldest first, ending yesterday",
     )
     recent_exercises: list[str] = Field(default_factory=list, description="Exercise names from the last 7 days")
     prior_injuries: list[str] = Field(
@@ -238,9 +239,9 @@ class InjuryRequest(MLModel):
 
     @field_validator("recent_days")
     @classmethod
-    def seven_days(cls, value: list[DayLoad] | None) -> list[DayLoad] | None:
-        if value is not None and len(value) != 7:
-            raise ValueError("recent_days must hold exactly 7 days (oldest first, ending yesterday)")
+    def seven_or_twenty_one_days(cls, value: list[DayLoad] | None) -> list[DayLoad] | None:
+        if value is not None and len(value) not in (7, 21):
+            raise ValueError("recent_days must hold 21 days (or 7 for older clients), oldest first, ending yesterday")
         return value
 
 
@@ -252,6 +253,7 @@ class InjuryResponse(MLModel):
     overall_risk: float | None = Field(
         default=None, description="Calibrated probability of an injury on the next day (runners model)"
     )
+    overall_basis: str | None = Field(default=None, description="Which load window the overall score used")
     relative_risk: float | None = Field(default=None, description="overall_risk / training prevalence")
     overall_threshold: float | None = None
     overall_elevated: bool = False
@@ -309,6 +311,12 @@ class RLStateRequest(MLModel):
     injury_flag: float = Field(..., ge=0, le=1)
     trajectory_score: int = Field(default=1, ge=0, le=2)
     streak: float = Field(default=0, ge=0, description="Consecutive workout days")
+    # Round 3 (demos/model5_rl/PROTOCOL_ROUND3.md): read only by an agent trained on 7 inputs.
+    planned_intensity: float | None = Field(
+        default=None, ge=0, le=10,
+        description="Product of (1 + applied intensity_delta) over past replans; 1.0 = the starting plan",
+    )
+    previous_action: ActionName | None = Field(default=None, description="The last replan's applied action")
 
 
 class RLActionResponse(MLModel):

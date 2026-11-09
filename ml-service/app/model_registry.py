@@ -24,7 +24,8 @@ CALORIE_MODEL_ARTIFACT = "calorie_hr_model.pkl"
 MEAL_CATALOG_ARTIFACT = "meal_catalog.pkl"
 EXERCISE_INDEX_ARTIFACT = "exercise_index.pkl"
 MEAL_HYBRID_ARTIFACT = "meal_hybrid_serving.pkl"
-INJURY_ARTIFACT = "injury_load_model.pkl"
+INJURY_ARTIFACT = "injury_load_model.pkl"          # round 1 (7 days, not served)
+INJURY_ROUND2_ARTIFACT = "injury_load_round2.pkl"  # round 2 (3 weeks); preferred when present
 TRAJECTORY_ARTIFACT = "trajectory_runs.pt"
 TRAJECTORY_META_ARTIFACT = "trajectory_runs_meta.json"
 RL_ARTIFACT = "rl_ppo_agent.zip"
@@ -166,26 +167,30 @@ class ModelRegistry:
             log.exception("failed to load %s", EXERCISE_INDEX_ARTIFACT)
 
     def _load_injury(self) -> None:
-        path = self._path(INJURY_ARTIFACT)
-        if not path.exists():
-            self.errors["injury"] = f"{INJURY_ARTIFACT} not found"
+        """Round 2 (three weeks) when its artifact exists, else round 1 (seven days)."""
+        from .injury_load import APP_FEATURES, WEEK_FEATURES
+
+        candidates = [(INJURY_ROUND2_ARTIFACT, WEEK_FEATURES), (INJURY_ARTIFACT, APP_FEATURES)]
+        present = [(name, feats) for name, feats in candidates if self._path(name).exists()]
+        if not present:
+            self.errors["injury"] = f"{INJURY_ROUND2_ARTIFACT} / {INJURY_ARTIFACT} not found"
             return
+        name, expected = present[0]
         try:
             import joblib
 
-            from .injury_load import APP_FEATURES
-
-            bundle = joblib.load(path)
+            bundle = joblib.load(self._path(name))
             for key in ("model", "features", "platt_a", "platt_b", "threshold", "prevalence", "serve"):
                 if key not in bundle:
-                    raise KeyError(f"{INJURY_ARTIFACT} is missing '{key}'")
-            if list(bundle["features"]) != APP_FEATURES:
-                raise ValueError(f"{INJURY_ARTIFACT} features do not match app.injury_load.APP_FEATURES")
+                    raise KeyError(f"{name} is missing '{key}'")
+            if list(bundle["features"]) != expected:
+                raise ValueError(f"{name} features do not match app.injury_load")
+            bundle.setdefault("feature_kind", "day7")
             self.injury = bundle
-            log.info("loaded injury model (%s, serve=%s)", bundle.get("model_version"), bundle["serve"])
+            log.info("loaded injury model %s (%s, serve=%s)", name, bundle.get("model_version"), bundle["serve"])
         except Exception as exc:  # noqa: BLE001
             self.errors["injury"] = str(exc)
-            log.exception("failed to load %s", INJURY_ARTIFACT)
+            log.exception("failed to load %s", name)
 
     def _load_trajectory(self) -> None:
         path = self._path(TRAJECTORY_ARTIFACT)

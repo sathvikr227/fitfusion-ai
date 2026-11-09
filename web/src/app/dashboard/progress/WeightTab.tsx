@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { supabase } from "../../../lib/supabase/client"
 import { RANGES, rangeError } from "../../../lib/validation"
+import { localDateStr } from "../../../lib/dates"
 
 type WeightLog = {
   id: string
@@ -13,7 +14,7 @@ type WeightLog = {
 }
 
 function todayDateString() {
-  return new Date().toISOString().split("T")[0]
+  return localDateStr()
 }
 
 function formatDate(value: string | null | undefined) {

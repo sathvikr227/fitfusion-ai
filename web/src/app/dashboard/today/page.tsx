@@ -1,8 +1,11 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "../../../lib/supabase/client"
+import { currentStreak, daysAgoStr, localDateStr } from "../../../lib/dates"
+import { mealTypeFromName } from "../../../lib/meal-type"
+import { isRestDay as isRestPlanDay } from "../../../lib/plan-structure"
 import {
   Dumbbell,
   Utensils,
@@ -30,7 +33,7 @@ const MOODS = [
 ]
 
 function todayStr() {
-  return new Date().toISOString().split("T")[0]
+  return localDateStr()
 }
 
 function getGreeting() {
@@ -56,8 +59,15 @@ type PlanDay = {
 
 type PlanMeal = {
   name?: string
-  items?: { food: string; calories?: number | null }[]
+  items?: { food?: string; name?: string; calories?: number | null; protein?: number | null }[]
   total_calories?: number | null
+}
+
+function mealFoods(meal: PlanMeal): string {
+  return (meal.items ?? [])
+    .map((item) => item.food ?? item.name)
+    .filter(Boolean)
+    .join(", ")
 }
 
 export default function TodayPage() {
@@ -90,16 +100,25 @@ export default function TodayPage() {
   // Streak
   const [streak, setStreak] = useState(0)
 
+  // Workout-log writes run one at a time so quick taps can't create duplicates.
+  const logQueue = useRef<Promise<void>>(Promise.resolve())
+
   useEffect(() => {
     const load = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.replace("/login"); return }
 
       setUserId(user.id)
-      setUsername(user.email?.split("@")[0] ?? "User")
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", user.id)
+        .maybeSingle()
+      const displayName = (profile?.full_name || "").trim().split(/\s+/)[0]
+      setUsername(displayName || user.email?.split("@")[0] || "there")
 
       // Fetch everything in parallel
-      const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().split("T")[0]
+      const thirtyDaysAgo = daysAgoStr(30)
       const [planRes, executionRes, mealExecRes, waterRes, moodRes, workoutLogsRes] = await Promise.all([
         supabase.from("workout_plans").select("plan").eq("user_id", user.id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
         supabase.from("workout_execution").select("exercise_name, done").eq("user_id", user.id).eq("date", today),
@@ -146,21 +165,8 @@ export default function TodayPage() {
       if (moodRes.data?.mood) setMood(moodRes.data.mood)
 
       // Streak calculation
-      if (workoutLogsRes.data && workoutLogsRes.data.length > 0) {
-        const dates = [...new Set(workoutLogsRes.data.map((r: any) => r.date?.split("T")[0]))].sort().reverse() as string[]
-        let s = 0
-        let cursor = today
-        for (const d of dates) {
-          if (d === cursor) {
-            s++
-            const prev = new Date(cursor)
-            prev.setDate(prev.getDate() - 1)
-            cursor = prev.toISOString().split("T")[0]
-          } else if (d < cursor) {
-            break
-          }
-        }
-        setStreak(s)
+      if (workoutLogsRes.data) {
+        setStreak(currentStreak(workoutLogsRes.data.map((r: any) => r.date), today))
       }
 
       setLoading(false)
@@ -175,41 +181,50 @@ export default function TodayPage() {
     newDone ? nextSet.add(name) : nextSet.delete(name)
     setCompletedExercises(nextSet)
 
-    await supabase.from("workout_execution").upsert(
-      { user_id: userId, date: today, exercise_name: name, done: newDone },
-      { onConflict: "user_id,date,exercise_name" }
-    )
+    const planned = (todayWorkout?.exercises ?? []).map((ex) => ex.name)
+    const dayComplete = planned.length > 0 && planned.every((n) => nextSet.has(n))
+    const dayCalories = todayWorkout?.estimated_calories_burned ?? 0
 
-    // Sync to workout_logs so progress + home pick it up.
-    const totalDayCalories = todayWorkout?.estimated_calories_burned ?? 0
-    const totalExercises = (todayWorkout?.exercises ?? []).length || 1
-    const perExerciseCalories = Math.round(totalDayCalories / totalExercises)
-    const completedTotal = nextSet.size * perExerciseCalories
+    // Per-exercise ticks live in workout_execution. A workout_logs row is the
+    // finished session: it exists only while every planned exercise is ticked,
+    // so partial progress no longer shows as "Already Completed" or counts as
+    // an extra session.
+    const write = async () => {
+      await supabase.from("workout_execution").upsert(
+        { user_id: userId, date: today, exercise_name: name, done: newDone },
+        { onConflict: "user_id,date,exercise_name" }
+      )
 
-    if (nextSet.size === 0) {
-      // All unchecked: remove today's log
-      await supabase.from("workout_logs").delete().eq("user_id", userId).eq("date", today).eq("is_assigned", true)
-    } else {
-      // Find existing log for today
       const { data: existing } = await supabase
         .from("workout_logs")
         .select("id")
         .eq("user_id", userId)
         .eq("date", today)
         .eq("is_assigned", true)
-        .maybeSingle()
+        .order("created_at", { ascending: true })
+      const ids = (existing ?? []).map((r: { id: string }) => r.id)
 
-      if (existing?.id) {
-        await supabase.from("workout_logs").update({ total_calories: completedTotal }).eq("id", existing.id)
-      } else {
+      if (!dayComplete) {
+        // Unticking a finished day removes its session; ticks short of a full
+        // day leave any session logged elsewhere (Progress tab) alone.
+        if (!newDone && ids.length) await supabase.from("workout_logs").delete().in("id", ids)
+        return
+      }
+      if (ids.length === 0) {
         await supabase.from("workout_logs").insert({
           user_id: userId,
           date: today,
           is_assigned: true,
-          total_calories: completedTotal,
+          total_calories: dayCalories,
         })
+        return
       }
+      // Keep one session and remove duplicates left by older versions.
+      await supabase.from("workout_logs").update({ total_calories: dayCalories }).eq("id", ids[0])
+      if (ids.length > 1) await supabase.from("workout_logs").delete().in("id", ids.slice(1))
     }
+    logQueue.current = logQueue.current.then(write, write)
+    await logQueue.current
   }, [userId, today, completedExercises, todayWorkout])
 
   const toggleMeal = useCallback(async (name: string) => {
@@ -227,10 +242,9 @@ export default function TodayPage() {
     // Sync to meal_logs so progress + home see calories/macros.
     const planMeal = meals.find((m) => m.name === name)
     const mealCalories = planMeal?.total_calories ?? 0
-    const mealType = (name || "").toLowerCase().includes("breakfast") ? "breakfast"
-      : (name || "").toLowerCase().includes("lunch") ? "lunch"
-      : (name || "").toLowerCase().includes("dinner") ? "dinner"
-      : "snacks"
+    const mealType = mealTypeFromName(name, meals.findIndex((m) => m.name === name))
+    const planItems = planMeal?.items ?? []
+    const mealProtein = planItems.reduce((s, item) => s + (Number(item.protein) || 0), 0)
 
     // meal_logs has no meal_name, source or items column. Filtering and
     // inserting on them made every one of these queries fail, so ticking a meal
@@ -245,16 +259,35 @@ export default function TodayPage() {
         .eq("date", today)
         .eq("meal_type", mealType)
         .eq("is_assigned", true)
-        .maybeSingle()
-      if (!existing?.id) {
-        await supabase.from("meal_logs").insert({
-          user_id: userId,
-          date: today,
-          meal_type: mealType,
-          total_calories: mealCalories,
-          is_completed: true,
-          is_assigned: true,
-        })
+        .limit(1)
+      if (!existing?.length) {
+        const { data: logRow } = await supabase
+          .from("meal_logs")
+          .insert({
+            user_id: userId,
+            date: today,
+            meal_type: mealType,
+            total_calories: mealCalories,
+            total_protein: Math.round(mealProtein),
+            is_completed: true,
+            is_assigned: true,
+          })
+          .select("id")
+          .single()
+        // The Diet tab totals meal_items, so write the foods too or the two
+        // pages report different calories eaten.
+        if (logRow?.id) {
+          const rows = planItems.length > 0
+            ? planItems.map((item) => ({
+                meal_log_id: logRow.id,
+                food_name: item.food ?? item.name ?? name,
+                quantity: "1 serving",
+                calories: Math.round(Number(item.calories) || 0),
+                protein: Math.round(Number(item.protein) || 0),
+              }))
+            : [{ meal_log_id: logRow.id, food_name: name, quantity: "1 serving", calories: Math.round(mealCalories) }]
+          await supabase.from("meal_items").insert(rows)
+        }
       }
     } else {
       await supabase
@@ -295,7 +328,7 @@ export default function TodayPage() {
 
   // Computed progress
   const exercises = todayWorkout?.exercises ?? []
-  const isRestDay = todayWorkout?.type?.toLowerCase() === "rest"
+  const isRestDay = todayWorkout != null && isRestPlanDay(todayWorkout)
   const workoutPct = exercises.length > 0
     ? Math.round((completedExercises.size / exercises.length) * 100)
     : 0
@@ -508,8 +541,11 @@ export default function TodayPage() {
                       ? <CheckCircle2 className="h-4 w-4 text-cyan-500 shrink-0" />
                       : <Circle className="h-4 w-4 text-slate-300 dark:text-slate-500 shrink-0" />
                     }
-                    <span className={`flex-1 font-medium ${eaten ? "text-cyan-700 dark:text-cyan-300 opacity-70" : "text-slate-900 dark:text-white"}`}>
-                      {meal.name ?? "Meal"}
+                    <span className={`flex-1 min-w-0 ${eaten ? "text-cyan-700 dark:text-cyan-300 opacity-70" : "text-slate-900 dark:text-white"}`}>
+                      <span className="block font-medium">{mealFoods(meal) || meal.name || "Meal"}</span>
+                      {mealFoods(meal) && meal.name && (
+                        <span className="block text-xs text-slate-400">{meal.name}</span>
+                      )}
                     </span>
                     {meal.total_calories != null && (
                       <span className="text-xs text-slate-400">{meal.total_calories} kcal</span>

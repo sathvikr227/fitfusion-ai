@@ -156,7 +156,7 @@ export type DayLoad = {
 
 export type InjuryRequest = {
   user_id: string
-  /** Exactly 7 days, oldest first, ending yesterday. */
+  /** 21 days (7 accepted from older clients), oldest first, ending yesterday. */
   recent_days?: DayLoad[]
   /** Exercise names logged in the last 7 days. */
   recent_exercises?: string[]
@@ -185,6 +185,8 @@ export type InjuryResponse = {
   overall_risk: number | null
   /** overall_risk divided by the training data's injury rate. */
   relative_risk: number | null
+  /** Which load window the overall score used, e.g. "last 21 days as 3 weekly summaries". */
+  overall_basis?: string | null
   overall_threshold: number | null
   overall_elevated: boolean
   features_used: Record<string, number>
@@ -237,6 +239,10 @@ export type RLStateRequest = {
   injury_flag: number
   trajectory_score?: number
   streak?: number
+  /** Round 3: product of (1 + applied intensity_delta) over past replans; 1 = the starting plan. */
+  planned_intensity?: number
+  /** Round 3: the last replan's applied action. */
+  previous_action?: RLAction
 }
 
 export type RLAction = "REDUCE" | "MAINTAIN" | "INCREASE"

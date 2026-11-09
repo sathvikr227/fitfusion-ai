@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { supabase } from "../../../lib/supabase/client"
 import {
   Calculator,
   Flame,
@@ -46,6 +47,49 @@ const GOAL_CARDS = [
   { label: "Bulk", offset: 300, color: "from-green-500 to-emerald-400", icon: TrendingUp, desc: "Lean muscle gain" },
 ]
 
+type ProfilePrefill = {
+  age: string
+  gender: "male" | "female"
+  weight: string
+  height: string
+  activity: number
+}
+
+const PROFILE_ACTIVITY_INDEX: Record<string, number> = {
+  sedentary: 0,
+  "lightly active": 1,
+  "moderately active": 2,
+  "very active": 3,
+}
+
+/** The signed-in user's profile values, used to pre-fill the calculators. */
+function useProfilePrefill(): ProfilePrefill | null {
+  const [prefill, setPrefill] = useState<ProfilePrefill | null>(null)
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const [{ data: profile }, { data: latest }] = await Promise.all([
+        supabase.from("profiles").select("age, gender, height, weight, activity_level").eq("id", user.id).maybeSingle(),
+        supabase.from("weight_logs").select("weight").eq("user_id", user.id).order("date", { ascending: false }).limit(1).maybeSingle(),
+      ])
+      if (cancelled || !profile) return
+      const weight = latest?.weight ?? profile.weight
+      setPrefill({
+        age: profile.age ? String(profile.age) : "",
+        gender: String(profile.gender ?? "").toLowerCase() === "female" ? "female" : "male",
+        weight: weight ? String(weight) : "",
+        height: profile.height ? String(profile.height) : "",
+        activity: PROFILE_ACTIVITY_INDEX[String(profile.activity_level ?? "").toLowerCase()] ?? 0,
+      })
+    }
+    load()
+    return () => { cancelled = true }
+  }, [])
+  return prefill
+}
+
 function BmrCalculator() {
   const [age, setAge] = useState("")
   const [gender, setGender] = useState<"male" | "female">("male")
@@ -53,6 +97,16 @@ function BmrCalculator() {
   const [height, setHeight] = useState("")
   const [activity, setActivity] = useState(0)
   const [result, setResult] = useState<{ bmr: number; tdee: number } | null>(null)
+
+  const prefill = useProfilePrefill()
+  useEffect(() => {
+    if (!prefill) return
+    setAge((v) => v || prefill.age)
+    setGender(prefill.gender)
+    setWeight((v) => v || prefill.weight)
+    setHeight((v) => v || prefill.height)
+    setActivity(prefill.activity)
+  }, [prefill])
 
   const calculate = () => {
     const a = parseFloat(age)
@@ -190,6 +244,13 @@ function BodyFatCalculator() {
   const [hips, setHips] = useState("")
   const [heightCm, setHeightCm] = useState("")
   const [result, setResult] = useState<number | null>(null)
+
+  const prefill = useProfilePrefill()
+  useEffect(() => {
+    if (!prefill) return
+    setGender(prefill.gender)
+    setHeightCm((v) => v || prefill.height)
+  }, [prefill])
 
   const calculate = () => {
     const n = parseFloat(neck)
@@ -467,6 +528,11 @@ function CaloriesCalculator() {
   const [weight, setWeight] = useState("")
   const [result, setResult] = useState<{ total: number; perMin: number } | null>(null)
   const [toast, setToast] = useState(false)
+
+  const prefill = useProfilePrefill()
+  useEffect(() => {
+    if (prefill) setWeight((v) => v || prefill.weight)
+  }, [prefill])
 
   const calculate = () => {
     const d = parseFloat(duration)

@@ -1,15 +1,19 @@
 {
   "data": {
-    "rows": 42766,
+    "rows": 42798,
     "athletes": 74,
-    "injury_days": 583,
-    "prevalence": 0.01363,
-    "athletes_with_injury": 63,
+    "injury_days": 575,
+    "prevalence": 0.01344,
+    "athletes_with_injury": 61,
     "min_days_between_injuries_same_athlete": 22,
     "missing_values": 0
   },
+  "leakage": {
+    "min_gap_before_injury_rows": 22,
+    "other_rows_consecutive": 0.9885498897660195
+  },
   "sample": {
-    "overall_risk": 0.012664764790196344,
+    "overall_risk": 0.016801085757358364,
     "elevated": false,
     "risk": {
       "knee": 0.6,
@@ -22,11 +26,41 @@
       "back": "loaded by recent exercises",
       "shoulder": "loaded by recent exercises",
       "hamstring": "loaded by recent exercises"
+    },
+    "features": {
+      "sessions_w0": 11.0,
+      "rest_days_w0": 0.0,
+      "km_w0": 65.0,
+      "max_km_day_w0": 16.0,
+      "alt_hours_w0": 0.5,
+      "strength_w0": 4.0,
+      "sessions_w1": 4.0,
+      "rest_days_w1": 3.0,
+      "km_w1": 12.0,
+      "max_km_day_w1": 7.0,
+      "alt_hours_w1": 0.75,
+      "strength_w1": 1.0,
+      "sessions_w2": 4.0,
+      "rest_days_w2": 3.0,
+      "km_w2": 11.0,
+      "max_km_day_w2": 6.0,
+      "alt_hours_w2": 0.75,
+      "strength_w2": 1.0,
+      "acwr_km": 2.215909090909091,
+      "acwr_sessions": 1.736842105263158,
+      "km_change_w01": 53.0,
+      "long_run_share_w0": 0.24615384615384617
     }
   },
-  "held_out": {
-    "mean_risk_injury_days": 0.014685623683301171,
-    "mean_risk_other_days": 0.013418250379222783
+  "shap": {
+    "km_w1": -0.21750770509243011,
+    "strength_w0": 0.08508001267910004,
+    "max_km_day_w0": 0.07342182099819183,
+    "km_w2": 0.06615231186151505,
+    "acwr_sessions": 0.05993499979376793,
+    "rest_days_w0": 0.04011091589927673,
+    "sessions_w0": 0.03437120467424393,
+    "strength_w1": 0.02064075507223606
   },
   "api_response": {
     "risk": {
@@ -43,15 +77,39 @@
       "shoulder": "loaded by recent exercises",
       "hamstring": "loaded by recent exercises"
     },
-    "overall_risk": null,
-    "relative_risk": null,
-    "overall_threshold": null,
+    "overall_risk": 0.0168,
+    "overall_basis": "last 21 days as 3 weekly summaries",
+    "relative_risk": 1.251,
+    "overall_threshold": 0.01971,
     "overall_elevated": false,
-    "features_used": {},
+    "features_used": {
+      "sessions_w0": 11.0,
+      "rest_days_w0": 0.0,
+      "km_w0": 65.0,
+      "max_km_day_w0": 16.0,
+      "alt_hours_w0": 0.5,
+      "strength_w0": 4.0,
+      "sessions_w1": 4.0,
+      "rest_days_w1": 3.0,
+      "km_w1": 12.0,
+      "max_km_day_w1": 7.0,
+      "alt_hours_w1": 0.75,
+      "strength_w1": 1.0,
+      "sessions_w2": 4.0,
+      "rest_days_w2": 3.0,
+      "km_w2": 11.0,
+      "max_km_day_w2": 6.0,
+      "alt_hours_w2": 0.75,
+      "strength_w2": 1.0,
+      "acwr_km": 2.216,
+      "acwr_sessions": 1.737,
+      "km_change_w01": 53.0,
+      "long_run_share_w0": 0.246
+    },
     "imputed": [],
-    "source": "fallback",
-    "model_version": "rules-only",
-    "disclaimer": "Informational injury-risk indicator, not a medical diagnosis. Body regions are flagged by fixed rules, not predicted.",
-    "stub": true
+    "source": "request",
+    "model_version": "injury-load-r2-v1",
+    "disclaimer": "Informational injury-risk indicator from your last 3 weeks of training load, learned from 74 competitive runners. Body regions are flagged by fixed rules, not predicted. Not a medical diagnosis.",
+    "stub": false
   }
 }

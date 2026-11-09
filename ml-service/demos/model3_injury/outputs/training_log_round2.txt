@@ -1,0 +1,74 @@
+
+========================================================================
+  Model 3 round 2 — three weeks of training load (PROTOCOL_ROUND2.md, Amendment 1)
+========================================================================
+[data] {'rows': 42798, 'athletes': 74, 'injury_days': 575, 'prevalence': 0.01344, 'athletes_with_injury': 61, 'min_days_between_injuries_same_athlete': 22, 'missing_values': 0}
+
+========================================================================
+  Leakage screen (univariate ROC-AUC of every feature)
+========================================================================
+  strength_w0          0.5837
+  strength_w1          0.5828
+  rest_days_w0         0.4325
+  sessions_w0          0.5666
+  strength_w2          0.5579
+  sessions_w1          0.5561
+  rest_days_w1         0.4503
+  max_km_day_w0        0.5435
+  seed 42 fold 0: winner XGB-WEEK-d2-n100       inner 0.6163 outer 0.5590  (10s)
+  seed 42 fold 1: winner XGB-WEEK-d1-n100       inner 0.6070 outer 0.5924  (20s)
+  seed 42 fold 2: winner XGB-WEEK-d1-n100       inner 0.6059 outer 0.6187  (31s)
+  seed 42 fold 3: winner XGB-WEEK-d1-n300       inner 0.5955 outer 0.6290  (43s)
+  seed 42 fold 4: winner XGB-WEEK-d3-n100       inner 0.5840 outer 0.6039  (54s)
+  seed 42 pooled AUC: Candidate 0.5993, Week0-LogReg 0.5959
+  seed 43 fold 0: winner XGB-WEEK-d2-n100       inner 0.6163 outer 0.5590  (66s)
+  seed 43 fold 1: winner XGB-WEEK-d1-n100       inner 0.6048 outer 0.5704  (78s)
+  seed 43 fold 2: winner XGB-WEEK-d1-n100       inner 0.6059 outer 0.6187  (90s)
+  seed 43 fold 3: winner XGB-WEEK-d1-n300       inner 0.6020 outer 0.6154  (103s)
+  seed 43 fold 4: winner XGB-WEEK-d3-n100       inner 0.5816 outer 0.6120  (115s)
+  seed 43 pooled AUC: Candidate 0.5934, Week0-LogReg 0.5951
+  seed 44 fold 0: winner XGB-WEEK-d2-n100       inner 0.6163 outer 0.5590  (127s)
+  seed 44 fold 1: winner XGB-WEEK-d1-n100       inner 0.6070 outer 0.5924  (138s)
+  seed 44 fold 2: winner XGB-WEEK-d1-n100       inner 0.6118 outer 0.6176  (150s)
+  seed 44 fold 3: winner XGB-WEEK-d1-n300       inner 0.5984 outer 0.6193  (161s)
+  seed 44 fold 4: winner XGB-WEEK-d2-n300       inner 0.5799 outer 0.6070  (173s)
+  seed 44 pooled AUC: Candidate 0.5982, Week0-LogReg 0.5956
+  seed 45 fold 0: winner XGB-WEEK-d2-n100       inner 0.6163 outer 0.5590  (185s)
+  seed 45 fold 1: winner XGB-WEEK-d1-n100       inner 0.6048 outer 0.5704  (196s)
+  seed 45 fold 2: winner XGB-WEEK-d1-n100       inner 0.6095 outer 0.6066  (208s)
+  seed 45 fold 3: winner XGB-WEEK-d1-n300       inner 0.5984 outer 0.6187  (220s)
+  seed 45 fold 4: winner XGB-WEEK-d3-n100       inner 0.5816 outer 0.6120  (231s)
+  seed 45 pooled AUC: Candidate 0.5920, Week0-LogReg 0.5949
+  seed 46 fold 0: winner XGB-WEEK-d2-n100       inner 0.6163 outer 0.5590  (242s)
+  seed 46 fold 1: winner XGB-WEEK-d1-n100       inner 0.6048 outer 0.5704  (254s)
+  seed 46 fold 2: winner XGB-WEEK-d1-n100       inner 0.6095 outer 0.6066  (265s)
+  seed 46 fold 3: winner XGB-WEEK-d1-n300       inner 0.5984 outer 0.6187  (277s)
+  seed 46 fold 4: winner XGB-WEEK-d3-n100       inner 0.5816 outer 0.6120  (289s)
+  seed 46 pooled AUC: Candidate 0.5920, Week0-LogReg 0.5949
+
+========================================================================
+  Athlete-cluster bootstrap (2,000 resamples)
+========================================================================
+  Candidate          ROC-AUC 0.5954 [0.563, 0.626]  PR-AUC 0.0176
+  Week0-LogReg       ROC-AUC 0.5952 [0.563, 0.627]  PR-AUC 0.0170
+  Rule-ACWR-km       ROC-AUC 0.5287 [0.508, 0.551]  PR-AUC 0.0143
+  Rule-sessions-w0   ROC-AUC 0.5666 [0.538, 0.597]  PR-AUC 0.0156
+  Candidate minus Week0-LogReg     Δ +0.0005 [-0.0307, +0.0283]
+  Candidate minus Rule-sessions-w0 Δ +0.0279 [-0.0092, +0.0647]
+  Candidate minus Rule-ACWR-km     Δ +0.0668 [+0.0302, +0.1018]
+  elevated: {'flag_rate': 0.0932, 'injury_rate_flagged': 0.01731, 'injury_rate_not_flagged': 0.01304, 'recall': 0.12, 'lift': 1.327, 'lift_ci95': [0.9441, 1.7968]}
+
+[decision] {'rule': 'serve iff the lower bound of the primary ROC-AUC 95% CI > 0.55', 'candidate_roc_auc': 0.5954, 'candidate_roc_auc_ci_low': 0.5632, 'serve': True}
+
+========================================================================
+  Secondary — round 1's 14 test athletes (already seen in round 1, not fresh)
+========================================================================
+  {'winner': 'XGB-WEEK-d2-n100', 'test_athletes': 14, 'test_injuries': 118, 'roc_auc': 0.5967, 'roc_auc_ci95': [0.5073, 0.6771], 'round1_reference_day_file': {'XGB-APP': 0.589, 'LogReg-APP': 0.669}}
+
+========================================================================
+  Final model — nested selection on all 74 athletes
+========================================================================
+  winner XGB-WEEK-d2-n100; threshold (p90) 0.01971; prevalence 0.01344
+  top features: [('strength_w0', 0.1005), ('strength_w1', 0.08908), ('km_w2', 0.07017), ('max_km_day_w0', 0.06791), ('km_w1', 0.06735), ('rest_days_w0', 0.06626)]
+[artifact] wrote C:\Users\Sathv\OneDrive\Desktop\fitfusion-ai-wb\ml-service\models\injury_load_round2.pkl (serve=True)
+[report] wrote C:\Users\Sathv\OneDrive\Desktop\fitfusion-ai-wb\ml-service\models\reports\injury_load_round2.json

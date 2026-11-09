@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { currentStreak, localDateStr } from "../../../lib/dates"
 import { supabase } from "../../../lib/supabase/client"
 import WeightTab from "./WeightTab"
 import WorkoutTab from "./WorkoutTab"
@@ -12,21 +13,7 @@ import CardioTab from "./CardioTab"
 import MoodTab from "./MoodTab"
 
 function calcStreak(dates: string[]): number {
-  const unique = Array.from(
-    new Set(dates.map((d) => new Date(d).toISOString().split("T")[0]))
-  ).sort().reverse()
-  if (unique.length === 0) return 0
-  const today = new Date().toISOString().split("T")[0]
-  const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1)
-  const yStr = yesterday.toISOString().split("T")[0]
-  if (unique[0] !== today && unique[0] !== yStr) return 0
-  let streak = 1
-  for (let i = 1; i < unique.length; i++) {
-    const diff = Math.round((new Date(unique[i - 1]).getTime() - new Date(unique[i]).getTime()) / 86400000)
-    if (diff === 1) streak++
-    else break
-  }
-  return streak
+  return currentStreak(dates)
 }
 
 export default function ProgressPage() {
@@ -39,7 +26,7 @@ export default function ProgressPage() {
     const load = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { setLoading(false); return }
-      const today = new Date().toISOString().split("T")[0]
+      const today = localDateStr()
       const { data } = await supabase
         .from("workout_logs")
         .select("date, created_at")

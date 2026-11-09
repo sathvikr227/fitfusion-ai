@@ -1,6 +1,6 @@
 {
   "model": "rl_calibration",
-  "trained_at": "2026-10-28T13:24:39+00:00",
+  "trained_at": "2026-11-08T12:00:48+00:00",
   "python": "3.12.10",
   "adaptation": {
     "source": "Strava logs (Afonseca et al., CC BY 4.0)",
@@ -165,7 +165,33 @@
         "daily_rate": 0.011303191489361703,
         "relative_risk": 0.7958163437365872
       }
-    ]
+    ],
+    "smooth": {
+      "kind": "logistic",
+      "intercept": -4.418705978452988,
+      "slope": 0.15637141178048586,
+      "x_clip": [
+        0.0,
+        3.0
+      ],
+      "reference_acwr": 1.0,
+      "slope_ci95": [
+        -0.015683471526882993,
+        0.3437856589146399
+      ],
+      "days": 40063,
+      "injuries": 559,
+      "athletes": 73,
+      "relative_risk_at": {
+        "0.5": 0.9258,
+        "0.8": 0.9696,
+        "1.0": 1.0,
+        "1.3": 1.0473,
+        "1.5": 1.0801,
+        "2.0": 1.1665,
+        "3.0": 1.3602
+      }
+    }
   },
   "sleep": {
     "source": "SoccerMon sleep_duration (CC BY 4.0)",

@@ -17,6 +17,14 @@ Assumed parts (no real data; stress-tested): adherence response, capacity growth
 injury duration, churn.
 
 Reward: 100·Δfitness − 3·injury onset − 20·churn (see CHURN_PENALTY). Completion earns nothing by itself.
+
+Round 3 (demos/model5_rl/PROTOCOL_ROUND3.md) adds two options, both off by default so
+rounds 1-2 reproduce exactly:
+  * `Calibration.from_json(path, injury="smooth")`: injury relative risk from a 2-parameter
+    logistic fit on ACWR instead of the noisy 7-bin table;
+  * `FitFusionEnv(observe_load=True)`: two more observation dims the app can compute from
+    past replans: planned intensity (product of applied ±15% steps) / 2.5 and the previous
+    applied action / 2.
 """
 
 from __future__ import annotations
@@ -70,9 +78,13 @@ class Calibration:
     sleep_sd: float = 0.7
     sleep_rho: float = 0.5
     source: str = "neutral default (tests only)"
+    rr_smooth: dict | None = None  # round 3: {"intercept", "slope", "x_clip", "reference_acwr"}
 
     @classmethod
-    def from_json(cls, path: str | Path) -> "Calibration":
+    def from_json(cls, path: str | Path, injury: str = "binned") -> "Calibration":
+        """injury="binned" (rounds 1-2) or "smooth" (round 3, logistic on ACWR)."""
+        if injury not in ("binned", "smooth"):
+            raise ValueError("injury must be 'binned' or 'smooth'")
         c = json.loads(Path(path).read_text(encoding="utf-8"))
         gain = [b for b in c["adaptation"]["bins"] if b["n"] >= c.get("min_bin_n", 200)]
         risk = [b for b in c["injury"]["bins"] if b.get("relative_risk") is not None]
@@ -81,7 +93,8 @@ class Calibration:
             rr_edges=[b["lo"] for b in risk], rr_values=[b["relative_risk"] for b in risk],
             base_weekly_injury=float(c["injury"]["baseline_weekly_probability"]),
             sleep_mean=float(c["sleep"]["mean"]), sleep_sd=float(c["sleep"]["sd"]),
-            sleep_rho=float(c["sleep"]["lag1_autocorrelation"]), source=str(path),
+            sleep_rho=float(c["sleep"]["lag1_autocorrelation"]), source=f"{path} (injury: {injury})",
+            rr_smooth=c["injury"]["smooth"] if injury == "smooth" else None,
         )
 
     @staticmethod
@@ -93,6 +106,12 @@ class Calibration:
         return self._lookup(self.gain_edges, self.gain_weekly, load_ratio)
 
     def relative_risk(self, acwr: float) -> float:
+        if self.rr_smooth is not None:
+            s = self.rr_smooth
+            lo, hi = s.get("x_clip", [0.0, 3.0])
+            logit = lambda x: s["intercept"] + s["slope"] * float(np.clip(x, lo, hi))  # noqa: E731
+            p = lambda x: 1.0 / (1.0 + np.exp(-logit(x)))  # noqa: E731
+            return float(p(acwr) / p(s.get("reference_acwr", 1.0)))
         return self._lookup(self.rr_edges, self.rr_values, acwr)
 
 
@@ -122,13 +141,15 @@ class FitFusionEnv(gym.Env):
     metadata = {"render_modes": []}
 
     def __init__(self, calibration: Calibration | None = None, assumptions: Assumptions | None = None,
-                 stress: bool = False, include_trajectory: bool = True):
+                 stress: bool = False, include_trajectory: bool = True, observe_load: bool = False):
         super().__init__()
         self.calibration = calibration or Calibration()
         self.base_assumptions = assumptions or Assumptions()
         self.stress = stress
         self.include_trajectory = include_trajectory
-        self.observation_space = spaces.Box(low=0.0, high=1.0, shape=(5,), dtype=np.float32)
+        self.observe_load = observe_load
+        dims = 7 if observe_load else 5
+        self.observation_space = spaces.Box(low=0.0, high=1.0, shape=(dims,), dtype=np.float32)
         self.action_space = spaces.Discrete(3)
         self._rng = np.random.default_rng()
         self.reset()
@@ -151,17 +172,21 @@ class FitFusionEnv(gym.Env):
         self.low_weeks = 0
         self.week = 0
         self.injuries = 0
+        self.last_applied = MAINTAIN
         return self._observation(), {}
 
     def _observation(self) -> np.ndarray:
         trajectory = self.trajectory / 2.0 if self.include_trajectory else 0.0
-        return np.array([np.clip(self.completion, 0, 1), np.clip(self.sleep / 10.0, 0, 1),
-                         1.0 if self.injured_weeks > 0 else 0.0, trajectory,
-                         min(self.streak, 14) / 14.0], dtype=np.float32)
+        base = [np.clip(self.completion, 0, 1), np.clip(self.sleep / 10.0, 0, 1),
+                1.0 if self.injured_weeks > 0 else 0.0, trajectory, min(self.streak, 14) / 14.0]
+        if self.observe_load:
+            base += [self.load / LOAD_MAX, self.last_applied / 2.0]
+        return np.array(base, dtype=np.float32)
 
     def step(self, action: int):
         rng, cal, a = self._rng, self.calibration, self.a
         applied = safe_action(action, self._observation())
+        self.last_applied = applied
         self.load = float(np.clip(self.load * LOAD_STEP[applied], LOAD_MIN, LOAD_MAX))
 
         # Sleep: AR(1) around the SoccerMon mean.
@@ -186,9 +211,10 @@ class FitFusionEnv(gym.Env):
         self.fitness_history.append(self.fitness)
 
         onset = 0.0
+        injury_probability = 0.0 if injured else min(0.9, cal.base_weekly_injury * cal.relative_risk(acwr))
         if injured:
             self.injured_weeks -= 1
-        elif rng.random() < min(0.9, cal.base_weekly_injury * cal.relative_risk(acwr)):
+        elif rng.random() < injury_probability:
             onset = 1.0
             self.injuries += 1
             self.injured_weeks = int(rng.geometric(1.0 / max(a.injury_weeks, 1.0)))
@@ -207,5 +233,6 @@ class FitFusionEnv(gym.Env):
         reward = 100.0 * gain - 3.0 * onset - CHURN_PENALTY * churn
         self.week += 1
         info = {"applied_action": applied, "gain": gain, "injury_onset": onset, "churn": churn,
-                "load": self.load, "load_ratio": load_ratio, "acwr": acwr, "fitness": self.fitness}
+                "load": self.load, "load_ratio": load_ratio, "acwr": acwr, "fitness": self.fitness,
+                "injury_probability": injury_probability}
         return self._observation(), float(reward), bool(churn), self.week >= a.weeks, info

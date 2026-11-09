@@ -75,7 +75,7 @@ export default function SleepTab() {
       .limit(30)
 
     if (err) {
-      setError("Could not load sleep logs. Make sure the sleep_logs table exists in Supabase.")
+      setError("Could not load your sleep logs right now. Please try again.")
       setLoading(false)
       return
     }

@@ -241,13 +241,15 @@ def test_recommend_applies_protein_floor_and_exclusions():
 # ── Model 3: injury risk ──────────────────────────────────────────────────────
 REST_WEEK = [{"sessions": 0, "total_km": 0, "strength": 0, "alt_hours": 0}] * 7
 BUSY_WEEK = [{"sessions": 2, "total_km": 12, "strength": 1, "alt_hours": 1}] * 7
+REST_3WEEKS = REST_WEEK * 3     # round 2 reads 21 days (PROTOCOL_ROUND2.md)
+BUSY_3WEEKS = BUSY_WEEK * 3
 
 
 def test_injury_risk_returns_overall_and_all_four_regions():
     needs("injury")
     response = client.post(
         "/predict/injury-risk",
-        json={"user_id": "u1", "recent_days": BUSY_WEEK, "recent_exercises": ["Back Squat"]},
+        json={"user_id": "u1", "recent_days": BUSY_3WEEKS, "recent_exercises": ["Back Squat"]},
         headers=AUTH,
     )
     assert response.status_code == 200
@@ -268,13 +270,24 @@ def test_injury_region_flag_needs_recorded_injury_and_elevated_load():
     needs("injury")
     body = client.post(
         "/predict/injury-risk",
-        json={"user_id": "u1", "recent_days": REST_WEEK, "prior_injuries": ["Knee (Left)"]},
+        json={"user_id": "u1", "recent_days": REST_3WEEKS, "prior_injuries": ["Knee (Left)"]},
         headers=AUTH,
     ).json()
     expected = 0.9 if body["overall_elevated"] else 0.6
     assert body["risk"]["knee"] == expected
     assert ("knee" in body["flagged"]) == body["overall_elevated"]
     assert body["risk"]["shoulder"] == 0.1
+
+
+def test_injury_risk_with_seven_days_says_three_weeks_are_needed():
+    """Older clients send 7 days; the round-2 model needs 21 and says so instead of guessing."""
+    needs("injury")
+    body = client.post("/predict/injury-risk", json={"user_id": "u1", "recent_days": BUSY_WEEK},
+                       headers=AUTH).json()
+    assert set(body["risk"]) == set(INJURY_LABELS)
+    if registry.injury.get("serve") and registry.injury.get("feature_kind") == "week3":
+        assert body["overall_risk"] is None and body["imputed"] == ["recent_days (21 days needed, got 7)"]
+        assert body["overall_elevated"] is False
 
 
 def test_injury_risk_rejects_wrong_number_of_days():
@@ -364,6 +377,8 @@ def test_rl_action_returns_valid_action():
             "injury_flag": 0,
             "trajectory_score": 2,
             "streak": 10,
+            "planned_intensity": 1.0,
+            "previous_action": "MAINTAIN",
         },
         headers=AUTH,
     )
@@ -378,6 +393,16 @@ def test_rl_action_returns_valid_action():
     assert len(body["state"]) == 5
     for value in body["state"]:
         assert 0.0 <= value <= 1.0
+
+
+def test_rl_action_without_round3_inputs_falls_back_when_the_agent_needs_them():
+    needs("rl")
+    body = client.post("/rl/action", json={"user_id": "u1", "completion_rate": 0.9, "sleep_avg": 8.0,
+                                           "injury_flag": 0}, headers=AUTH).json()
+    meta = registry.rl_meta or {}
+    if meta.get("serve") and meta.get("observation_dims", 5) == 7:
+        assert body["stub"] is True and "planned_intensity" in body["reason"]
+        assert body["model_version"] == "rule-thresholds-masked"
 
 
 def test_rl_state_construction_matches_documented_formula():

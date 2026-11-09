@@ -57,6 +57,22 @@ training effect.
 "ACWR > 1.5 is dangerous" pattern does not show up here. The simulator uses what the data shows.
 The 9% weekly baseline comes from elite runners and is probably high for gym members.
 
+**Round 3: smooth curve instead of bins.** The bins above rest on 17–217 injuries each and zig-zag.
+A planner that could see the simulator's hidden state exploited that by steering users into the
+"< 0.6" bin (RR 0.60 from 34 injuries). Round 3 fits two parameters to the same days instead:
+a logistic regression of daily injury on ACWR, clipped to [0, 3].
+
+| | |
+|---|---|
+| Fit | intercept −4.419, slope **+0.156**, 95% CI [−0.016, +0.344] (athlete-cluster bootstrap, 500 resamples) |
+| Data | 40,063 days, 559 injuries, 73 athletes (days with any km in the 3 weeks) |
+| Relative risk (vs ACWR 1.0) | 0.93 at 0.5 · 0.97 at 0.8 · 1.05 at 1.3 · 1.08 at 1.5 · 1.17 at 2.0 · 1.36 at 3.0 |
+
+The fitted curve still says "spikes are only slightly riskier", and its slope is not significantly
+different from zero. It is stored as `injury.smooth` in `models/rl_calibration.json`
+(`training/calibrate_rl_env.py --smooth-only`). Rounds 1–2 keep using the bins, so their results
+reproduce exactly.
+
 ## 3. Sleep — SoccerMon (real)
 
 | | |

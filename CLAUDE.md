@@ -43,9 +43,9 @@ fitfusion-ai-wb/
 |---|---|---|---|---|
 | 1 | Session energy expenditure: calibrated XGBoost HR model + SHAP (Keytel, then MET fallback) | `POST /predict/calories` | MET-only estimate | `/api/workout-log` (Cardio + Workout tabs) |
 | 2 | Hybrid meal recommender (0.5 popularity + 0.25 ALS + 0.25 ingredient TF-IDF) within dietary filters + calorie bands; content-based exercise recommender | `POST /recommend`, `POST /recommend/exercises` | LLM-invented meals, calories and exercises | `/api/generate-plan` |
-| 3 | Training-load injury risk (XGBoost on 74 runners' real injuries; not served, failed its pre-registered rule) + rule-based body regions (knee/back/shoulder/hamstring) | `POST /predict/injury-risk` | reactive injury logging | `/api/adaptive-replan`, `/api/ml-insights` |
+| 3 | Training-load injury risk: XGBoost on 3 weekly load summaries of 74 runners' real injuries (round 2, served; round 1 failed its rule) + rule-based body regions (knee/back/shoulder/hamstring) | `POST /predict/injury-risk` | reactive injury logging | `/api/adaptive-replan`, `/api/ml-insights` |
 | 4 | PyTorch Transformer running trajectory (improve/plateau/regress of 10 km-equivalent pace), trained on 34,753 Strava runners; completion-slope rule for non-runners | `POST /predict/trajectory` | single-week completion rate | `/api/adaptive-replan`, `/api/ml-insights` |
-| 5 | PPO agent over a real-data-calibrated `FitFusionEnv` (not served: failed its rule twice); the masked threshold rule serves | `POST /rl/action` | the if/else block in `/api/adaptive-replan` | `/api/adaptive-replan` |
+| 5 | PPO agent over a real-data-calibrated `FitFusionEnv` (rounds 1-2 hit a time-limit bootstrap bug; round 3 fixed it, beats both baselines, failed the per-user injury criterion, and is **served by the owner's documented override** 2026-11-09) | `POST /rl/action` | the if/else block in `/api/adaptive-replan` | `/api/adaptive-replan` |
 
 `/predict/calorie` and `/predict/injury` remain as aliases for the Step 1 paths.
 
@@ -104,6 +104,20 @@ logistic regression scored 0.669 on test but lower on development, and on
 (`keyword_pattern` / `keywordPattern`): "Pullups" loads shoulder, "Crunch" no
 longer loads knee. Teacher demo: `ml-service/demos/model3_injury/`.
 
+Stage 3 round 2 (2026-11-08, user asked to make it work; `demos/model3_injury/PROTOCOL_ROUND2.md`,
+pre-registered `d2ef8ec`, amended `fb9dbb0` before any result). **The day file cannot give
+history beyond a row's own 7 days**: it has no rows in the 21 days before any injury (every
+injury row follows a gap >= 22 days, vs 98.9% consecutive for other rows), so rebuilt 28-day
+features and "days since previous injury" leak the label. Round 2 uses the dataset's **week
+file** (`week_approach_maskedID_timeseries.csv`, 42,798 rows, 575 injuries) with 22
+app-computable features (`WEEK_FEATURES`, derived by `weeks_from_days` / `derive_week_features`
+for training and serving alike). Nested, athlete-grouped CV on all 74 athletes:
+XGBoost (depth 2 x 100) ROC-AUC 0.595 [0.563, 0.626] > 0.55 bar, so it is **served**
+(`models/injury_load_round2.pkl`, preferred by the registry over round 1). It ties a
+last-week-only logistic regression and does not significantly beat "sessions last week"; the
+top-10% `overall_elevated` flag has lift 1.33 [0.94, 1.80]. The endpoint needs 21 days (7 days
+-> `overall_risk: null` + `imputed`); Next.js sends 21 (`history.ts`).
+
 Stage 4 was rebuilt on 2026-10-28. The old Transformer read pseudo-sequences
 regrouped from cross-sectional Gym Members rows (accuracy 0.459) and is retired;
 FitFusion's Supabase history is seeded/test data (user-confirmed) and is never
@@ -131,6 +145,23 @@ PPO always converged to INCREASE-until-churn (return ≈ −23 vs ≈ −9 for t
 always-MAINTAIN, 100% churn), so it is **not served**; the masked threshold rule answers
 with `stub: true` and a `reason`. All Model 5 numbers are simulated. Teacher demo:
 `ml-service/demos/model5_rl/`.
+
+Stage 5 round 3 (2026-11-08/09, `demos/model5_rl/PROTOCOL_ROUND3.md`, pre-registered `b1accfc`).
+**Rounds 1-2 failed because of a training bug, not PPO**: the weekly reward is slightly
+negative (~-0.37) under every sensible policy, and week 26 was returned as *truncated*, so SB3
+bootstrapped as if users trained forever (-0.37/0.01 = -37 vs churn -20): making users quit
+looked optimal. Round 3 trains with `HorizonIsTerminal` + `ExpectedInjury` wrappers
+(`training/train_rl_ppo_round3.py`), a smooth logistic injury curve
+(`Calibration.from_json(..., injury="smooth")`; the 7 bins were exploitable) and optional
+`observe_load` (planned intensity + previous action; app computes them from past
+`ml_meta.rl` via `web/src/lib/ml-service/rl-history.ts`; missing inputs -> masked rule + `reason`). Chosen PPO-7-MC @800k beats
+always-MAINTAIN +0.122 [+0.045, +0.211] and the rule +0.377 on 2,000 test users, but has
++0.0135 [+0.005, +0.024] injuries/user vs the rule -> not served by the pre-registered rule;
+**on 2026-11-09 the user chose to serve it as a documented override** (`rl_ppo_meta.json`:
+`pre_registered_serve: false` + `owner_override`).
+Post-hoc: injuries per user-week are equal; the excess is users PPO keeps (churn 0.1% vs 2.6%).
+A one-line rule (REDUCE if completion < 0.3) matches PPO. Served agent: `models/rl_ppo_agent.zip`
+(= `models/rl_round3/rl_ppo_agent_round3.zip`); round 1 kept as `rl_ppo_agent_round1.zip`.
 
 Dietary flags are a safety feature, not a nicety. They are built from ingredient
 lists (the dataset's own "vegetarian" tag is wrong on 631 recipes), guarded a

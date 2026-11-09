@@ -11,6 +11,7 @@ import { normalizeWorkoutType } from "./index"
 import type { SessionFeatures } from "./types"
 import { buildRecentDays, type RecentDay } from "./injury-rules"
 import { injuryListFromProfile } from "./profile"
+import { replanState } from "./rl-history"
 import { buildRunSessions } from "./run-sessions"
 
 export const SESSION_WINDOW = 4
@@ -33,7 +34,9 @@ export type UserHistory = {
   streak: number
   activeInjuries: Array<{ body_part?: string | null; name?: string | null }>
   profile: Record<string, any> | null
-  /** Inputs for /predict/injury-risk: the last 7 days of training load. */
+  /** Model 5 round 3: planned intensity and previous action, from past replans' ml_meta. */
+  rlHistory: ReturnType<typeof replanState>
+  /** Inputs for /predict/injury-risk: the last 21 days of training load. */
   injuryFeatures: {
     recent_days: RecentDay[]
     recent_exercises: string[]
@@ -42,6 +45,9 @@ export type UserHistory = {
   }
   bmi: number | null
 }
+
+const LOAD_WINDOW_DAYS = 21
+const MAX_REPLANS_READ = 104 // two years of weekly replans
 
 function daysAgo(days: number) {
   const d = new Date()
@@ -125,8 +131,10 @@ export async function buildUserHistory(
 ): Promise<UserHistory> {
   const since = daysAgo(7)
   const sinceMonth = daysAgo(30)
+  // Model 3 round 2 reads three weeks of training load (PROTOCOL_ROUND2.md).
+  const sinceLoad = daysAgo(LOAD_WINDOW_DAYS)
 
-  const [weekLogsRes, profileRes, sleepRes, execRes, injuriesRes, recentLogsRes, cardioRes, planRes] =
+  const [weekLogsRes, profileRes, sleepRes, execRes, injuriesRes, recentLogsRes, cardioRes, planRes, loadLogsRes, replansRes] =
     await Promise.all([
       supabase
         .from("workout_logs")
@@ -182,6 +190,21 @@ export async function buildUserHistory(
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle(),
+
+      supabase
+        .from("workout_logs")
+        .select("id, date")
+        .eq("user_id", userId)
+        .gte("date", sinceLoad),
+
+      // Every replan stores its RL decision in plan.ml_meta.rl; the 7-input agent
+      // reads their product (planned intensity) and the last one (previous action).
+      supabase
+        .from("workout_plans")
+        .select("plan, created_at")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(MAX_REPLANS_READ),
     ])
 
   const executionRows = execRes.data ?? []
@@ -243,7 +266,8 @@ export async function buildUserHistory(
 
   // One read covers the Transformer's sessions and the injury model's week.
   const weekLogs = weekLogsRes.data ?? []
-  const logIds = Array.from(new Set([...recentLogs, ...weekLogs].map((r) => String(r.id))))
+  const loadLogs = loadLogsRes.data ?? []
+  const logIds = Array.from(new Set([...recentLogs, ...weekLogs, ...loadLogs].map((r) => String(r.id))))
   const exerciseByLog = new Map<string, { duration: number; names: string[] }>()
   if (logIds.length > 0) {
     const { data: exerciseRows } = await supabase
@@ -279,12 +303,13 @@ export async function buildUserHistory(
   const bmi = bmiFrom(profile?.height, profile?.weight)
 
   // ── Training load for the injury model ─────────────────────────────────────
-  // The 7 days before today, oldest first, in the runners data's units.
-  const loadDays = Array.from({ length: 7 }, (_, i) => daysAgo(7 - i))
+  // The 21 days before today, oldest first, in the runners data's units. The
+  // service sums them into the three weekly summaries the model learned from.
+  const loadDays = Array.from({ length: LOAD_WINDOW_DAYS }, (_, i) => daysAgo(LOAD_WINDOW_DAYS - i))
   const namesByLog = new Map(Array.from(exerciseByLog, ([id, entry]) => [id, entry.names]))
   const recentDays = buildRecentDays(
     loadDays,
-    weekLogs,
+    loadLogs,
     namesByLog,
     cardioRes.data ?? [],
     (name) => normalizeWorkoutType(name) === "Strength"
@@ -305,6 +330,7 @@ export async function buildUserHistory(
     activeInjuries,
     profile,
     bmi,
+    rlHistory: replanState(replansRes.data ?? []),
     injuryFeatures: {
       recent_days: recentDays,
       recent_exercises: recentExercises,

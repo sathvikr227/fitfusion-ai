@@ -1,7 +1,9 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { currentStreak, longestStreak, plural } from "../../../lib/dates"
 import { supabase } from "../../../lib/supabase/client"
 import { Loader2, Download, Brain, ChevronDown, ChevronUp } from "lucide-react"
 import { MLInsightsCard } from "../components/MLInsightsCard"
@@ -275,6 +277,17 @@ function kMeans(points: number[][], k: number, maxIter = 40): { clusters: number
 
 // ─── Linear regression (weight prediction) ────────────────────────────────────
 
+/** A weight trend needs at least 4 weigh-ins spread over 14+ days. */
+const MIN_WEIGHT_POINTS = 4
+const MIN_WEIGHT_SPAN_DAYS = 14
+/** Risk and load readouts need at least this many logged sessions. */
+const MIN_SESSIONS_FOR_RISK = 5
+
+function daysSinceEpoch(value: string) {
+  const [y, m, d] = value.slice(0, 10).split("-").map(Number)
+  return Math.round(Date.UTC(y, m - 1, d) / 86_400_000)
+}
+
 function linearRegression(points: { x: number; y: number }[]) {
   const n = points.length
   if (n < 2) return null
@@ -296,52 +309,7 @@ function linearRegression(points: { x: number; y: number }[]) {
 // ─── Streak calculation ────────────────────────────────────────────────────────
 
 function calculateStreak(workoutDates: string[]): { current: number; longest: number } {
-  if (workoutDates.length === 0) return { current: 0, longest: 0 }
-
-  const uniqueDays = Array.from(
-    new Set(workoutDates.map((d) => new Date(d).toISOString().split("T")[0]))
-  ).sort()
-
-  let current = 0
-  let longest = 0
-  let streak = 1
-
-  for (let i = uniqueDays.length - 1; i >= 0; i--) {
-    const today = new Date().toISOString().split("T")[0]
-    const dayDiff =
-      (new Date(today).getTime() - new Date(uniqueDays[i]).getTime()) /
-      (1000 * 60 * 60 * 24)
-
-    if (i === uniqueDays.length - 1) {
-      current = dayDiff <= 1 ? 1 : 0
-    } else {
-      const prev = uniqueDays[i + 1]
-      const curr = uniqueDays[i]
-      const gap =
-        (new Date(prev).getTime() - new Date(curr).getTime()) /
-        (1000 * 60 * 60 * 24)
-      if (gap === 1) {
-        streak++
-        if (i === uniqueDays.length - 2 || current > 0) current = streak
-      } else {
-        longest = Math.max(longest, streak)
-        streak = 1
-        if (current === 0) current = 0
-      }
-    }
-  }
-
-  longest = Math.max(longest, streak)
-  if (current === 0 && uniqueDays.length > 0) {
-    const today = new Date().toISOString().split("T")[0]
-    const last = uniqueDays[uniqueDays.length - 1]
-    const gap =
-      (new Date(today).getTime() - new Date(last).getTime()) /
-      (1000 * 60 * 60 * 24)
-    if (gap <= 1) current = streak
-  }
-
-  return { current, longest }
+  return { current: currentStreak(workoutDates), longest: longestStreak(workoutDates) }
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -428,13 +396,17 @@ export default function AnalyticsPage() {
         }),
       }))
 
-    const reg = linearRegression(points.map((p) => ({ x: p.x, y: p.y })))
+    const dated = weightLogs.filter((d) => d.weight != null).map((d) => daysSinceEpoch(d.date ?? d.created_at))
+    const span = dated.length ? dated[dated.length - 1] - dated[0] : 0
+    const reg = points.length >= MIN_WEIGHT_POINTS && span >= MIN_WEIGHT_SPAN_DAYS
+      ? linearRegression(dated.map((x, i) => ({ x, y: points[i].y })))
+      : null
 
-    return points.map((p) => ({
+    return points.map((p, i) => ({
       date: p.date,
       weight: p.y,
       predicted: reg
-        ? parseFloat((reg.slope * p.x + reg.intercept).toFixed(1))
+        ? parseFloat((reg.slope * dated[i] + reg.intercept).toFixed(1))
         : undefined,
     }))
   }, [weightLogs])
@@ -442,15 +414,18 @@ export default function AnalyticsPage() {
   const weightPrediction = useMemo(() => {
     const points = weightLogs
       .filter((d) => d.weight != null)
-      .map((d, i) => ({ x: i, y: d.weight as number }))
+      .map((d) => ({ x: daysSinceEpoch(d.date ?? d.created_at), y: d.weight as number }))
+    if (points.length < MIN_WEIGHT_POINTS) return null
+    if (points[points.length - 1].x - points[0].x < MIN_WEIGHT_SPAN_DAYS) return null
 
     const reg = linearRegression(points)
-    if (!reg || points.length < 2) return null
+    if (!reg) return null
 
-    const nextX = points.length + 6
+    const nextX = points[points.length - 1].x + 28
     const predicted = parseFloat((reg.slope * nextX + reg.intercept).toFixed(1))
-    const direction = reg.slope < -0.05 ? "losing" : reg.slope > 0.05 ? "gaining" : "maintaining"
-    return { predicted, direction, ratePerWeek: parseFloat((reg.slope * 7).toFixed(2)) }
+    const ratePerWeek = reg.slope * 7
+    const direction = ratePerWeek < -0.1 ? "losing" : ratePerWeek > 0.1 ? "gaining" : "maintaining"
+    return { predicted, direction, ratePerWeek: parseFloat(ratePerWeek.toFixed(2)) }
   }, [weightLogs])
 
   // ── Workout activity chart ─────────────────────────────────────────────────
@@ -645,7 +620,7 @@ export default function AnalyticsPage() {
   // ── Injury / wellness risk prediction ─────────────────────────────────────
 
   const injuryRisk = useMemo(() => {
-    if (workoutLogs.length === 0) return null
+    if (workoutLogs.length < MIN_SESSIONS_FOR_RISK) return null
 
     const today = new Date()
     const last14 = workoutLogs.filter((l) => {
@@ -707,26 +682,6 @@ export default function AnalyticsPage() {
     (s, d) => s + (d.total_calories || 0),
     0
   )
-
-  // ── Badges ─────────────────────────────────────────────────────────────────
-
-  const badges = useMemo(() => {
-    const weightLogsCount = weightLogs.filter((l) => l.weight != null).length
-    return [
-      { id: "first_workout", name: "First Step", icon: "👟", description: "Log your first workout", unlocked: totalWorkouts >= 1, tier: "bronze" as const },
-      { id: "streak_3", name: "Hot Streak", icon: "🔥", description: "Achieve a 3-day streak", unlocked: streak.longest >= 3, tier: "bronze" as const },
-      { id: "streak_7", name: "Weekly Warrior", icon: "⚡", description: "Achieve a 7-day streak", unlocked: streak.longest >= 7, tier: "silver" as const },
-      { id: "streak_14", name: "Two Week Titan", icon: "💪", description: "Achieve a 14-day streak", unlocked: streak.longest >= 14, tier: "gold" as const },
-      { id: "streak_30", name: "Monthly Monster", icon: "🏆", description: "Achieve a 30-day streak", unlocked: streak.longest >= 30, tier: "platinum" as const },
-      { id: "workouts_10", name: "Getting Serious", icon: "🎯", description: "Log 10 workouts", unlocked: totalWorkouts >= 10, tier: "bronze" as const },
-      { id: "workouts_25", name: "Fitness Fanatic", icon: "🌟", description: "Log 25 workouts", unlocked: totalWorkouts >= 25, tier: "silver" as const },
-      { id: "workouts_50", name: "Iron Will", icon: "🦾", description: "Log 50 workouts", unlocked: totalWorkouts >= 50, tier: "gold" as const },
-      { id: "weight_logged", name: "Scale Watcher", icon: "⚖️", description: "Log your weight once", unlocked: weightLogsCount >= 1, tier: "bronze" as const },
-      { id: "data_driven", name: "Data Driven", icon: "📊", description: "Log weight 5+ times", unlocked: weightLogsCount >= 5, tier: "silver" as const },
-      { id: "lost_1kg", name: "Making Progress", icon: "📉", description: "Lose 1 kg total", unlocked: weightChange !== null && weightChange <= -1, tier: "silver" as const },
-      { id: "transformation", name: "Transformation", icon: "✨", description: "Lose 5 kg total", unlocked: weightChange !== null && weightChange <= -5, tier: "gold" as const },
-    ]
-  }, [totalWorkouts, streak, weightLogs, weightChange])
 
   const generateReport = async (period: ReportPeriod) => {
     if (!userId) return
@@ -937,15 +892,6 @@ export default function AnalyticsPage() {
                 ? `${weightChange > 0 ? "+" : ""}${weightChange} kg`
                 : "--"
             }
-            color={
-              weightChange != null
-                ? weightChange < 0
-                  ? "text-green-600"
-                  : weightChange > 0
-                    ? "text-rose-600"
-                    : "text-slate-900 dark:text-white"
-                : undefined
-            }
           />
           <StatCard label="Total Workouts" value={String(totalWorkouts)} />
           <StatCard label="Calories Burned" value={`${totalCaloriesBurned.toLocaleString()} kcal`} />
@@ -955,12 +901,12 @@ export default function AnalyticsPage() {
         <div className="grid grid-cols-2 gap-4">
           <div className="rounded-3xl border border-orange-200 bg-orange-50 p-6 shadow-sm">
             <p className="text-sm text-orange-600 font-medium">🔥 Current Streak</p>
-            <p className="mt-2 text-4xl font-bold text-orange-700">{streak.current} days</p>
+            <p className="mt-2 text-4xl font-bold text-orange-700">{plural(streak.current, "day")}</p>
             <p className="mt-1 text-xs text-orange-500">Keep going — don't break the chain!</p>
           </div>
           <div className="rounded-3xl border border-purple-200 bg-purple-50 p-6 shadow-sm">
             <p className="text-sm text-purple-600 font-medium">🏆 Longest Streak</p>
-            <p className="mt-2 text-4xl font-bold text-purple-700">{streak.longest} days</p>
+            <p className="mt-2 text-4xl font-bold text-purple-700">{plural(streak.longest, "day")}</p>
             <p className="mt-1 text-xs text-purple-500">Your personal best</p>
           </div>
         </div>
@@ -987,7 +933,7 @@ export default function AnalyticsPage() {
                   </p>
                   <div className="flex gap-3 text-xs font-medium">
                     <span className="rounded-xl bg-white/60 dark:bg-black/20 px-2.5 py-1">
-                      {injuryRisk.workoutsLast7} sessions / 7 days
+                      {plural(injuryRisk.workoutsLast7, "session")} / 7 days
                     </span>
                     <span className="rounded-xl bg-white/60 dark:bg-black/20 px-2.5 py-1">
                       {injuryRisk.maxConsecutive} day max streak
@@ -1082,7 +1028,7 @@ export default function AnalyticsPage() {
                     return (
                       <div key={i} className={`rounded-2xl border p-4 ${colors[i % 3]}`}>
                         <p className={`text-sm font-semibold ${textColors[i % 3]}`}>{cluster.label}</p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{cluster.count} sessions · ~{cluster.avgCalories} kcal avg</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{plural(cluster.count, "session")} · ~{cluster.avgCalories} kcal avg</p>
                         <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Peak: {cluster.dominantDay} · Sleep: {cluster.avgSleep}h avg</p>
                       </div>
                     )
@@ -1093,23 +1039,17 @@ export default function AnalyticsPage() {
           </div>
         )}
 
-        {/* Achievements / Badges */}
-        <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow border border-slate-200 dark:border-slate-700">
-          <div className="flex items-center justify-between mb-5">
-            <div>
-              <h2 className="text-lg font-semibold">Achievements</h2>
-              <p className="text-sm text-slate-500 dark:text-slate-400">Earn badges by hitting fitness milestones</p>
-            </div>
-            <span className="rounded-full bg-purple-50 px-3 py-1 text-xs font-medium text-purple-700">
-              {badges.filter((b) => b.unlocked).length} / {badges.length} unlocked
-            </span>
+        {/* Achievements live on their own page (one system, one source of truth) */}
+        <Link
+          href="/dashboard/achievements"
+          className="flex items-center justify-between rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow transition hover:border-purple-300"
+        >
+          <div>
+            <h2 className="text-lg font-semibold">Achievements</h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400">See your badges, level and XP</p>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-            {badges.map((badge) => (
-              <BadgeCard key={badge.id} badge={badge} />
-            ))}
-          </div>
-        </div>
+          <span className="text-sm font-semibold text-purple-600 dark:text-purple-400">Open →</span>
+        </Link>
 
         {/* Weight chart */}
         <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow border border-slate-200 dark:border-slate-700">
@@ -1129,7 +1069,7 @@ export default function AnalyticsPage() {
                   {" "}~{Math.abs(weightPrediction.ratePerWeek)} kg/week
                 </p>
                 <p className="text-xs text-cyan-500 mt-0.5">
-                  Predicted in ~6 entries: {weightPrediction.predicted} kg
+                  Trend in 4 weeks: {weightPrediction.predicted} kg
                 </p>
               </div>
             )}
@@ -1364,45 +1304,6 @@ export default function AnalyticsPage() {
         </div>
 
       </div>
-    </div>
-  )
-}
-
-// ─── Badge card ───────────────────────────────────────────────────────────────
-
-const TIER_STYLES = {
-  bronze: "border-amber-200 bg-amber-50",
-  silver: "border-slate-300 bg-slate-50",
-  gold: "border-yellow-300 bg-yellow-50",
-  platinum: "border-purple-300 bg-purple-50",
-}
-
-function BadgeCard({
-  badge,
-}: {
-  badge: {
-    id: string
-    name: string
-    icon: string
-    description: string
-    unlocked: boolean
-    tier: "bronze" | "silver" | "gold" | "platinum"
-  }
-}) {
-  return (
-    <div
-      className={`rounded-2xl border p-4 transition-all ${
-        badge.unlocked
-          ? TIER_STYLES[badge.tier]
-          : "border-slate-200 bg-slate-50 dark:bg-slate-800/50 opacity-40 grayscale"
-      }`}
-    >
-      <div className="text-2xl mb-2">{badge.icon}</div>
-      <p className="text-sm font-semibold text-slate-900 dark:text-white leading-tight">{badge.name}</p>
-      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">{badge.description}</p>
-      {badge.unlocked && (
-        <p className="text-xs font-medium text-emerald-600 mt-1.5">✓ Unlocked</p>
-      )}
     </div>
   )
 }

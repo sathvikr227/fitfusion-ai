@@ -1,0 +1,433 @@
+{
+  "model": "injury_load_round2",
+  "trained_at": "2026-11-08T11:48:05+00:00",
+  "python": "3.12.10",
+  "artifact": "injury_load_round2.pkl",
+  "model_version": "injury-load-r2-v1",
+  "protocol": "demos/model3_injury/PROTOCOL_ROUND2.md + Amendment 1 (d2ef8ec, fb9dbb0; before any result)",
+  "dataset": {
+    "doi": "10.34894/UWU9PV",
+    "version": 2,
+    "licence": "CC0-1.0",
+    "file": "week_approach_maskedID_timeseries.csv",
+    "sha256": "261ba3a481f3428611cc175eac2b67749ee3d97980d81168af13bd9f932d5a31",
+    "funnel": {
+      "rows": 42798,
+      "athletes": 74,
+      "injury_days": 575,
+      "prevalence": 0.01344,
+      "athletes_with_injury": 61,
+      "min_days_between_injuries_same_athlete": 22,
+      "missing_values": 0
+    }
+  },
+  "leakage_screen": {
+    "univariate_auc": {
+      "sessions_w0": 0.5666,
+      "rest_days_w0": 0.4325,
+      "km_w0": 0.5364,
+      "max_km_day_w0": 0.5435,
+      "alt_hours_w0": 0.5128,
+      "strength_w0": 0.5837,
+      "sessions_w1": 0.5561,
+      "rest_days_w1": 0.4503,
+      "km_w1": 0.5285,
+      "max_km_day_w1": 0.5313,
+      "alt_hours_w1": 0.506,
+      "strength_w1": 0.5828,
+      "sessions_w2": 0.5267,
+      "rest_days_w2": 0.4696,
+      "km_w2": 0.5028,
+      "max_km_day_w2": 0.5084,
+      "alt_hours_w2": 0.5073,
+      "strength_w2": 0.5579,
+      "acwr_km": 0.5287,
+      "acwr_sessions": 0.5297,
+      "km_change_w01": 0.505,
+      "long_run_share_w0": 0.5313
+    },
+    "most_separating": "strength_w0",
+    "max_separation": 0.5837
+  },
+  "features": {
+    "WEEK": [
+      "sessions_w0",
+      "rest_days_w0",
+      "km_w0",
+      "max_km_day_w0",
+      "alt_hours_w0",
+      "strength_w0",
+      "sessions_w1",
+      "rest_days_w1",
+      "km_w1",
+      "max_km_day_w1",
+      "alt_hours_w1",
+      "strength_w1",
+      "sessions_w2",
+      "rest_days_w2",
+      "km_w2",
+      "max_km_day_w2",
+      "alt_hours_w2",
+      "strength_w2",
+      "acwr_km",
+      "acwr_sessions",
+      "km_change_w01",
+      "long_run_share_w0"
+    ]
+  },
+  "configs": [
+    "LR-WEEK-C0.01",
+    "LR-WEEK-C0.1",
+    "LR-WEEK-C1.0",
+    "XGB-WEEK-d1-n100",
+    "XGB-WEEK-d1-n300",
+    "XGB-WEEK-d2-n100",
+    "XGB-WEEK-d2-n300",
+    "XGB-WEEK-d3-n100",
+    "XGB-WEEK-d3-n300"
+  ],
+  "outer_seeds": [
+    42,
+    43,
+    44,
+    45,
+    46
+  ],
+  "outer_fold_winners": [
+    {
+      "seed": 42,
+      "fold": 0,
+      "winner": "XGB-WEEK-d2-n100",
+      "inner_auc": 0.6163,
+      "outer_auc": 0.559
+    },
+    {
+      "seed": 42,
+      "fold": 1,
+      "winner": "XGB-WEEK-d1-n100",
+      "inner_auc": 0.607,
+      "outer_auc": 0.5924
+    },
+    {
+      "seed": 42,
+      "fold": 2,
+      "winner": "XGB-WEEK-d1-n100",
+      "inner_auc": 0.6059,
+      "outer_auc": 0.6187
+    },
+    {
+      "seed": 42,
+      "fold": 3,
+      "winner": "XGB-WEEK-d1-n300",
+      "inner_auc": 0.5955,
+      "outer_auc": 0.629
+    },
+    {
+      "seed": 42,
+      "fold": 4,
+      "winner": "XGB-WEEK-d3-n100",
+      "inner_auc": 0.584,
+      "outer_auc": 0.6039
+    },
+    {
+      "seed": 43,
+      "fold": 0,
+      "winner": "XGB-WEEK-d2-n100",
+      "inner_auc": 0.6163,
+      "outer_auc": 0.559
+    },
+    {
+      "seed": 43,
+      "fold": 1,
+      "winner": "XGB-WEEK-d1-n100",
+      "inner_auc": 0.6048,
+      "outer_auc": 0.5704
+    },
+    {
+      "seed": 43,
+      "fold": 2,
+      "winner": "XGB-WEEK-d1-n100",
+      "inner_auc": 0.6059,
+      "outer_auc": 0.6187
+    },
+    {
+      "seed": 43,
+      "fold": 3,
+      "winner": "XGB-WEEK-d1-n300",
+      "inner_auc": 0.602,
+      "outer_auc": 0.6154
+    },
+    {
+      "seed": 43,
+      "fold": 4,
+      "winner": "XGB-WEEK-d3-n100",
+      "inner_auc": 0.5816,
+      "outer_auc": 0.612
+    },
+    {
+      "seed": 44,
+      "fold": 0,
+      "winner": "XGB-WEEK-d2-n100",
+      "inner_auc": 0.6163,
+      "outer_auc": 0.559
+    },
+    {
+      "seed": 44,
+      "fold": 1,
+      "winner": "XGB-WEEK-d1-n100",
+      "inner_auc": 0.607,
+      "outer_auc": 0.5924
+    },
+    {
+      "seed": 44,
+      "fold": 2,
+      "winner": "XGB-WEEK-d1-n100",
+      "inner_auc": 0.6118,
+      "outer_auc": 0.6176
+    },
+    {
+      "seed": 44,
+      "fold": 3,
+      "winner": "XGB-WEEK-d1-n300",
+      "inner_auc": 0.5984,
+      "outer_auc": 0.6193
+    },
+    {
+      "seed": 44,
+      "fold": 4,
+      "winner": "XGB-WEEK-d2-n300",
+      "inner_auc": 0.5799,
+      "outer_auc": 0.607
+    },
+    {
+      "seed": 45,
+      "fold": 0,
+      "winner": "XGB-WEEK-d2-n100",
+      "inner_auc": 0.6163,
+      "outer_auc": 0.559
+    },
+    {
+      "seed": 45,
+      "fold": 1,
+      "winner": "XGB-WEEK-d1-n100",
+      "inner_auc": 0.6048,
+      "outer_auc": 0.5704
+    },
+    {
+      "seed": 45,
+      "fold": 2,
+      "winner": "XGB-WEEK-d1-n100",
+      "inner_auc": 0.6095,
+      "outer_auc": 0.6066
+    },
+    {
+      "seed": 45,
+      "fold": 3,
+      "winner": "XGB-WEEK-d1-n300",
+      "inner_auc": 0.5984,
+      "outer_auc": 0.6187
+    },
+    {
+      "seed": 45,
+      "fold": 4,
+      "winner": "XGB-WEEK-d3-n100",
+      "inner_auc": 0.5816,
+      "outer_auc": 0.612
+    },
+    {
+      "seed": 46,
+      "fold": 0,
+      "winner": "XGB-WEEK-d2-n100",
+      "inner_auc": 0.6163,
+      "outer_auc": 0.559
+    },
+    {
+      "seed": 46,
+      "fold": 1,
+      "winner": "XGB-WEEK-d1-n100",
+      "inner_auc": 0.6048,
+      "outer_auc": 0.5704
+    },
+    {
+      "seed": 46,
+      "fold": 2,
+      "winner": "XGB-WEEK-d1-n100",
+      "inner_auc": 0.6095,
+      "outer_auc": 0.6066
+    },
+    {
+      "seed": 46,
+      "fold": 3,
+      "winner": "XGB-WEEK-d1-n300",
+      "inner_auc": 0.5984,
+      "outer_auc": 0.6187
+    },
+    {
+      "seed": 46,
+      "fold": 4,
+      "winner": "XGB-WEEK-d3-n100",
+      "inner_auc": 0.5816,
+      "outer_auc": 0.612
+    }
+  ],
+  "primary": {
+    "Candidate": {
+      "roc_auc": 0.5954,
+      "roc_auc_ci95": [
+        0.5632,
+        0.6256
+      ],
+      "pr_auc": 0.0176,
+      "per_repeat_pooled_auc": [
+        0.5993,
+        0.5934,
+        0.5982,
+        0.592,
+        0.592
+      ],
+      "brier": 0.01324,
+      "brier_prevalence_only": 0.01325,
+      "calibration": {
+        "slope": 0.951,
+        "intercept": -0.217
+      },
+      "elevated": {
+        "flag_rate": 0.0932,
+        "injury_rate_flagged": 0.01731,
+        "injury_rate_not_flagged": 0.01304,
+        "recall": 0.12,
+        "lift": 1.327,
+        "lift_ci95": [
+          0.9441,
+          1.7968
+        ]
+      }
+    },
+    "Week0-LogReg": {
+      "roc_auc": 0.5952,
+      "roc_auc_ci95": [
+        0.5626,
+        0.627
+      ],
+      "pr_auc": 0.017,
+      "per_repeat_pooled_auc": [
+        0.5959,
+        0.5951,
+        0.5956,
+        0.5949,
+        0.5949
+      ]
+    },
+    "Rule-ACWR-km": {
+      "roc_auc": 0.5287,
+      "roc_auc_ci95": [
+        0.5078,
+        0.551
+      ],
+      "pr_auc": 0.0143
+    },
+    "Rule-sessions-w0": {
+      "roc_auc": 0.5666,
+      "roc_auc_ci95": [
+        0.5378,
+        0.5973
+      ],
+      "pr_auc": 0.0156
+    }
+  },
+  "auc_differences": {
+    "Candidate minus Week0-LogReg": {
+      "difference": 0.0005,
+      "ci95": [
+        -0.0307,
+        0.0283
+      ]
+    },
+    "Candidate minus Rule-sessions-w0": {
+      "difference": 0.0279,
+      "ci95": [
+        -0.0092,
+        0.0647
+      ]
+    },
+    "Candidate minus Rule-ACWR-km": {
+      "difference": 0.0668,
+      "ci95": [
+        0.0302,
+        0.1018
+      ]
+    }
+  },
+  "decision": {
+    "rule": "serve iff the lower bound of the primary ROC-AUC 95% CI > 0.55",
+    "candidate_roc_auc": 0.5954,
+    "candidate_roc_auc_ci_low": 0.5632,
+    "serve": true
+  },
+  "secondary_round1_split": {
+    "winner": "XGB-WEEK-d2-n100",
+    "test_athletes": 14,
+    "test_injuries": 118,
+    "roc_auc": 0.5967,
+    "roc_auc_ci95": [
+      0.5073,
+      0.6771
+    ],
+    "round1_reference_day_file": {
+      "XGB-APP": 0.589,
+      "LogReg-APP": 0.669
+    }
+  },
+  "final": {
+    "winner": "XGB-WEEK-d2-n100",
+    "inner_aucs": {
+      "LR-WEEK-C0.01": 0.5948,
+      "LR-WEEK-C0.1": 0.5932,
+      "LR-WEEK-C1.0": 0.5923,
+      "XGB-WEEK-d1-n100": 0.6075,
+      "XGB-WEEK-d1-n300": 0.6084,
+      "XGB-WEEK-d2-n100": 0.609,
+      "XGB-WEEK-d2-n300": 0.6013,
+      "XGB-WEEK-d3-n100": 0.6047,
+      "XGB-WEEK-d3-n300": 0.5925
+    },
+    "platt": {
+      "a": 0.8894824317186741,
+      "b": -4.249462630145112
+    },
+    "threshold_p90": 0.01971,
+    "prevalence": 0.013435,
+    "explanation": {
+      "kind": "mean |SHAP| (log-odds)",
+      "values": {
+        "strength_w0": 0.1005,
+        "strength_w1": 0.08908,
+        "km_w2": 0.07017,
+        "max_km_day_w0": 0.06791,
+        "km_w1": 0.06735,
+        "rest_days_w0": 0.06626,
+        "sessions_w0": 0.05488,
+        "km_w0": 0.03692,
+        "acwr_sessions": 0.02475,
+        "long_run_share_w0": 0.02436,
+        "strength_w2": 0.01466,
+        "km_change_w01": 0.01457,
+        "max_km_day_w1": 0.01169,
+        "max_km_day_w2": 0.01004,
+        "alt_hours_w0": 0.0093,
+        "acwr_km": 0.00703,
+        "alt_hours_w1": 0.00672,
+        "sessions_w1": 0.00594,
+        "alt_hours_w2": 0.00431,
+        "rest_days_w1": 0.0037,
+        "rest_days_w2": 0.00285,
+        "sessions_w2": 0.00146
+      }
+    }
+  },
+  "figures": {
+    "curves": "injury_load_round2_roc_calibration.png",
+    "features": "injury_load_round2_features.png"
+  },
+  "runtime_seconds": 377
+}

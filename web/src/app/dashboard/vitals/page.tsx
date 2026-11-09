@@ -14,6 +14,7 @@ import {
   TrendingUp,
   Trash2,
 } from "lucide-react"
+import { localDateStr } from "../../../lib/dates"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -33,7 +34,7 @@ type VitalsLog = {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function todayStr() {
-  return new Date().toISOString().split("T")[0]
+  return localDateStr()
 }
 
 function bpStatus(systolic: number | null, diastolic: number | null): { label: string; color: string; bg: string } {
