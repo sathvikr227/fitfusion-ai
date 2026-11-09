@@ -203,6 +203,8 @@ export async function POST(req: NextRequest) {
       injury_flag: injuryFlag,
       trajectory_score: trajectoryScore,
       streak,
+      planned_intensity: history.rlHistory.planned_intensity,
+      previous_action: history.rlHistory.previous_action,
     })
     let decision: RLActionResponse = rlResult.data
     if (rlResult.fromFallback) {
@@ -363,6 +365,8 @@ TASK: Modify the workout_plan section for next week based on the directive above
         intensity_delta: decision.intensity_delta,
         confidence: decision.confidence,
         state: decision.state,
+        planned_intensity: history.rlHistory.planned_intensity,
+        previous_action: history.rlHistory.previous_action,
         model_version: decision.model_version,
         from_fallback: rlResult.fromFallback,
       },

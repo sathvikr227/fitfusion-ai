@@ -94,8 +94,10 @@ def main() -> None:
     served_meta = load_json(MODEL_DIR / "rl_ppo_meta.json") or {}
     r3 = load_json(REPORTS / "rl_ppo_round3.json")
     r3_meta = load_json(ROUND3 / "rl_ppo_meta_round3.json")
-    agent1 = PPO.load(str(MODEL_DIR / "rl_ppo_agent.zip"), device="cpu")          # round 1 (not served)
-    agent3 = PPO.load(str(ROUND3 / "rl_ppo_agent_round3.zip"), device="cpu")      # round 3 (not served)
+    agent1 = PPO.load(str(MODEL_DIR / "rl_ppo_agent_round1.zip"), device="cpu")   # round 1 (never served)
+    agent3 = PPO.load(str(ROUND3 / "rl_ppo_agent_round3.zip"), device="cpu")      # round 3
+    r3_served = served_meta.get("round") == 3 and bool(served_meta.get("serve"))
+    r3_label = "served, owner's documented override" if r3_served else "evaluated, not served"
     cal_bins = Calibration.from_json(MODEL_DIR / "rl_calibration.json")
     cal = Calibration.from_json(MODEL_DIR / "rl_calibration.json", injury="smooth")
 
@@ -148,8 +150,8 @@ def main() -> None:
     raw3 = int(agent3.predict(obs7, deterministic=True)[0])
     print(f"  State (5 slide inputs): {[round(float(x), 3) for x in state]}  + round-3 inputs: "
           f"{[round(float(x), 3) for x in obs7[5:]]}")
-    print(f"  SERVED (masked threshold rule): {ACTIONS[rule]}")
-    print(f"  Round-3 PPO (evaluated, not served): raw {ACTIONS[raw3]} -> after mask {ACTIONS[safe_action(raw3, obs7)]}")
+    print(f"  Round-3 PPO ({r3_label}): raw {ACTIONS[raw3]} -> after mask {ACTIONS[safe_action(raw3, obs7)]}")
+    print(f"  Threshold rule ({'what served before' if r3_served else 'SERVED'}, masked): {ACTIONS[rule]}")
     injured = obs7.copy()
     injured[2] = 1.0
     raw_inj = int(agent3.predict(injured, deterministic=True)[0])
@@ -183,7 +185,18 @@ def main() -> None:
         resp = client.post("/rl/action", json=body, headers={"Authorization": "Bearer demo-key"})
     print(f"  HTTP {resp.status_code}")
     print("  " + json.dumps(resp.json(), indent=2).replace("\n", "\n  "))
-    print(f"  Served agent metadata: round {served_meta.get('round', 1)}, serve={served_meta.get('serve')}")
+    print(f"  Served agent metadata: round {served_meta.get('round', 1)}, serve={served_meta.get('serve')}, "
+          f"pre-registered serve={served_meta.get('pre_registered_serve', served_meta.get('serve'))}")
+    if served_meta.get("owner_override"):
+        o = served_meta["owner_override"]
+        print(f"  Owner override ({o['date']}): {o['decision']}")
+        print(f"    failed criterion: {o['pre_registered_failure']}")
+        print(f"    basis: {o['basis']}")
+    with TestClient(app) as client:
+        bare = {k: v for k, v in body.items() if k not in ("planned_intensity", "previous_action")}
+        r2 = client.post("/rl/action", json=bare, headers={"Authorization": "Bearer demo-key"}).json()
+    print(f"  Without planned_intensity/previous_action: {r2['action']} from {r2['model_version']} "
+          f"(stub={r2['stub']}, reason: {r2['reason']})")
     RESULT["api_response"] = resp.json()
 
     section("7. Evaluation evidence (SIMULATED; models/reports/rl_ppo_round3.json)")
@@ -202,8 +215,10 @@ def main() -> None:
             print(f"  {name:52s} Δreturn {c['return']['difference']:+.3f} {c['return']['ci95']}  "
                   f"Δinjuries {c['injuries']['difference']:+.4f} {c['injuries']['ci95']}")
         d = r3["decision"]
-        print(f"  Serving rule: return vs best baseline CI low > 0 -> {d['return_vs_best']['ci95'][0] > 0}; "
+        print(f"  Pre-registered serving rule: return vs best baseline CI low > 0 -> {d['return_vs_best']['ci95'][0] > 0}; "
               f"injuries not higher than the rule -> {d['injuries_vs_rule']['ci95'][0] <= 0}; SERVE = {d['serve']}")
+        if served_meta.get("owner_override"):
+            print("  Served anyway by the owner's documented override (2026-11-09), on the post-hoc check below.")
         post = load_json(REPORTS / "rl_ppo_round3_posthoc_exposure.json")
         if post:
             e = post["post_hoc_exposure"]

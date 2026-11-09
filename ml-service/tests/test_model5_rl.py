@@ -133,8 +133,31 @@ def test_artifact_matches_report():
     meta = json.loads((MODEL_DIR / "rl_ppo_meta.json").read_text(encoding="utf-8"))
     name = {3: "rl_ppo_round3.json", 2: "rl_ppo_round2.json"}.get(meta.get("round", 1), "rl_ppo.json")
     report = json.loads((REPORT_DIR / name).read_text(encoding="utf-8"))
-    assert meta["serve"] == report["decision"]["serve"]
+    pre_registered = meta.get("pre_registered_serve", meta["serve"])
+    assert pre_registered == report["decision"]["serve"]
+    # Serving against the pre-registered rule is allowed only as a recorded owner override.
+    if meta["serve"] != pre_registered:
+        override = meta["owner_override"]
+        assert override["date"] and override["basis"] and override["pre_registered_failure"]
     assert meta["standard_mean_return"] == report["results"]["standard"]["PPO seed 42"]["mean_return"]
+
+
+@needs_agent
+def test_served_agent_with_all_inputs_never_increases_while_injured_or_short_of_sleep():
+    meta = json.loads((MODEL_DIR / "rl_ppo_meta.json").read_text(encoding="utf-8"))
+    if not meta.get("serve"):
+        pytest.skip("no agent served")
+    for completion in (0.2, 0.5, 0.7, 0.9, 1.0):
+        for intensity in (0.4, 1.0, 1.6, 2.5):
+            for previous in ("REDUCE", "MAINTAIN", "INCREASE"):
+                for injured, sleep in ((1, 8.0), (0, 5.0)):
+                    body = {"user_id": "u1", "completion_rate": completion, "sleep_avg": sleep,
+                            "injury_flag": injured, "trajectory_score": 2, "streak": 9,
+                            "planned_intensity": intensity, "previous_action": previous}
+                    r = client.post("/rl/action", json=body, headers=AUTH).json()
+                    assert r["action"] != "INCREASE"
+                    if meta.get("observation_dims", 5) == 7:
+                        assert r["stub"] is False and r["model_version"] == meta["model_version"]
 
 
 # ── round 3 (PROTOCOL_ROUND3.md) ──────────────────────────────────────────────

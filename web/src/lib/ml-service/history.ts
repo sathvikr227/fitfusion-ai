@@ -11,6 +11,7 @@ import { normalizeWorkoutType } from "./index"
 import type { SessionFeatures } from "./types"
 import { buildRecentDays, type RecentDay } from "./injury-rules"
 import { injuryListFromProfile } from "./profile"
+import { replanState } from "./rl-history"
 import { buildRunSessions } from "./run-sessions"
 
 export const SESSION_WINDOW = 4
@@ -33,7 +34,9 @@ export type UserHistory = {
   streak: number
   activeInjuries: Array<{ body_part?: string | null; name?: string | null }>
   profile: Record<string, any> | null
-  /** Inputs for /predict/injury-risk: the last 7 days of training load. */
+  /** Model 5 round 3: planned intensity and previous action, from past replans' ml_meta. */
+  rlHistory: ReturnType<typeof replanState>
+  /** Inputs for /predict/injury-risk: the last 21 days of training load. */
   injuryFeatures: {
     recent_days: RecentDay[]
     recent_exercises: string[]
@@ -44,6 +47,7 @@ export type UserHistory = {
 }
 
 const LOAD_WINDOW_DAYS = 21
+const MAX_REPLANS_READ = 104 // two years of weekly replans
 
 function daysAgo(days: number) {
   const d = new Date()
@@ -130,7 +134,7 @@ export async function buildUserHistory(
   // Model 3 round 2 reads three weeks of training load (PROTOCOL_ROUND2.md).
   const sinceLoad = daysAgo(LOAD_WINDOW_DAYS)
 
-  const [weekLogsRes, profileRes, sleepRes, execRes, injuriesRes, recentLogsRes, cardioRes, planRes, loadLogsRes] =
+  const [weekLogsRes, profileRes, sleepRes, execRes, injuriesRes, recentLogsRes, cardioRes, planRes, loadLogsRes, replansRes] =
     await Promise.all([
       supabase
         .from("workout_logs")
@@ -192,6 +196,15 @@ export async function buildUserHistory(
         .select("id, date")
         .eq("user_id", userId)
         .gte("date", sinceLoad),
+
+      // Every replan stores its RL decision in plan.ml_meta.rl; the 7-input agent
+      // reads their product (planned intensity) and the last one (previous action).
+      supabase
+        .from("workout_plans")
+        .select("plan, created_at")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(MAX_REPLANS_READ),
     ])
 
   const executionRows = execRes.data ?? []
@@ -317,6 +330,7 @@ export async function buildUserHistory(
     activeInjuries,
     profile,
     bmi,
+    rlHistory: replanState(replansRes.data ?? []),
     injuryFeatures: {
       recent_days: recentDays,
       recent_exercises: recentExercises,

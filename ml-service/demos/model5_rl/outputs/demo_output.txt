@@ -43,8 +43,8 @@
 ────────────────────────────────────────────────────────────────────────
   ILLUSTRATIVE INPUT, not a real user. The RL state /api/adaptive-replan builds for one week: completion of planned exercises, average sleep, injury flag, Model 4's trajectory (0 REGRESS, 1 PLATEAU, 2 IMPROVE), the current streak of training days, and (round 3) the plan's intensity from past replans (1.0 = the starting plan) and the last replan's action.
   State (5 slide inputs): [0.92, 0.76, 0.0, 1.0, 0.643]  + round-3 inputs: [0.46, 1.0]
-  SERVED (masked threshold rule): INCREASE
-  Round-3 PPO (evaluated, not served): raw MAINTAIN -> after mask MAINTAIN
+  Round-3 PPO (served, owner's documented override): raw MAINTAIN -> after mask MAINTAIN
+  Threshold rule (what served before, masked): INCREASE
   Same user, injured: PPO raw REDUCE -> REDUCE; rule MAINTAIN (the mask never allows INCREASE while injured or on < 5.5 h sleep)
 
 ────────────────────────────────────────────────────────────────────────
@@ -62,9 +62,9 @@
 ────────────────────────────────────────────────────────────────────────
   HTTP 200
   {
-    "action": "INCREASE",
-    "intensity_delta": 0.15,
-    "confidence": 0.5,
+    "action": "MAINTAIN",
+    "intensity_delta": 0.0,
+    "confidence": 0.3972,
     "state": [
       0.92,
       0.76,
@@ -72,12 +72,16 @@
       1.0,
       0.6429
     ],
-    "model_version": "rule-thresholds-masked",
+    "model_version": "rl-ppo-v3-round3",
     "masked": false,
-    "reason": "agent failed its pre-registered serving rule",
-    "stub": true
+    "reason": null,
+    "stub": false
   }
-  Served agent metadata: round 1, serve=False
+  Served agent metadata: round 3, serve=True, pre-registered serve=False
+  Owner override (2026-11-09): serve the round-3 PPO agent despite the pre-registered injury criterion
+    failed criterion: injuries per user +0.0135 [+0.005, +0.024] vs the threshold rule (standard test)
+    basis: post-hoc: injuries per 100 user-weeks 7.797 (PPO) vs 7.816 (rule), difference -0.020 [-0.046, +0.008]; the excess per user comes from users PPO keeps (churn 0.1% vs 2.6%)
+  Without planned_intensity/previous_action: INCREASE from rule-thresholds-masked (stub=True, reason: agent needs planned_intensity and previous_action)
 
 ────────────────────────────────────────────────────────────────────────
   7. Evaluation evidence (SIMULATED; models/reports/rl_ppo_round3.json)
@@ -103,7 +107,8 @@
   PPO seed 42 minus Always MAINTAIN                    Δreturn +0.122 [0.0452, 0.2112]  Δinjuries +0.0015 [-0.003, 0.006]
   PPO seed 42 minus Random                             Δreturn +2.938 [2.673, 3.2112]  Δinjuries +0.1160 [0.098, 0.135]
   PPO seed 42 minus Dev-tuned rule (REDUCE if c<0.3)   Δreturn -0.022 [-0.0413, -0.0038]  Δinjuries +0.0000 [-0.005, 0.0045]
-  Serving rule: return vs best baseline CI low > 0 -> True; injuries not higher than the rule -> False; SERVE = False
+  Pre-registered serving rule: return vs best baseline CI low > 0 -> True; injuries not higher than the rule -> False; SERVE = False
+  Served anyway by the owner's documented override (2026-11-09), on the post-hoc check below.
   Post-hoc (does not change the decision): injuries per 100 user-weeks PPO 7.796 vs rule 7.816 [diff CI -0.046, +0.008]: the extra injuries come from users PPO keeps.
   Round 1: PPO seed 42 -23.28 (churn 100%) vs threshold rule -9.44 -> not served
   Round 2: PPO seed 42 -23.18 (churn 100%) vs threshold rule -9.57 -> not served

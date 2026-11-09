@@ -1,6 +1,12 @@
 # Model 5 — results (all SIMULATED)
 
-## Round 3 — the training bug found and fixed; PPO now learns, but narrowly fails its serving rule
+## Round 3 — the training bug found and fixed; PPO learns; served by the owner's documented override
+
+> **Served since 2026-11-09 by the owner's decision, against the pre-registered rule.** The rule
+> said "not served" (injury criterion). The owner chose to serve after the post-hoc exposure
+> check below. See "Owner's decision". Both the pre-registered outcome and the override are
+> recorded, here and in `models/rl_ppo_meta.json` (`pre_registered_serve: false`,
+> `owner_override`).
 
 Sources:
 - `models/reports/rl_ppo_round3.json`, written by `training/train_rl_ppo_round3.py`;
@@ -26,7 +32,7 @@ selection and before any validation or test seed was used.
 - **PPO now beats the best baseline:** +0.122 return per user, 95% CI [+0.045, +0.211], on 2,000
   new test users. Against the threshold rule the app serves today it is +0.377 [+0.257, +0.506].
   On the stressed scenarios it is +0.412 [+0.304, +0.531].
-- **It is not served, by the pre-registered rule.**
+- **The pre-registered rule said not served. The owner then chose to serve it (see below).**
   - It has 0.0135 more injuries per user than the threshold rule, CI [+0.005, +0.024], and the
     rule requires "not significantly more".
   - A post-hoc check, which does not change the decision, shows why: per week trained, the
@@ -115,8 +121,36 @@ Per week of training, PPO is as safe as the rule. The per-user criterion counted
 quitters as "fewer injuries". Choosing the criterion now, after seeing this, would be a post-hoc
 change. That is why it is recorded here and left to the owner, as Model 3's round-1 choice was.
 
+### Owner's decision (2026-11-09): serve, as a documented override
+
+The pre-registered rule failed on one criterion: +0.0135 injuries per user against the threshold
+rule. The owner was shown the post-hoc exposure check: the same injury rate per week trained,
+with the excess coming from users PPO keeps. The owner chose to serve the round-3 agent. The
+options were:
+
+1. **Serve it, documented (post-hoc override).** ← **chosen**
+2. Keep the pre-registered outcome (masked rule serves).
+
+**Why this is recorded as an override, not a pass.** The injury criterion was fixed before the
+results. Judging it per user-week instead of per user is a choice made after seeing them. So the
+served agent carries `pre_registered_serve: false` and an `owner_override` block in
+`models/rl_ppo_meta.json`, and every number above stays as measured.
+
+**What is served.**
+- PPO-7-MC, seed 42, at 800k timesteps (`models/rl_ppo_agent.zip`; the same file as
+  `models/rl_round3/rl_ppo_agent_round3.zip`).
+- It reads the 5 slide inputs plus `planned_intensity` and `previous_action`.
+- `/api/adaptive-replan` computes those two from past replans' `ml_meta.rl`
+  (`web/src/lib/ml-service/rl-history.ts`).
+- If either is missing, `POST /rl/action` answers with the masked rule (`stub: true`, with a
+  `reason`) instead of guessing.
+- The hard safety mask, the pain hold, the progression cap and injury stripping all still apply on
+  top.
+
 ### Limitations
 
+- **Served against the pre-registered rule** (see above). The simulated benefit is small, and a
+  one-line rule matches it.
 - **Everything is simulated.** The adherence, churn and capacity numbers are assumptions;
   fitness, injury and sleep come from real data (`DATA_SOURCES.md`).
 - **The effect is tiny.** +0.12 return per user is about 1 user in 125 kept from quitting. Every
@@ -140,10 +174,11 @@ change. That is why it is recorded here and left to the owner, as Model 3's roun
   - All of these are off by default, so rounds 1–2 reproduce.
 - `training/calibrate_rl_env.py --smooth-only` and `training/train_rl_ppo_round3.py`.
 - `POST /rl/action` accepts optional `planned_intensity` and `previous_action`. A 7-input agent
-  without them answers with the masked rule and a `reason`. Not served now, so nothing changes in
-  the app's behaviour.
-- The round-3 agent is kept in `models/rl_round3/` (`rl_ppo_agent_round3.zip` +
-  `rl_ppo_meta_round3.json`). `models/rl_ppo_agent.zip` is untouched.
+  without them answers with the masked rule and a `reason`.
+- The served agent is `models/rl_ppo_agent.zip` with `rl_ppo_meta.json` (round 3, override
+  recorded). The round-1 agent stays as `rl_ppo_agent_round1.zip` + `rl_ppo_meta_round1.json`.
+- Next.js: `rl-history.ts` (+ tests). `history.ts` reads past replans. The replan route sends both
+  inputs and stores them in `ml_meta.rl`.
 
 ---
 

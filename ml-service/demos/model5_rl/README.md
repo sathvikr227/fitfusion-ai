@@ -15,11 +15,12 @@ makes that call better than the simple rule the app used. **All results are simu
   - it beats always-MAINTAIN, +0.12 [+0.05, +0.21] per user;
   - it beats the app's threshold rule, +0.38 [+0.26, +0.51];
   - it keeps 99.9% of users.
-- **Still not served, by its pre-registered rule.** It has slightly more injuries per user than
-  the rule (+0.014). A post-hoc check shows the cause: it keeps users the rule loses. Per week
-  trained, its injury rate is the same.
-- **The gain is small, and a one-line rule matches it.** The app keeps the threshold rule,
-  behind a **hard safety mask** that never allows INCREASE while injured or on < 5.5 h sleep.
+- **Served since 2026-11-09, as the owner's documented override.** The pre-registered rule said
+  not served, because it has slightly more injuries per user than the rule (+0.014). A post-hoc
+  check showed the cause: it keeps users the rule loses. Per week trained, its injury rate is the
+  same. Both facts are recorded (`RESULTS.md`, `models/rl_ppo_meta.json`).
+- **The gain is small, and a one-line rule matches it.** Whatever answers, a **hard safety mask**
+  never allows INCREASE while injured or on < 5.5 h sleep.
 
 | File | Contents |
 |---|---|
@@ -68,5 +69,6 @@ off by default.
 4. **Watch it work** (section 5). On the same simulated user, the round-1 agent pushes until they
    quit in week 7. The round-3 agent coaches them for all 26 weeks, slightly better than the rule.
 5. **Honest outcome** (section 7, `RESULTS.md`). It beats both baselines, but the pre-registered
-   injury criterion says not served. The post-hoc check explains why. A one-line rule does as well.
+   injury criterion said not served. The post-hoc check explains why, and the owner chose to serve
+   it as a documented override. A one-line rule does as well.
 6. **Safety is guaranteed, not learned.** The mask, and the test that sweeps unsafe states.

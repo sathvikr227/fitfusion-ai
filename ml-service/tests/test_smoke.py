@@ -377,6 +377,8 @@ def test_rl_action_returns_valid_action():
             "injury_flag": 0,
             "trajectory_score": 2,
             "streak": 10,
+            "planned_intensity": 1.0,
+            "previous_action": "MAINTAIN",
         },
         headers=AUTH,
     )
@@ -391,6 +393,16 @@ def test_rl_action_returns_valid_action():
     assert len(body["state"]) == 5
     for value in body["state"]:
         assert 0.0 <= value <= 1.0
+
+
+def test_rl_action_without_round3_inputs_falls_back_when_the_agent_needs_them():
+    needs("rl")
+    body = client.post("/rl/action", json={"user_id": "u1", "completion_rate": 0.9, "sleep_avg": 8.0,
+                                           "injury_flag": 0}, headers=AUTH).json()
+    meta = registry.rl_meta or {}
+    if meta.get("serve") and meta.get("observation_dims", 5) == 7:
+        assert body["stub"] is True and "planned_intensity" in body["reason"]
+        assert body["model_version"] == "rule-thresholds-masked"
 
 
 def test_rl_state_construction_matches_documented_formula():

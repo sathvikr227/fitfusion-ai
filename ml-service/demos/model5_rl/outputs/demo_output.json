@@ -605,9 +605,9 @@
     }
   ],
   "api_response": {
-    "action": "INCREASE",
-    "intensity_delta": 0.15,
-    "confidence": 0.5,
+    "action": "MAINTAIN",
+    "intensity_delta": 0.0,
+    "confidence": 0.3972,
     "state": [
       0.92,
       0.76,
@@ -615,10 +615,10 @@
       1.0,
       0.6429
     ],
-    "model_version": "rule-thresholds-masked",
+    "model_version": "rl-ppo-v3-round3",
     "masked": false,
-    "reason": "agent failed its pre-registered serving rule",
-    "stub": true
+    "reason": null,
+    "stub": false
   },
   "round3_meta": {
     "model_version": "rl-ppo-v3-round3",

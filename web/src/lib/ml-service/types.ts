@@ -239,6 +239,10 @@ export type RLStateRequest = {
   injury_flag: number
   trajectory_score?: number
   streak?: number
+  /** Round 3: product of (1 + applied intensity_delta) over past replans; 1 = the starting plan. */
+  planned_intensity?: number
+  /** Round 3: the last replan's applied action. */
+  previous_action?: RLAction
 }
 
 export type RLAction = "REDUCE" | "MAINTAIN" | "INCREASE"
