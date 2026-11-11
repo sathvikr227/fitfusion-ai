@@ -163,6 +163,12 @@ Post-hoc: injuries per user-week are equal; the excess is users PPO keeps (churn
 A one-line rule (REDUCE if completion < 0.3) matches PPO. Served agent: `models/rl_ppo_agent.zip`
 (= `models/rl_round3/rl_ppo_agent_round3.zip`); round 1 kept as `rl_ppo_agent_round1.zip`.
 
+The web fallback for `/rl/action` is the same masked threshold rule
+(`web/src/lib/ml-service/rl-rules.ts` mirrors `rule_based_action` / `safe_action`). Until
+2026-11-11 it forced REDUCE whenever `injury_flag` was set or sleep was short, which cut an
+adherent user with an ongoing injury by 15% at every check-in; the mask only ever turns
+INCREASE into MAINTAIN. Production has no `ML_SERVICE_URL`, so this fallback is what runs live.
+
 Dietary flags are a safety feature, not a nicety. They are built from ingredient
 lists (the dataset's own "vegetarian" tag is wrong on 631 recipes), guarded a
 second time by the recipe name (Food.com sometimes omits the main protein, e.g.
