@@ -29,7 +29,10 @@ from training.common import MODEL_DIR, REPORT_DIR  # noqa: E402
 settings.ML_SERVICE_API_KEY = "test-key"
 AUTH = {"Authorization": "Bearer test-key"}
 client = TestClient(app)
-CAL = MODEL_DIR / "rl_calibration.json"
+# calibrate_rl_env.py writes the same numbers to models/ (gitignored) and to
+# models/reports/ (committed), so a fresh clone can still check the real curves.
+CAL = next((p for p in (MODEL_DIR / "rl_calibration.json", REPORT_DIR / "rl_calibration.json") if p.exists()),
+           MODEL_DIR / "rl_calibration.json")
 needs_calibration = pytest.mark.skipif(not CAL.exists(), reason="rl_calibration.json not built")
 needs_agent = pytest.mark.skipif(not (MODEL_DIR / "rl_ppo_meta.json").exists(), reason="PPO not trained")
 

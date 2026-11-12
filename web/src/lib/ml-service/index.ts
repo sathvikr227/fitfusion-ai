@@ -1,5 +1,6 @@
 import { callMLService, type MLCallResult } from "./client"
 import { injuryRegionLevels } from "./injury-rules"
+import { INTENSITY_DELTA, ruleBasedAction } from "./rl-rules"
 import type {
   CalorieRequest,
   CalorieResponse,
@@ -179,6 +180,7 @@ export function predictTrajectory(
       probs: { REGRESS: 0.2, PLATEAU: 0.2, IMPROVE: 0.2, [label]: 0.6 },
       sessions_used: req.sessions.length,
       model_version: "fallback-slope",
+      reason: "ML service unavailable",
       stub: true,
     }
   })
@@ -188,16 +190,11 @@ export function predictTrajectory(
 
 export function rlAction(req: RLStateRequest): Promise<MLCallResult<RLActionResponse>> {
   return callMLService<RLStateRequest, RLActionResponse>("/rl/action", req, () => {
-    // The three thresholds /api/adaptive-replan shipped before the agent existed,
-    // so a missing model changes nothing the user can see.
-    let action: RLActionResponse["action"] = "MAINTAIN"
-    if (req.completion_rate < 0.6) action = "REDUCE"
-    else if (req.completion_rate > 0.85) action = "INCREASE"
-
-    // Safety overrides the thresholds never had.
-    if (req.injury_flag >= 0.5 || req.sleep_avg < 5.5) action = "REDUCE"
-
-    const delta = action === "REDUCE" ? -0.15 : action === "INCREASE" ? 0.15 : 0
+    // The service's own masked threshold rule (rl-rules.ts mirrors
+    // rule_based_action in ml-service/app/rl_env.py), so a missing agent gives
+    // the same answer whether or not the service is reachable.
+    const action = ruleBasedAction(req)
+    const delta = INTENSITY_DELTA[action]
     return {
       action,
       intensity_delta: delta,
@@ -210,6 +207,8 @@ export function rlAction(req: RLStateRequest): Promise<MLCallResult<RLActionResp
         Math.min(req.streak ?? 0, 14) / 14,
       ],
       model_version: "fallback-thresholds",
+      masked: false,
+      reason: "ML service unavailable",
       stub: true,
     }
   })
